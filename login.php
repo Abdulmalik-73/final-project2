@@ -1,0 +1,706 @@
+<?php
+require_once 'includes/config.php';
+
+// Get redirect parameters
+$redirect = isset($_GET['redirect']) ? $_GET['redirect'] : '';
+$room_id = isset($_GET['room']) ? (int)$_GET['room'] : null;
+
+// Redirect if already logged in
+if (is_logged_in()) {
+    if ($redirect == 'booking') {
+        $redirect_url = 'booking.php' . ($room_id ? '?room=' . $room_id : '');
+        header("Location: $redirect_url");
+    } elseif ($redirect == 'food-booking') {
+        header("Location: food-booking.php");
+    } else {
+        $role = get_user_role();
+        switch($role) {
+            case 'admin':
+                header("Location: dashboard/admin.php");
+                break;
+            case 'manager':
+                header("Location: dashboard/manager.php");
+                break;
+            case 'receptionist':
+                header("Location: dashboard/receptionist.php");
+                break;
+            default:
+                header("Location: index.php");
+                break;
+        }
+    }
+    exit();
+}
+
+$error = '';
+$success = '';
+
+// Check for password reset success
+if (isset($_GET['reset']) && $_GET['reset'] == 'success') {
+    $success = 'Password reset successful! You can now login with your new password.';
+}
+
+// Handle login form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $email_or_username = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    
+    if (empty($email_or_username) || empty($password)) {
+        $error = 'Please fill in all fields';
+    } else {
+        // Query database for user by email or username
+        $query = "SELECT * FROM users WHERE (email = ? OR username = ?) AND status = 'active'";
+        $stmt = $conn->prepare($query);
+        
+        if ($stmt) {
+            $stmt->bind_param("ss", $email_or_username, $email_or_username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                $user = $result->fetch_assoc();
+                
+                // Verify password using professional method (supports bcrypt, MD5, and plain text)
+                if (verify_user_password($password, $user['password'])) {
+                    // Set session variables
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['user_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+                    $_SESSION['user_email'] = $user['email'];
+                    $_SESSION['user_role'] = $user['role'];
+                    
+                    // Update last login timestamp
+                    $update_query = "UPDATE users SET last_login = NOW() WHERE id = ?";
+                    $update_stmt = $conn->prepare($update_query);
+                    $update_stmt->bind_param("i", $user['id']);
+                    $update_stmt->execute();
+                    
+                    // Log successful login activity
+                    log_user_activity($user['id'], 'login', 'User logged in successfully', $_SERVER['REMOTE_ADDR'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
+                    
+                    // Log successful login
+                    error_log("Successful login for user: " . $user['email']);
+                    
+                    // Redirect based on role and redirect parameter
+                    if ($redirect == 'booking') {
+                        $redirect_url = 'booking.php' . ($room_id ? '?room=' . $room_id : '');
+                        header("Location: $redirect_url");
+                    } elseif ($redirect == 'food-booking') {
+                        header("Location: food-booking.php");
+                    } else {
+                        switch($user['role']) {
+                            case 'super_admin':
+                                header("Location: dashboard/super-admin.php");
+                                break;
+                            case 'admin':
+                                header("Location: dashboard/admin.php");
+                                break;
+                            case 'manager':
+                                header("Location: dashboard/manager.php");
+                                break;
+                            case 'receptionist':
+                                header("Location: dashboard/receptionist.php");
+                                break;
+                            default:
+                                header("Location: index.php");
+                                break;
+                        }
+                    }
+                    exit();
+                } else {
+                    $error = 'Invalid email/username or password';
+                    error_log("Failed login attempt for: " . $email_or_username . " - Invalid password");
+                }
+            } else {
+                $error = 'Invalid email/username or password';
+                error_log("Failed login attempt for: " . $email_or_username . " - User not found or inactive");
+            }
+            $stmt->close();
+        } else {
+            $error = 'Database error. Please try again.';
+            error_log("Database error in login: " . $conn->error);
+        }
+    }
+}
+
+// Check for success message from registration
+if (isset($_GET['registered']) && $_GET['registered'] == '1') {
+    $success = 'Registration successful! Please login with your credentials.';
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Harar Ras Hotel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-image: url('assets/images/hotel/exterior/hotel-main.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 15px;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
+            z-index: -1;
+        }
+        
+        .login-wrapper {
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+        }
+        
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 15px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-button:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-3px);
+        }
+        
+        .back-button i {
+            margin-right: 8px;
+            font-size: 12px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .login-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 6px;
+        }
+        
+        .login-header p {
+            color: #718096;
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        .form-floating {
+            margin-bottom: 16px;
+            position: relative;
+        }
+        
+        .form-floating input {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px 14px 6px 14px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+            height: 52px;
+        }
+        
+        .form-floating input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
+            background: white;
+        }
+        
+        .form-floating label {
+            color: #718096;
+            font-weight: 500;
+            padding: 14px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+        
+        .password-wrapper {
+            position: relative;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #a0aec0;
+            transition: color 0.3s ease;
+            z-index: 10;
+            padding: 4px;
+        }
+        
+        .password-toggle:hover {
+            color: #667eea;
+        }
+        
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        
+        .forgot-password a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .forgot-password a:hover {
+            color: #5a67d8;
+            text-decoration: underline;
+        }
+        
+        .btn-signin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 13px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-signin:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-signin:active {
+            transform: translateY(0);
+        }
+        
+        .btn-signin.loading {
+            pointer-events: none;
+        }
+        
+        .btn-signin .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 12px 0;
+            position: relative;
+        }
+        
+        .divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: #e2e8f0;
+        }
+        
+        .divider span {
+            background: white;
+            padding: 0 15px;
+            color: #a0aec0;
+            font-size: 13px;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .btn-create {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 13px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+        
+        .btn-create:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+        }
+        
+        .footer-text {
+            text-align: center;
+            margin-top: 16px;
+            color: #a0aec0;
+            font-size: 13px;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border: none;
+            display: flex;
+            align-items: center;
+        }
+        
+        .alert i {
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        
+        .alert-danger {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        
+        .alert-success {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+        
+        .alert-info {
+            background: #bee3f8;
+            color: #2b6cb0;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .login-container {
+                padding: 25px 20px;
+                border-radius: 14px;
+            }
+            
+            .login-header h1 {
+                font-size: 22px;
+            }
+            
+            .form-floating input {
+                font-size: 14px; /* Prevent zoom on iOS */
+            }
+            
+            .back-button {
+                font-size: 13px;
+                padding: 5px 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 20px 16px;
+                border-radius: 12px;
+            }
+            
+            .login-header h1 {
+                font-size: 20px;
+            }
+            
+            .login-header p {
+                font-size: 13px;
+            }
+        }
+        
+        /* Animation for form elements */
+        .form-floating {
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        .form-floating:nth-child(1) { animation-delay: 0.1s; }
+        .form-floating:nth-child(2) { animation-delay: 0.2s; }
+        .btn-signin { animation: slideUp 0.6s ease-out 0.3s both; }
+        .divider { animation: slideUp 0.6s ease-out 0.4s both; }
+        .btn-create { animation: slideUp 0.6s ease-out 0.5s both; }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Focus states for accessibility */
+        .back-button:focus,
+        .form-floating input:focus,
+        .btn-signin:focus,
+        .btn-create:focus {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <a href="index.php" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+            Back to Home
+        </a>
+        
+        <div class="login-container">
+            <div class="login-header">
+                <h1>Login to Your Account</h1>
+                <p>Welcome back! Please enter your details.</p>
+            </div>
+            
+            <?php if ($redirect == 'booking'): ?>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Room Booking in Progress</strong><br>
+                    Please login to continue with your room reservation.
+                </div>
+            </div>
+            <?php elseif ($redirect == 'food-booking'): ?>
+            <div class="alert alert-info">
+                <i class="fas fa-utensils"></i>
+                <div>
+                    <strong>Food Ordering in Progress</strong><br>
+                    Please login to continue with your food order.
+                </div>
+            </div>
+            <?php endif; ?>
+            
+            <?php if ($error): ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <?php echo htmlspecialchars($error); ?>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($success): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <?php echo htmlspecialchars($success); ?>
+                </div>
+            <?php endif; ?>
+            
+            <form method="POST" action="" id="loginForm" novalidate>
+                <div class="form-floating">
+                    <input type="text" 
+                           name="email" 
+                           id="email" 
+                           class="form-control" 
+                           placeholder="example@hararrashotel.com"
+                           required
+                           autocomplete="email"
+                           value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                    <label for="email">Email</label>
+                </div>
+                
+                <div class="form-floating password-wrapper">
+                    <input type="password" 
+                           name="password" 
+                           id="password" 
+                           class="form-control" 
+                           placeholder="Password"
+                           required
+                           autocomplete="current-password">
+                    <label for="password">Password</label>
+                    <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+                </div>
+                
+                <div class="forgot-password">
+                    <a href="forgot-password.php">
+                        Forgot Password?
+                    </a>
+                </div>
+                
+                <button type="submit" class="btn-signin" id="signinBtn">
+                    <div class="spinner" id="spinner"></div>
+                    <span id="btnText">Login</span>
+                </button>
+            </form>
+            
+            <div class="divider">
+                <span>or</span>
+            </div>
+            
+            <a href="register.php<?php echo $redirect ? '?redirect=' . urlencode($redirect) . ($room_id ? '&room=' . $room_id : '') : ''; ?>" 
+               class="btn-create">
+                Create New Account
+            </a>
+            
+            <div class="footer-text">
+                Don't have an account? Click "Create New Account" above
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Password toggle functionality
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+            
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // Toggle eye icon
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+            
+            // Form submission with loading state
+            const loginForm = document.getElementById('loginForm');
+            const signinBtn = document.getElementById('signinBtn');
+            const spinner = document.getElementById('spinner');
+            const btnText = document.getElementById('btnText');
+            
+            loginForm.addEventListener('submit', function(e) {
+                // Show loading state
+                signinBtn.classList.add('loading');
+                spinner.style.display = 'inline-block';
+                btnText.textContent = 'Signing In...';
+                signinBtn.disabled = true;
+                
+                // Basic client-side validation
+                const emailOrUsername = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value;
+                
+                if (!emailOrUsername || !password) {
+                    e.preventDefault();
+                    resetButton();
+                    showError('Please fill in all fields');
+                    return false;
+                }
+            });
+            
+            function resetButton() {
+                signinBtn.classList.remove('loading');
+                spinner.style.display = 'none';
+                btnText.textContent = 'Login';
+                signinBtn.disabled = false;
+            }
+            
+            function isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+            
+            function showError(message) {
+                // Remove existing error alerts
+                const existingAlerts = document.querySelectorAll('.alert-danger');
+                existingAlerts.forEach(alert => alert.remove());
+                
+                // Create new error alert
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+                
+                // Insert before the form
+                const form = document.getElementById('loginForm');
+                form.parentNode.insertBefore(alertDiv, form);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            }
+            
+            // Auto-focus email field if empty
+            const emailInput = document.getElementById('email');
+            if (!emailInput.value) {
+                emailInput.focus();
+            }
+            
+            // Remove success message after 5 seconds
+            const successAlert = document.querySelector('.alert-success');
+            if (successAlert) {
+                setTimeout(() => {
+                    successAlert.style.opacity = '0';
+                    setTimeout(() => successAlert.remove(), 300);
+                }, 5000);
+            }
+        });
+        
+        function showForgotPassword() {
+            alert('To reset your password, please contact hotel administration at:\n\nEmail: admin@hararrashotel.com\nPhone: +251-25-666-0000\n\nOr visit the hotel reception desk.');
+        }
+        
+        // Prevent form resubmission on page refresh
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
+</body>
+</html>

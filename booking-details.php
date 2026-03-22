@@ -1,0 +1,297 @@
+<?php
+session_start();
+require_once 'includes/config.php';
+require_once 'includes/functions.php';
+
+// Check if user is logged in
+if (!is_logged_in()) {
+    header('Location: login.php?redirect=my-bookings');
+    exit();
+}
+
+$booking_ref = isset($_GET['ref']) ? sanitize_input($_GET['ref']) : '';
+
+if (empty($booking_ref)) {
+    header('Location: my-bookings.php');
+    exit();
+}
+
+// Get booking details
+$query = "SELECT b.*, 
+          CASE 
+              WHEN b.booking_type = 'spa_service' THEN 'Spa & Wellness'
+              WHEN b.booking_type = 'laundry_service' THEN 'Laundry Service'
+              WHEN b.booking_type = 'food_order' THEN 'Food Order'
+              ELSE COALESCE(r.name, 'Room Booking')
+          END as room_name,
+          COALESCE(r.room_number, 'N/A') as room_number,
+          COALESCE(r.price, 0) as room_price,
+          CONCAT(u.first_name, ' ', u.last_name) as customer_name,
+          u.email, u.phone,
+          fo.table_reservation, fo.reservation_date, fo.reservation_time, fo.guests as food_guests
+          FROM bookings b
+          LEFT JOIN rooms r ON b.room_id = r.id
+          JOIN users u ON b.user_id = u.id
+          LEFT JOIN food_orders fo ON b.id = fo.booking_id
+          WHERE b.booking_reference = ? AND b.user_id = ?";
+
+$stmt = $conn->prepare($query);
+$stmt->bind_param("si", $booking_ref, $_SESSION['user_id']);
+$stmt->execute();
+$booking = $stmt->get_result()->fetch_assoc();
+
+if (!$booking) {
+    header('Location: my-bookings.php');
+    exit();
+}
+
+// Get food order items if this is a food order
+$food_items = [];
+if ($booking['booking_type'] == 'food_order') {
+    $items_query = "SELECT foi.* FROM food_order_items foi
+                    JOIN food_orders fo ON foi.order_id = fo.id
+                    WHERE fo.booking_id = (SELECT id FROM bookings WHERE booking_reference = ?)";
+    $items_stmt = $conn->prepare($items_query);
+    $items_stmt->bind_param("s", $booking_ref);
+    $items_stmt->execute();
+    $food_items = $items_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Details - Harar Ras Hotel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        @media print {
+            .no-print { display: none; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+    <?php include 'includes/navbar.php'; ?>
+    
+    <section class="py-5">
+        <div class="container">
+            <div class="row mb-4 no-print">
+                <div class="col">
+                    <a href="my-bookings.php" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to My Bookings
+                    </a>
+                </div>
+                <div class="col text-end">
+                    <button onclick="window.print()" class="btn btn-primary">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card shadow">
+                <div class="card-header bg-gold text-white">
+                    <h3 class="mb-0">
+                        <?php if ($booking['booking_type'] == 'food_order'): ?>
+                            <i class="fas fa-utensils"></i> Food Order Details
+                        <?php elseif ($booking['booking_type'] == 'spa_service'): ?>
+                            <i class="fas fa-spa"></i> Spa Service Details
+                        <?php elseif ($booking['booking_type'] == 'laundry_service'): ?>
+                            <i class="fas fa-tshirt"></i> Laundry Service Details
+                        <?php else: ?>
+                            <i class="fas fa-bed"></i> Booking Details
+                        <?php endif; ?>
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Booking Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="text-gold mb-3">
+                                <?php echo $booking['booking_type'] == 'food_order' ? 'Order' : 'Booking'; ?> Information
+                            </h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Reference:</strong></td>
+                                    <td><?php echo htmlspecialchars($booking['booking_reference']); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        <?php
+                                        $status_class = 'secondary';
+                                        $status_text = ucfirst(str_replace('_', ' ', $booking['verification_status']));
+                                        switch($booking['verification_status']) {
+                                            case 'pending_payment': $status_class = 'warning'; break;
+                                            case 'pending_verification': $status_class = 'info'; break;
+                                            case 'verified': $status_class = 'success'; break;
+                                            case 'rejected': $status_class = 'danger'; break;
+                                        }
+                                        ?>
+                                        <span class="badge bg-<?php echo $status_class; ?>"><?php echo $status_text; ?></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Booked On:</strong></td>
+                                    <td><?php echo date('F j, Y g:i A', strtotime($booking['created_at'])); ?></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-gold mb-3">Customer Information</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Name:</strong></td>
+                                    <td><?php echo htmlspecialchars($booking['customer_name']); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td><?php echo htmlspecialchars($booking['email']); ?></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Phone:</strong></td>
+                                    <td><?php echo htmlspecialchars($booking['phone']); ?></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Service/Room Details -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="text-gold mb-3">
+                                <?php if ($booking['booking_type'] == 'food_order'): ?>
+                                    Order Details
+                                <?php elseif (in_array($booking['booking_type'], ['spa_service', 'laundry_service'])): ?>
+                                    Service Details
+                                <?php else: ?>
+                                    Room Details
+                                <?php endif; ?>
+                            </h5>
+                            <table class="table table-sm">
+                                <?php if ($booking['booking_type'] == 'food_order'): ?>
+                                    <tr>
+                                        <td width="30%"><strong>Order Type:</strong></td>
+                                        <td><?php echo $booking['table_reservation'] ? 'Dine-in (Table Reserved)' : 'Takeaway'; ?></td>
+                                    </tr>
+                                    <?php if ($booking['table_reservation']): ?>
+                                    <tr>
+                                        <td><strong>Reservation Date:</strong></td>
+                                        <td><?php echo $booking['reservation_date'] ? date('F j, Y', strtotime($booking['reservation_date'])) : 'Not specified'; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Reservation Time:</strong></td>
+                                        <td><?php echo $booking['reservation_time'] ? date('g:i A', strtotime($booking['reservation_time'])) : 'Not specified'; ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                    <tr>
+                                        <td><strong>Number of Guests:</strong></td>
+                                        <td><?php echo $booking['food_guests']; ?></td>
+                                    </tr>
+                                <?php elseif (in_array($booking['booking_type'], ['spa_service', 'laundry_service'])): ?>
+                                    <tr>
+                                        <td width="30%"><strong>Service Type:</strong></td>
+                                        <td><?php echo htmlspecialchars($booking['room_name']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Service Date:</strong></td>
+                                        <td><?php echo $booking['check_in_date'] ? date('F j, Y', strtotime($booking['check_in_date'])) : 'To be scheduled'; ?></td>
+                                    </tr>
+                                <?php else: ?>
+                                    <tr>
+                                        <td width="30%"><strong>Room Type:</strong></td>
+                                        <td><?php echo htmlspecialchars($booking['room_name']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Room Number:</strong></td>
+                                        <td><?php echo htmlspecialchars($booking['room_number']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Check-in Date:</strong></td>
+                                        <td><?php echo date('F j, Y', strtotime($booking['check_in_date'])); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Check-out Date:</strong></td>
+                                        <td><?php echo date('F j, Y', strtotime($booking['check_out_date'])); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Number of Guests:</strong></td>
+                                        <td><?php echo $booking['customers']; ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Food Items (if food order) -->
+                    <?php if ($booking['booking_type'] == 'food_order' && !empty($food_items)): ?>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="text-gold mb-3">Ordered Items</h5>
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Item</th>
+                                        <th class="text-center">Quantity</th>
+                                        <th class="text-end">Price</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($food_items as $item): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($item['item_name']); ?></td>
+                                        <td class="text-center"><?php echo $item['quantity']; ?></td>
+                                        <td class="text-end"><?php echo format_currency($item['price']); ?></td>
+                                        <td class="text-end"><?php echo format_currency($item['total_price']); ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <!-- Special Requests -->
+                    <?php if ($booking['special_requests']): ?>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="text-gold mb-3">Special Requests</h5>
+                            <div class="alert alert-info">
+                                <?php echo nl2br(htmlspecialchars($booking['special_requests'])); ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <!-- Payment Information -->
+                    <div class="row">
+                        <div class="col-md-6 offset-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Total Amount:</strong></td>
+                                    <td class="text-end"><h4 class="text-success mb-0"><?php echo format_currency($booking['total_price']); ?></h4></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Payment Status:</strong></td>
+                                    <td class="text-end">
+                                        <span class="badge bg-<?php echo $booking['payment_status'] == 'paid' ? 'success' : 'warning'; ?>">
+                                            <?php echo ucfirst($booking['payment_status']); ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <?php include 'includes/footer.php'; ?>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
