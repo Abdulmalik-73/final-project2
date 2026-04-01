@@ -82,6 +82,8 @@ return [
         'booking_summary' => 'Booking Summary',
         'total' => 'Total',
         'nights' => 'night(s)',
+        'book_room' => 'Book Room',
+        'order_food' => 'Order Food',
     ],
     
     // Rooms
@@ -93,6 +95,62 @@ return [
         'book_now' => 'Book Now',
         'per_night' => '/night',
         'room_number' => 'Room Number',
+        'room_status' => 'Room Status',
+        'add_to_cart' => 'Add to Cart',
+        'not_available' => 'Not Available',
+        'services' => 'Services',
+        'our_rooms' => 'Our Rooms',
+        'back_to_home' => 'Back to Home',
+        'our_rooms_suites' => 'Our Rooms & Suites',
+        'all_rooms_include' => 'All rooms include complimentary breakfast and daily housekeeping',
+        'view_all_book' => 'View All Rooms & Book Now',
+        'login_to_book' => 'Login to Book a Room',
+    ],
+    
+    // Services
+    'services' => [
+        'our_services' => 'Our Services',
+        'restaurant' => 'Restaurant',
+        'spa' => 'Spa & Wellness',
+        'laundry' => 'Laundry Service',
+        'room_service' => 'Room Service',
+        'book_service' => 'Book Service',
+        'view_menu' => 'View Menu',
+    ],
+    
+    // Food Booking
+    'food' => [
+        'title' => 'Food Order & Table Reservation',
+        'select_items' => 'Select Food Items',
+        'ethiopian_cuisine' => 'Ethiopian Cuisine',
+        'international_cuisine' => 'International Cuisine',
+        'desserts' => 'Desserts',
+        'beverages' => 'Beverages',
+        'table_reservation' => 'Table Reservation (Optional)',
+        'reserve_table' => 'I want to reserve a table for dining',
+        'reservation_date' => 'Reservation Date',
+        'reservation_time' => 'Reservation Time',
+        'number_of_guests' => 'Number of Guests',
+        'place_order' => 'Place Food Order',
+        'order_summary' => 'Order Summary',
+        'select_to_see_pricing' => 'Select food items to see pricing',
+        'quantity' => 'Qty',
+        'back_to_services' => 'Back to Services',
+    ],
+    
+    // Profile/Account
+    'profile' => [
+        'my_profile' => 'My Profile',
+        'personal_info' => 'Personal Information',
+        'full_name' => 'Full Name',
+        'email' => 'Email Address',
+        'phone' => 'Phone Number',
+        'address' => 'Address',
+        'update_profile' => 'Update Profile',
+        'change_password' => 'Change Password',
+        'current_password' => 'Current Password',
+        'new_password' => 'New Password',
+        'confirm_password' => 'Confirm Password',
     ],
     
     // Footer
@@ -101,7 +159,17 @@ return [
         'contact_us' => 'Contact Us',
         'terms' => 'Terms & Conditions',
         'privacy' => 'Privacy Policy',
-        'all_rights_reserved' => 'All rights reserved',
+        'all_rights_reserved' => 'All Rights Reserved',
+        'quick_links' => 'Quick Links',
+        'services' => 'Services',
+        'contact_info' => 'Contact Info',
+        'experience_text' => 'Experience the warmth of Ethiopian hospitality in the heart of historic Harar. Where ancient traditions meet modern luxury.',
+        'room_booking' => 'Room Booking',
+        'restaurant' => 'Restaurant',
+        'spa_wellness' => 'Spa & Wellness',
+        'event_spaces' => 'Event Spaces',
+        'city_tours' => 'City Tours',
+        'reception_24_7' => '24/7 Reception',
     ],
 ];
 ?>

@@ -323,7 +323,7 @@ $rooms = get_all_rooms();
                     <div class="card shadow-sm <?php echo !is_logged_in() ? 'opacity-25' : ''; ?>">
                         <div class="card-header text-white" style="background: <?php echo !is_logged_in() ? '#6c757d' : 'linear-gradient(135deg, #1e88e5 0%, #1565c0 100%)'; ?>; padding: 1.5rem;">
                             <h3 class="mb-0 fw-bold" style="font-size: 1.75rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
-                                <i class="fas fa-calendar-check me-2"></i> Book Your Stay
+                                <i class="fas fa-calendar-check me-2"></i> <?php echo __('booking.title'); ?>
                                 <?php if (!is_logged_in()): ?>
                                 <span class="badge bg-danger ms-2" style="font-size: 0.9rem;">
                                     <i class="fas fa-lock"></i> LOCKED - Authentication Required
@@ -389,9 +389,9 @@ $rooms = get_all_rooms();
                             
                             <form method="POST" action="" id="bookingForm" <?php echo !is_logged_in() ? 'style="pointer-events: none;"' : ''; ?>>
                                 <div class="mb-4">
-                                    <label class="form-label fw-bold">Select Room *</label>
+                                    <label class="form-label fw-bold"><?php echo __('booking.select_room'); ?> *</label>
                                     <select name="room_id" id="roomSelect" class="form-select" required style="font-size: 14px;">
-                                        <option value="">Choose a room...</option>
+                                        <option value=""><?php echo __('booking.select_room'); ?>...</option>
                                         
                                         <optgroup label="Standard Single Room - ETB 2,000.00/night">
                                             <option value="1" data-price="2000" data-capacity="1">Standard Single Room Number 1 - ETB 2,000.00/night</option>
@@ -463,27 +463,27 @@ $rooms = get_all_rooms();
                                 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">Check-in Date *</label>
+                                        <label class="form-label fw-bold"><?php echo __('booking.check_in'); ?> *</label>
                                         <input type="date" name="check_in" id="checkIn" class="form-control" 
                                                min="<?php echo date('Y-m-d'); ?>" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">Check-out Date *</label>
+                                        <label class="form-label fw-bold"><?php echo __('booking.check_out'); ?> *</label>
                                         <input type="date" name="check_out" id="checkOut" class="form-control" 
                                                min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" required>
                                     </div>
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Number of Customers *</label>
+                                    <label class="form-label fw-bold"><?php echo __('booking.guests'); ?> *</label>
                                     <input type="number" name="customers" id="customers" class="form-control" 
                                            min="1" max="10" value="1" required>
                                 </div>
                                 
                                 <div class="mb-4">
-                                    <label class="form-label fw-bold">Special Requests</label>
+                                    <label class="form-label fw-bold"><?php echo __('booking.special_requests'); ?></label>
                                     <textarea name="special_requests" class="form-control" rows="3" 
-                                              placeholder="Any special requirements or requests..."></textarea>
+                                              placeholder="<?php echo __('booking.special_requests'); ?>..."></textarea>
                                 </div>
                                 
                                 <?php if (!is_logged_in()): ?>
@@ -508,7 +508,7 @@ $rooms = get_all_rooms();
                                 </button>
                                 <?php else: ?>
                                 <button type="submit" class="btn btn-gold btn-lg w-100">
-                                    <i class="fas fa-check-circle"></i> Confirm Booking
+                                    <i class="fas fa-check-circle"></i> <?php echo __('booking.confirm_booking'); ?>
                                 </button>
                                 <?php endif; ?>
                             </form>
@@ -519,13 +519,13 @@ $rooms = get_all_rooms();
                 <div class="col-lg-4">
                     <div class="card shadow-sm sticky-top" style="top: 100px;">
                         <div class="card-header bg-light">
-                            <h5 class="mb-0">Booking Summary</h5>
+                            <h5 class="mb-0"><?php echo __('booking.booking_summary'); ?></h5>
                         </div>
                         <div class="card-body">
                             <div id="bookingSummary">
                                 <p class="text-muted text-center py-4">
                                     <i class="fas fa-info-circle"></i><br>
-                                    Select room and dates to see pricing
+                                    <?php echo __('booking.select_room'); ?> and dates to see pricing
                                 </p>
                             </div>
                         </div>

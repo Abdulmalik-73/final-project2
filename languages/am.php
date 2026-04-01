@@ -82,6 +82,8 @@ return [
         'booking_summary' => 'የቦታ ማስያዣ ማጠቃለያ',
         'total' => 'ጠቅላላ',
         'nights' => 'ሌሊት(ቶች)',
+        'book_room' => 'ክፍል ይዘዙ',
+        'order_food' => 'ምግብ ያዝዙ',
     ],
     
     // Rooms
@@ -93,6 +95,62 @@ return [
         'book_now' => 'አሁን ይዘዙ',
         'per_night' => '/ሌሊት',
         'room_number' => 'የክፍል ቁጥር',
+        'room_status' => 'የክፍል ሁኔታ',
+        'add_to_cart' => 'ወደ ጋሪ ያክሉ',
+        'not_available' => 'አይገኝም',
+        'services' => 'አገልግሎቶች',
+        'our_rooms' => 'የእኛ ክፍሎች',
+        'back_to_home' => 'ወደ መነሻ ተመለስ',
+        'our_rooms_suites' => 'የእኛ ክፍሎች እና ስዊቶች',
+        'all_rooms_include' => 'ሁሉም ክፍሎች ነፃ ቁርስ እና ዕለታዊ የቤት ጽዳት ያካትታሉ',
+        'view_all_book' => 'ሁሉንም ክፍሎች ይመልከቱ እና አሁን ይዘዙ',
+        'login_to_book' => 'ክፍል ለማስያዝ ይግቡ',
+    ],
+    
+    // Services
+    'services' => [
+        'our_services' => 'የእኛ አገልግሎቶች',
+        'restaurant' => 'ምግብ ቤት',
+        'spa' => 'ስፓ እና ጤና',
+        'laundry' => 'የልብስ ማጠቢያ አገልግሎት',
+        'room_service' => 'የክፍል አገልግሎት',
+        'book_service' => 'አገልግሎት ይዘዙ',
+        'view_menu' => 'ምናሌ ይመልከቱ',
+    ],
+    
+    // Food Booking
+    'food' => [
+        'title' => 'የምግብ ትዕዛዝ እና የጠረጴዛ ቦታ ማስያዣ',
+        'select_items' => 'የምግብ ዕቃዎችን ይምረጡ',
+        'ethiopian_cuisine' => 'የኢትዮጵያ ምግብ',
+        'international_cuisine' => 'ዓለም አቀፍ ምግብ',
+        'desserts' => 'ጣፋጭ ምግቦች',
+        'beverages' => 'መጠጦች',
+        'table_reservation' => 'የጠረጴዛ ቦታ ማስያዣ (አማራጭ)',
+        'reserve_table' => 'ለመመገብ ጠረጴዛ ማስያዝ እፈልጋለሁ',
+        'reservation_date' => 'የቦታ ማስያዣ ቀን',
+        'reservation_time' => 'የቦታ ማስያዣ ሰዓት',
+        'number_of_guests' => 'የእንግዶች ብዛት',
+        'place_order' => 'የምግብ ትዕዛዝ ያስቀምጡ',
+        'order_summary' => 'የትዕዛዝ ማጠቃለያ',
+        'select_to_see_pricing' => 'ዋጋ ለማየት የምግብ ዕቃዎችን ይምረጡ',
+        'quantity' => 'ብዛት',
+        'back_to_services' => 'ወደ አገልግሎቶች ተመለስ',
+    ],
+    
+    // Profile/Account
+    'profile' => [
+        'my_profile' => 'የእኔ መገለጫ',
+        'personal_info' => 'የግል መረጃ',
+        'full_name' => 'ሙሉ ስም',
+        'email' => 'ኢሜይል አድራሻ',
+        'phone' => 'ስልክ ቁጥር',
+        'address' => 'አድራሻ',
+        'update_profile' => 'መገለጫ ያዘምኑ',
+        'change_password' => 'የይለፍ ቃል ይቀይሩ',
+        'current_password' => 'የአሁኑ የይለፍ ቃል',
+        'new_password' => 'አዲስ የይለፍ ቃል',
+        'confirm_password' => 'የይለፍ ቃል ያረጋግጡ',
     ],
     
     // Footer
@@ -102,6 +160,16 @@ return [
         'terms' => 'ውሎች እና ሁኔታዎች',
         'privacy' => 'የግላዊነት ፖሊሲ',
         'all_rights_reserved' => 'መብቱ በህግ የተጠበቀ ነው',
+        'quick_links' => 'ፈጣን አገናኞች',
+        'services' => 'አገልግሎቶች',
+        'contact_info' => 'የመገኛ መረጃ',
+        'experience_text' => 'በታሪካዊ ሐረር ልብ ውስጥ የኢትዮጵያን እንግዳ ተቀባይነት ሙቀት ይለማመዱ። የጥንት ባህሎች ዘመናዊ ቅንጦትን የሚያገናኙበት።',
+        'room_booking' => 'የክፍል ቦታ ማስያዣ',
+        'restaurant' => 'ምግብ ቤት',
+        'spa_wellness' => 'ስፓ እና ጤና',
+        'event_spaces' => 'የዝግጅት ቦታዎች',
+        'city_tours' => 'የከተማ ጉብኝቶች',
+        'reception_24_7' => '24/7 መቀበያ',
     ],
 ];
 ?>

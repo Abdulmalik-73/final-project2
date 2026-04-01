@@ -10,7 +10,7 @@ $rooms = get_all_rooms();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Our Rooms - Harar Ras Hotel</title>
+    <title><?php echo __('rooms.our_rooms'); ?> - Harar Ras Hotel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
@@ -24,11 +24,11 @@ $rooms = get_all_rooms();
             <div class="row align-items-center">
                 <div class="col-auto">
                     <a href="index.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Home
+                        <i class="fas fa-arrow-left"></i> <?php echo __('rooms.back_to_home'); ?>
                     </a>
                 </div>
                 <div class="col text-center">
-                    <h1 class="display-4 fw-bold mb-0">Our Rooms & Suites</h1>
+                    <h1 class="display-4 fw-bold mb-0"><?php echo __('rooms.our_rooms_suites'); ?></h1>
                 </div>
                 <div class="col-auto">
                     <!-- Spacer for centering -->
@@ -44,7 +44,7 @@ $rooms = get_all_rooms();
                 <div class="text-center mb-4">
                     <h2 class="mb-3">
                         <i class="fas fa-bed text-gold"></i>
-                        Our Rooms
+                        <?php echo __('rooms.our_rooms'); ?>
                     </h2>
                 </div>
                 
@@ -72,10 +72,10 @@ $rooms = get_all_rooms();
             
             // Room status display configuration
             $status_config = [
-                'available' => ['text' => 'Available', 'icon' => '✅', 'class' => 'text-success', 'bookable' => true],
-                'occupied' => ['text' => 'Occupied', 'icon' => '🔴', 'class' => 'text-danger', 'bookable' => false],
-                'maintenance' => ['text' => 'Under Maintenance', 'icon' => '🔧', 'class' => 'text-warning', 'bookable' => false],
-                'inactive' => ['text' => 'Temporarily Unavailable', 'icon' => '⚫', 'class' => 'text-secondary', 'bookable' => false]
+                'available' => ['text' => __('rooms.available'), 'icon' => '✅', 'class' => 'text-success', 'bookable' => true],
+                'occupied' => ['text' => __('rooms.occupied'), 'icon' => '🔴', 'class' => 'text-danger', 'bookable' => false],
+                'maintenance' => ['text' => __('rooms.maintenance'), 'icon' => '🔧', 'class' => 'text-warning', 'bookable' => false],
+                'inactive' => ['text' => __('rooms.not_available'), 'icon' => '⚫', 'class' => 'text-secondary', 'bookable' => false]
             ];
             
             // Define room types with their ranges and details
@@ -259,7 +259,7 @@ $rooms = get_all_rooms();
                                 $status_info = $status_config[$room_status];
                                 ?>
                                 <p class="mb-2">
-                                    <strong>Room Status:</strong> 
+                                    <strong><?php echo __('rooms.room_status'); ?>:</strong> 
                                     <span class="<?php echo $status_info['class']; ?>">
                                         <?php echo $status_info['text']; ?> <?php echo $status_info['icon']; ?>
                                     </span>
@@ -267,7 +267,7 @@ $rooms = get_all_rooms();
                                 
                                 <!-- Services Section -->
                                 <div class="mb-2">
-                                    <p class="mb-1 small"><strong>Services:</strong></p>
+                                    <p class="mb-1 small"><strong><?php echo __('rooms.services'); ?>:</strong></p>
                                     <div class="d-flex flex-wrap gap-1">
                                         <?php foreach ($room_type['amenities'] as $amenity): ?>
                                             <span class="badge bg-light text-dark border" style="font-size: 0.7rem;"><?php echo $amenity; ?></span>
@@ -280,20 +280,20 @@ $rooms = get_all_rooms();
                                     <div class="d-flex flex-column gap-2">
                                         <?php if ($status_info['bookable']): ?>
                                         <button class="btn btn-sm btn-outline-primary" onclick="addToCart(<?php echo $room_num; ?>, '<?php echo addslashes($room_type['name']); ?>', <?php echo $room_type['price']; ?>)">
-                                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                                            <i class="fas fa-shopping-cart"></i> <?php echo __('rooms.add_to_cart'); ?>
                                         </button>
                                         <?php if (!is_logged_in()): ?>
                                         <button class="btn btn-sm btn-outline-gold" onclick="showLoginPrompt('room')">
-                                            <i class="fas fa-lock"></i> Login to Book
+                                            <i class="fas fa-lock"></i> <?php echo __('nav.login'); ?>
                                         </button>
                                         <?php else: ?>
                                         <a href="booking.php?room=<?php echo $room_num; ?>" class="btn btn-sm btn-gold">
-                                            <i class="fas fa-calendar-check"></i> Book Now
+                                            <i class="fas fa-calendar-check"></i> <?php echo __('rooms.book_now'); ?>
                                         </a>
                                         <?php endif; ?>
                                         <?php else: ?>
                                         <button class="btn btn-sm btn-secondary" disabled>
-                                            <i class="fas fa-ban"></i> Not Available
+                                            <i class="fas fa-ban"></i> <?php echo __('rooms.not_available'); ?>
                                         </button>
                                         <small class="text-muted text-center">
                                             <?php 
@@ -319,13 +319,13 @@ $rooms = get_all_rooms();
             ?>
             
             <div class="text-center mt-4">
-                <p class="text-muted mb-3">All rooms include complimentary breakfast and daily housekeeping</p>
+                <p class="text-muted mb-3"><?php echo __('rooms.all_rooms_include'); ?></p>
                 <?php if (!is_logged_in()): ?>
                 <button class="btn btn-gold btn-lg" onclick="showLoginPrompt('room')">
-                    <i class="fas fa-lock"></i> Login to Book a Room
+                    <i class="fas fa-lock"></i> <?php echo __('rooms.login_to_book'); ?>
                 </button>
                 <?php else: ?>
-                <a href="booking.php" class="btn btn-gold btn-lg">View All Rooms & Book Now</a>
+                <a href="booking.php" class="btn btn-gold btn-lg"><?php echo __('rooms.view_all_book'); ?></a>
                 <?php endif; ?>
             </div>
             </div>

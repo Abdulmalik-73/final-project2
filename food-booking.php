@@ -207,27 +207,63 @@ $food_items = [
     'Beverages' => []
 ];
 
+// Image counters for each category
+$ethiopian_images = [];
+$international_images = [];
+$beverage_images = [];
+
+// Pre-populate image arrays
+for ($i = 1; $i <= 41; $i++) {
+    $ethiopian_images[] = 'assets/images/food/ethiopian/food' . $i . '.jpg';
+}
+for ($i = 1; $i <= 10; $i++) {
+    $international_images[] = 'assets/images/food/international/i' . $i . '.jpg';
+}
+for ($i = 1; $i <= 9; $i++) {
+    $beverage_images[] = 'assets/images/food/beverages/b' . $i . '.jpg';
+}
+
+// Shuffle arrays to randomize image assignment
+shuffle($ethiopian_images);
+shuffle($international_images);
+shuffle($beverage_images);
+
+$ethiopian_img_index = 0;
+$international_img_index = 0;
+$beverage_img_index = 0;
+
 // Categorize food items
 while ($row = $food_result->fetch_assoc()) {
     $item_data = [
         'price' => $row['price'],
-        'description' => $row['description']
+        'description' => $row['description'],
+        'image' => ''
     ];
     
-    // Categorize based on name
+    // Categorize based on name and assign unique images
     if (stripos($row['name'], 'Ethiopian') !== false) {
+        $item_data['image'] = $ethiopian_images[$ethiopian_img_index % count($ethiopian_images)];
+        $ethiopian_img_index++;
         $food_items['Ethiopian Cuisine'][$row['name']] = $item_data;
     } elseif (stripos($row['name'], 'International') !== false || 
               in_array($row['name'], ['Grilled Steak', 'Pasta Carbonara', 'Grilled Salmon', 'Caesar Salad'])) {
+        $item_data['image'] = $international_images[$international_img_index % count($international_images)];
+        $international_img_index++;
         $food_items['International Cuisine'][$row['name']] = $item_data;
     } elseif (in_array($row['name'], ['Chocolate Lava Cake', 'Tiramisu'])) {
+        $item_data['image'] = $international_images[$international_img_index % count($international_images)];
+        $international_img_index++;
         $food_items['Desserts'][$row['name']] = $item_data;
     } elseif (stripos($row['name'], 'Juice') !== false || 
               stripos($row['name'], 'Smoothie') !== false || 
               stripos($row['name'], 'Coffee') !== false) {
+        $item_data['image'] = $beverage_images[$beverage_img_index % count($beverage_images)];
+        $beverage_img_index++;
         $food_items['Beverages'][$row['name']] = $item_data;
     } else {
         // Default to International if not categorized
+        $item_data['image'] = $international_images[$international_img_index % count($international_images)];
+        $international_img_index++;
         $food_items['International Cuisine'][$row['name']] = $item_data;
     }
 }
@@ -246,6 +282,49 @@ $food_items = array_filter($food_items, function($category) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+        }
+        
+        .card-img-top {
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover .card-img-top {
+            transform: scale(1.05);
+        }
+        
+        .food-item:checked ~ label {
+            color: #f7931e;
+            font-weight: bold;
+        }
+        
+        .quantity-input:focus {
+            border-color: #f7931e;
+            box-shadow: 0 0 0 0.2rem rgba(247, 147, 30, 0.25);
+        }
+        
+        .text-gold {
+            color: #f7931e !important;
+        }
+        
+        .btn-gold {
+            background: linear-gradient(135deg, #f7931e 0%, #ff6b35 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn-gold:hover {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+        }
+    </style>
 </head>
 <body>
     <?php include 'includes/navbar.php'; ?>
@@ -257,7 +336,7 @@ $food_items = array_filter($food_items, function($category) {
                 <div class="row align-items-center">
                     <div class="col-md-8">
                         <h4 class="alert-heading mb-2">
-                            <i class="fas fa-utensils"></i> Food Ordering & Table Reservation
+                            <i class="fas fa-utensils"></i> <?php echo __('food.title'); ?>
                         </h4>
                         <p class="mb-0">
                             <strong>This is the FOOD BOOKING page.</strong> Select your food items and optionally reserve a table.
@@ -273,7 +352,7 @@ $food_items = array_filter($food_items, function($category) {
             <div class="row mb-4">
                 <div class="col">
                     <a href="services.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Services
+                        <i class="fas fa-arrow-left"></i> <?php echo __('food.back_to_services'); ?>
                     </a>
                 </div>
             </div>
@@ -283,7 +362,7 @@ $food_items = array_filter($food_items, function($category) {
                     <div class="card shadow-sm">
                         <div class="card-header text-white" style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); padding: 1.5rem;">
                             <h3 class="mb-0 fw-bold" style="font-size: 1.75rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
-                                <i class="fas fa-utensils me-2"></i> Food Order & Table Reservation
+                                <i class="fas fa-utensils me-2"></i> <?php echo __('food.title'); ?>
                             </h3>
                         </div>
                         <div class="card-body">
@@ -299,16 +378,30 @@ $food_items = array_filter($food_items, function($category) {
                                 <!-- Food Selection -->
                                 <div class="mb-4">
                                     <h5 class="mb-3">
-                                        <i class="fas fa-utensils text-gold"></i> Select Food Items
+                                        <i class="fas fa-utensils text-gold"></i> <?php echo __('food.select_items'); ?>
                                     </h5>
                                     
                                     <?php foreach ($food_items as $category => $items): ?>
                                     <div class="mb-4">
-                                        <h6 class="text-gold"><?php echo $category; ?></h6>
+                                        <h6 class="text-gold"><?php 
+                                            // Translate category names
+                                            if ($category == 'Ethiopian Cuisine') echo __('food.ethiopian_cuisine');
+                                            elseif ($category == 'International Cuisine') echo __('food.international_cuisine');
+                                            elseif ($category == 'Desserts') echo __('food.desserts');
+                                            elseif ($category == 'Beverages') echo __('food.beverages');
+                                            else echo $category;
+                                        ?></h6>
                                         <div class="row">
                                             <?php foreach ($items as $item_name => $item_data): ?>
                                             <div class="col-md-6 mb-3">
-                                                <div class="card h-100">
+                                                <div class="card h-100 shadow-sm">
+                                                    <!-- Food Image -->
+                                                    <img src="<?php echo $item_data['image']; ?>" 
+                                                         class="card-img-top" 
+                                                         alt="<?php echo $item_name; ?>" 
+                                                         style="height: 180px; object-fit: cover;"
+                                                         onerror="this.src='assets/images/food/ethiopian/food1.jpg'">
+                                                    
                                                     <div class="card-body">
                                                         <div class="form-check mb-2">
                                                             <input class="form-check-input food-item" type="checkbox" 
@@ -342,25 +435,25 @@ $food_items = array_filter($food_items, function($category) {
                                 <!-- Table Reservation -->
                                 <div class="mb-4">
                                     <h5 class="mb-3">
-                                        <i class="fas fa-chair text-gold"></i> Table Reservation (Optional)
+                                        <i class="fas fa-chair text-gold"></i> <?php echo __('food.table_reservation'); ?>
                                     </h5>
                                     <div class="form-check mb-3">
                                         <input class="form-check-input" type="checkbox" name="table_reservation" 
                                                id="tableReservation" onchange="toggleReservationFields()">
                                         <label class="form-check-label" for="tableReservation">
-                                            I want to reserve a table for dining
+                                            <?php echo __('food.reserve_table'); ?>
                                         </label>
                                     </div>
                                     
                                     <div id="reservationFields" style="display: none;">
                                         <div class="row">
                                             <div class="col-md-4 mb-3">
-                                                <label class="form-label">Reservation Date</label>
+                                                <label class="form-label"><?php echo __('food.reservation_date'); ?></label>
                                                 <input type="date" name="reservation_date" class="form-control" 
                                                        min="<?php echo date('Y-m-d'); ?>">
                                             </div>
                                             <div class="col-md-4 mb-3">
-                                                <label class="form-label">Reservation Time</label>
+                                                <label class="form-label"><?php echo __('food.reservation_time'); ?></label>
                                                 <select name="reservation_time" class="form-select">
                                                     <option value="">Select time...</option>
                                                     <option value="12:00">12:00 PM</option>
@@ -378,7 +471,7 @@ $food_items = array_filter($food_items, function($category) {
                                                 </select>
                                             </div>
                                             <div class="col-md-4 mb-3">
-                                                <label class="form-label">Number of Guests</label>
+                                                <label class="form-label"><?php echo __('food.number_of_guests'); ?></label>
                                                 <input type="number" name="guests" class="form-control" 
                                                        min="1" max="12" value="1">
                                             </div>
@@ -388,13 +481,13 @@ $food_items = array_filter($food_items, function($category) {
                                 
                                 <!-- Special Requests -->
                                 <div class="mb-4">
-                                    <label class="form-label fw-bold">Special Requests</label>
+                                    <label class="form-label fw-bold"><?php echo __('booking.special_requests'); ?></label>
                                     <textarea name="special_requests" class="form-control" rows="3" 
-                                              placeholder="Any dietary restrictions, allergies, or special requests..."></textarea>
+                                              placeholder="<?php echo __('booking.special_requests'); ?>..."></textarea>
                                 </div>
                                 
                                 <button type="submit" class="btn btn-gold btn-lg w-100">
-                                    <i class="fas fa-check-circle"></i> Place Food Order
+                                    <i class="fas fa-check-circle"></i> <?php echo __('food.place_order'); ?>
                                 </button>
                             </form>
                         </div>
@@ -404,13 +497,13 @@ $food_items = array_filter($food_items, function($category) {
                 <div class="col-lg-4">
                     <div class="card shadow-sm sticky-top" style="top: 100px;">
                         <div class="card-header bg-light">
-                            <h5 class="mb-0">Order Summary</h5>
+                            <h5 class="mb-0"><?php echo __('food.order_summary'); ?></h5>
                         </div>
                         <div class="card-body">
                             <div id="orderSummary">
                                 <p class="text-muted text-center py-4">
                                     <i class="fas fa-info-circle"></i><br>
-                                    Select food items to see pricing
+                                    <?php echo __('food.select_to_see_pricing'); ?>
                                 </p>
                             </div>
                         </div>
