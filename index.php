@@ -262,6 +262,7 @@ $food_images = [
             font-weight: bold;
             margin-bottom: 20px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            min-height: 80px;
         }
         
         .hero-subtitle {
@@ -269,6 +270,19 @@ $food_images = [
             margin-bottom: 30px;
             opacity: 0.9;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+            min-height: 40px;
+        }
+        
+        /* Typing cursor effect */
+        .typing::after {
+            content: "|";
+            animation: blink 1s infinite;
+            margin-left: 2px;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
         
         @media (max-width: 768px) {
@@ -279,6 +293,93 @@ $food_images = [
                 font-size: 1.2rem;
             }
         }
+        
+        /* Hero Section Buttons - Modern Semi-Transparent Style with Beautiful Hover */
+        .btn-hero {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1a1a1a;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 14px 32px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-hero:hover::before {
+            left: 100%;
+        }
+        
+        .btn-hero:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.8);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-hero-primary {
+            background: rgba(212, 175, 55, 0.9);
+            color: #ffffff;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            padding: 14px 32px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-hero-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-hero-primary:hover::before {
+            left: 100%;
+        }
+        
+        .btn-hero-primary:hover {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.8);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 30px rgba(245, 87, 108, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            .btn-hero,
+            .btn-hero-primary {
+                padding: 12px 24px;
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -287,13 +388,13 @@ $food_images = [
     <!-- Hero Section -->
     <section class="hero-section" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('assets/images/hotel/exterior/hotel-main.png') center/cover no-repeat; min-height: 500px; display: flex; align-items: center;">
         <div class="container">
-            <h1 class="hero-title"><?php echo __('home.welcome_title'); ?></h1>
-            <p class="hero-subtitle"><?php echo __('home.welcome_subtitle'); ?></p>
+            <h1 class="hero-title" id="hero-title"></h1>
+            <p class="hero-subtitle" id="hero-subtitle"></p>
             <div class="d-flex gap-3 justify-content-center">
-                <a href="rooms.php" class="btn btn-light btn-lg">
+                <a href="rooms.php" class="btn btn-hero btn-lg">
                     <i class="fas fa-bed me-2"></i><?php echo __('home.view_all_rooms'); ?>
                 </a>
-                <a href="services.php" class="btn btn-outline-light btn-lg">
+                <a href="services.php" class="btn btn-hero-primary btn-lg">
                     <i class="fas fa-concierge-bell me-2"></i><?php echo __('home.our_services'); ?>
                 </a>
             </div>
@@ -395,6 +496,96 @@ $food_images = [
     
     <?php include 'includes/footer.php'; ?>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Multi-language continuous looping typing animation for hero section
+        const translations = {
+            en: {
+                title: "Welcome to Harar Ras Hotel",
+                subtitle: "Experience Luxury & Comfort"
+            },
+            om: {
+                title: "Gara Harar Ras Hotel Baga Nagaan Dhuftan",
+                subtitle: "Qananii fi Mijataa Muuxannoo"
+            },
+            am: {
+                title: "ወደ ሐረር ራስ ሆቴል እንኳን ደህና መጡ",
+                subtitle: "የቅንጦት እና ምቾት ይለማመዱ"
+            }
+        };
+        
+        // Get current language from session or default to English
+        const currentLang = '<?php echo $_SESSION['language'] ?? 'en'; ?>';
+        
+        // Sleep utility function
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // Type text character by character
+        async function typeText(element, text, speed) {
+            element.classList.add('typing');
+            for (let i = 0; i <= text.length; i++) {
+                element.textContent = text.substring(0, i);
+                await sleep(speed);
+            }
+            element.classList.remove('typing');
+        }
+        
+        // Delete text character by character
+        async function deleteText(element, speed = 30) {
+            const text = element.textContent;
+            for (let i = text.length; i >= 0; i--) {
+                element.textContent = text.substring(0, i);
+                await sleep(speed);
+            }
+        }
+        
+        // Continuous loop animation
+        async function startHeroAnimation(lang) {
+            const content = translations[lang] || translations.en;
+            const titleEl = document.getElementById('hero-title');
+            const subtitleEl = document.getElementById('hero-subtitle');
+            
+            while (true) {
+                // Type title
+                await typeText(titleEl, content.title, 50);
+                await sleep(1000);
+                
+                // Type subtitle (only after title finishes)
+                await typeText(subtitleEl, content.subtitle, 40);
+                await sleep(3000);
+                
+                // Delete subtitle first
+                await deleteText(subtitleEl);
+                await sleep(500);
+                
+                // Delete title
+                await deleteText(titleEl);
+                await sleep(1500);
+            }
+        }
+        
+        // Start animation on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            startHeroAnimation(currentLang);
+        });
+        
+        // Re-run animation when language changes
+        function switchLanguage(lang) {
+            fetch('api/switch_language.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language: lang })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    </script>
 </body>
 </html>

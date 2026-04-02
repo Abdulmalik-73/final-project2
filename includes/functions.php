@@ -141,57 +141,58 @@ function create_booking($data) {
     }
     
     // ============================================
-    // RESTRICTION: One booking per user per day
+    // RESTRICTION: Maximum 3 bookings per user per day (same check-in date)
     // ============================================
-    $existing_booking_check = $conn->prepare("
-        SELECT b.id, b.booking_reference, b.check_in_date, b.status, r.name as room_name, r.room_number
+    $same_day_booking_check = $conn->prepare("
+        SELECT b.id, b.booking_reference, b.check_in_date, b.check_out_date, b.status, r.name as room_name, r.room_number
         FROM bookings b
         JOIN rooms r ON b.room_id = r.id
         WHERE b.user_id = ? 
         AND b.booking_type = 'room'
         AND b.status IN ('pending', 'confirmed', 'checked_in')
-        AND (
-            (b.check_in_date <= ? AND b.check_out_date > ?)
-            OR (b.check_in_date >= ? AND b.check_in_date < ?)
-            OR (? >= b.check_in_date AND ? < b.check_out_date)
-        )
-        LIMIT 1
+        AND DATE(b.check_in_date) = DATE(?)
     ");
     
-    if (!$existing_booking_check) {
-        error_log("Failed to prepare existing booking check: " . $conn->error);
+    if (!$same_day_booking_check) {
+        error_log("Failed to prepare same day booking check: " . $conn->error);
         return ['success' => false, 'message' => 'Database error: ' . $conn->error];
     }
     
-    $existing_booking_check->bind_param("issssss", 
-        $user_id, 
-        $check_in_date, $check_in_date,
-        $check_in_date, $check_out_date,
-        $check_in_date, $check_in_date
-    );
-    $existing_booking_check->execute();
-    $existing_result = $existing_booking_check->get_result();
+    $same_day_booking_check->bind_param("is", $user_id, $check_in_date);
+    $same_day_booking_check->execute();
+    $same_day_result = $same_day_booking_check->get_result();
     
-    if ($existing_result->num_rows > 0) {
-        $existing = $existing_result->fetch_assoc();
-        $status_text = ucfirst($existing['status']);
-        $check_in_formatted = date('F j, Y', strtotime($existing['check_in_date']));
+    // Check if user has reached the maximum of 3 bookings for this specific day
+    if ($same_day_result->num_rows >= 3) {
+        $existing_bookings = [];
+        while ($row = $same_day_result->fetch_assoc()) {
+            $existing_bookings[] = [
+                'reference' => $row['booking_reference'],
+                'room_name' => $row['room_name'],
+                'room_number' => $row['room_number'],
+                'check_in_date' => date('F j, Y', strtotime($row['check_in_date'])),
+                'check_out_date' => date('F j, Y', strtotime($row['check_out_date'])),
+                'status' => ucfirst($row['status'])
+            ];
+        }
         
-        error_log("User $user_id already has a booking for overlapping dates");
+        error_log("User $user_id has reached maximum booking limit for " . $check_in_date . " (3 bookings per day)");
         
         return [
             'success' => false,
-            'message' => "You already have a booking for these dates. Only one room can be booked per account at a time.",
-            'existing_booking' => [
-                'reference' => $existing['booking_reference'],
-                'room_name' => $existing['room_name'],
-                'room_number' => $existing['room_number'],
-                'check_in_date' => $check_in_formatted,
-                'status' => $status_text
-            ],
-            'error_code' => 'DUPLICATE_BOOKING'
+            'message' => "You have reached the maximum booking limit for this date. You can have up to 3 bookings per day.",
+            'existing_bookings' => $existing_bookings,
+            'booking_count' => count($existing_bookings),
+            'check_in_date' => date('F j, Y', strtotime($check_in_date)),
+            'error_code' => 'MAX_BOOKING_LIMIT'
         ];
     }
+    
+    // ============================================
+    // All checks passed - proceed with booking
+    // Note: We allow up to 3 bookings per day (same check-in date)
+    // No restriction on overlapping dates as long as daily limit is not exceeded
+    // ============================================
     
     // Validate user exists
     $user_check = $conn->prepare("SELECT id, email FROM users WHERE id = ?");

@@ -210,7 +210,6 @@ $food_items = [
 // Image counters for each category
 $ethiopian_images = [];
 $international_images = [];
-$beverage_images = [];
 
 // Pre-populate image arrays
 for ($i = 1; $i <= 41; $i++) {
@@ -219,18 +218,55 @@ for ($i = 1; $i <= 41; $i++) {
 for ($i = 1; $i <= 10; $i++) {
     $international_images[] = 'assets/images/food/international/i' . $i . '.jpg';
 }
-for ($i = 1; $i <= 9; $i++) {
-    $beverage_images[] = 'assets/images/food/beverages/b' . $i . '.jpg';
-}
 
 // Shuffle arrays to randomize image assignment
 shuffle($ethiopian_images);
 shuffle($international_images);
-shuffle($beverage_images);
 
 $ethiopian_img_index = 0;
 $international_img_index = 0;
-$beverage_img_index = 0;
+
+// Smart beverage image mapping based on item name
+function get_beverage_image($item_name) {
+    $name_lower = strtolower($item_name);
+    
+    // Coffee items - use coffee-specific images
+    if (stripos($name_lower, 'coffee') !== false) {
+        return 'assets/images/food/beverages/b2.jpg'; // Coffee image
+    }
+    // Tea items
+    elseif (stripos($name_lower, 'tea') !== false) {
+        return 'assets/images/food/beverages/b8.jpg'; // Tea image
+    }
+    // Juice items
+    elseif (stripos($name_lower, 'juice') !== false) {
+        return 'assets/images/food/beverages/b3.jpg'; // Juice image
+    }
+    // Smoothie items
+    elseif (stripos($name_lower, 'smoothie') !== false) {
+        return 'assets/images/food/beverages/b4.jpg'; // Smoothie image
+    }
+    // Soft drinks / Soda
+    elseif (stripos($name_lower, 'cola') !== false || 
+            stripos($name_lower, 'pepsi') !== false || 
+            stripos($name_lower, 'soda') !== false ||
+            stripos($name_lower, 'soft drink') !== false) {
+        return 'assets/images/food/beverages/b1.jpg'; // Soft drinks image
+    }
+    // Water
+    elseif (stripos($name_lower, 'water') !== false) {
+        return 'assets/images/food/beverages/b9.jpg'; // Water image
+    }
+    // Milk-based drinks
+    elseif (stripos($name_lower, 'milk') !== false || 
+            stripos($name_lower, 'shake') !== false) {
+        return 'assets/images/food/beverages/b5.jpg'; // Milk drinks image
+    }
+    // Default beverage image
+    else {
+        return 'assets/images/food/beverages/b6.jpg';
+    }
+}
 
 // Categorize food items
 while ($row = $food_result->fetch_assoc()) {
@@ -241,7 +277,17 @@ while ($row = $food_result->fetch_assoc()) {
     ];
     
     // Categorize based on name and assign unique images
-    if (stripos($row['name'], 'Ethiopian') !== false) {
+    // Check for beverages FIRST (before Ethiopian check) to catch "Ethiopian Coffee Ceremony"
+    if (stripos($row['name'], 'Juice') !== false || 
+        stripos($row['name'], 'Smoothie') !== false || 
+        stripos($row['name'], 'Coffee') !== false ||
+        stripos($row['name'], 'Tea') !== false ||
+        stripos($row['name'], 'Water') !== false ||
+        stripos($row['name'], 'Soda') !== false ||
+        stripos($row['name'], 'Cola') !== false) {
+        $item_data['image'] = get_beverage_image($row['name']);
+        $food_items['Beverages'][$row['name']] = $item_data;
+    } elseif (stripos($row['name'], 'Ethiopian') !== false) {
         $item_data['image'] = $ethiopian_images[$ethiopian_img_index % count($ethiopian_images)];
         $ethiopian_img_index++;
         $food_items['Ethiopian Cuisine'][$row['name']] = $item_data;
@@ -254,12 +300,6 @@ while ($row = $food_result->fetch_assoc()) {
         $item_data['image'] = $international_images[$international_img_index % count($international_images)];
         $international_img_index++;
         $food_items['Desserts'][$row['name']] = $item_data;
-    } elseif (stripos($row['name'], 'Juice') !== false || 
-              stripos($row['name'], 'Smoothie') !== false || 
-              stripos($row['name'], 'Coffee') !== false) {
-        $item_data['image'] = $beverage_images[$beverage_img_index % count($beverage_images)];
-        $beverage_img_index++;
-        $food_items['Beverages'][$row['name']] = $item_data;
     } else {
         // Default to International if not categorized
         $item_data['image'] = $international_images[$international_img_index % count($international_images)];

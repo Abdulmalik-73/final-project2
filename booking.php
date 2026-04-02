@@ -119,11 +119,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Release lock if booking failed
                 $lockManager->releaseRoomLock($lock_result['lock_id'], 'booking_failed');
                 
-                // Check if this is a duplicate booking error
-                if (isset($result['error_code']) && $result['error_code'] === 'DUPLICATE_BOOKING' && isset($result['existing_booking'])) {
+                // Check if this is a max booking limit error
+                if (isset($result['error_code']) && $result['error_code'] === 'MAX_BOOKING_LIMIT' && isset($result['existing_bookings'])) {
+                    $_SESSION['max_booking_error'] = [
+                        'existing_bookings' => $result['existing_bookings'],
+                        'booking_count' => $result['booking_count'],
+                        'check_in_date' => $result['check_in_date'] ?? date('F j, Y', strtotime($check_in_date))
+                    ];
+                    $_SESSION['max_booking_error_time'] = time(); // Store timestamp
+                    $error = 'MAX_BOOKING_LIMIT'; // Flag for display
+                }
+                // Check if this is an overlapping dates error
+                elseif (isset($result['error_code']) && $result['error_code'] === 'OVERLAPPING_DATES' && isset($result['existing_booking'])) {
                     $existing = $result['existing_booking'];
                     $_SESSION['duplicate_booking_error'] = $existing;
-                    $error = 'DUPLICATE_BOOKING'; // Flag for display
+                    $error = 'OVERLAPPING_DATES'; // Flag for display
+                } 
+                // Check if this is a duplicate booking error (legacy)
+                elseif (isset($result['error_code']) && $result['error_code'] === 'DUPLICATE_BOOKING' && isset($result['existing_booking'])) {
+                    $existing = $result['existing_booking'];
+                    $_SESSION['duplicate_booking_error'] = $existing;
+                    $error = 'OVERLAPPING_DATES'; // Flag for display
                 } else {
                     $error = 'Booking failed. Please try again. Error: ' . $result['message'];
                 }
@@ -332,12 +348,104 @@ $rooms = get_all_rooms();
                             </h3>
                         </div>
                         <div class="card-body">
-                            <?php if ($error === 'DUPLICATE_BOOKING' && isset($_SESSION['duplicate_booking_error'])): ?>
+                            <?php if ($error === 'MAX_BOOKING_LIMIT' && isset($_SESSION['max_booking_error'])): ?>
+                                <?php 
+                                $error_data = $_SESSION['max_booking_error']; 
+                                $error_timestamp = $_SESSION['max_booking_error_time'] ?? time();
+                                $time_elapsed = time() - $error_timestamp;
+                                $min_display_time = 180; // 3 minutes in seconds
+                                ?>
+                                <div class="alert alert-danger" role="alert" id="maxBookingError" 
+                                     style="position: sticky; top: 20px; z-index: 1000; animation: none !important;"
+                                     data-timestamp="<?php echo $error_timestamp; ?>"
+                                     data-min-time="<?php echo $min_display_time; ?>">
+                                    <h5 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Maximum Booking Limit Reached for This Date</h5>
+                                    <p class="mb-2"><strong>You have reached the maximum booking limit for <?php echo $error_data['check_in_date'] ?? 'this date'; ?>!</strong></p>
+                                    <p class="mb-3">You can have up to <strong>3 bookings per day</strong> (same check-in date). You currently have <strong><?php echo $error_data['booking_count']; ?> bookings</strong> for this date.</p>
+                                    <hr>
+                                    <h6 class="mb-3">Your Existing Bookings for <?php echo $error_data['check_in_date'] ?? 'This Date'; ?>:</h6>
+                                    <div class="row">
+                                        <?php foreach ($error_data['existing_bookings'] as $index => $booking): ?>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card border-warning">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">Booking #<?php echo $index + 1; ?></h6>
+                                                    <ul class="list-unstyled small mb-0">
+                                                        <li><strong>Room:</strong> <?php echo htmlspecialchars($booking['room_name']); ?></li>
+                                                        <li><strong>Room #:</strong> <?php echo htmlspecialchars($booking['room_number']); ?></li>
+                                                        <li><strong>Check-in:</strong> <?php echo htmlspecialchars($booking['check_in_date']); ?></li>
+                                                        <li><strong>Check-out:</strong> <?php echo htmlspecialchars($booking['check_out_date']); ?></li>
+                                                        <li><strong>Reference:</strong> <?php echo htmlspecialchars($booking['reference']); ?></li>
+                                                        <li><strong>Status:</strong> <span class="badge bg-warning"><?php echo htmlspecialchars($booking['status']); ?></span></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <hr>
+                                    <div class="alert alert-info mb-3">
+                                        <i class="fas fa-info-circle"></i> <strong>To make a new booking for this date:</strong>
+                                        <ul class="mb-0 mt-2">
+                                            <li>Cancel one of your existing bookings for this date, or</li>
+                                            <li>Choose a different check-in date</li>
+                                        </ul>
+                                        <p class="mb-0 mt-2"><strong>Note:</strong> You can book up to 3 rooms per day. You can book different dates without any limit.</p>
+                                    </div>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <a href="my-bookings.php" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-list"></i> View My Bookings
+                                        </a>
+                                        <button type="button" class="btn btn-secondary btn-sm" id="dismissErrorBtn" disabled>
+                                            <i class="fas fa-times"></i> Dismiss (<span id="countdown"><?php echo max(0, $min_display_time - $time_elapsed); ?></span>s)
+                                        </button>
+                                    </div>
+                                </div>
+                                <script>
+                                    // Countdown timer for dismiss button
+                                    (function() {
+                                        const errorDiv = document.getElementById('maxBookingError');
+                                        const dismissBtn = document.getElementById('dismissErrorBtn');
+                                        const countdownSpan = document.getElementById('countdown');
+                                        
+                                        const timestamp = parseInt(errorDiv.dataset.timestamp);
+                                        const minTime = parseInt(errorDiv.dataset.minTime);
+                                        const currentTime = Math.floor(Date.now() / 1000);
+                                        let timeElapsed = currentTime - timestamp;
+                                        let remainingTime = Math.max(0, minTime - timeElapsed);
+                                        
+                                        // Update countdown every second
+                                        const interval = setInterval(function() {
+                                            remainingTime--;
+                                            countdownSpan.textContent = remainingTime;
+                                            
+                                            if (remainingTime <= 0) {
+                                                clearInterval(interval);
+                                                dismissBtn.disabled = false;
+                                                dismissBtn.innerHTML = '<i class="fas fa-times"></i> Dismiss';
+                                                dismissBtn.onclick = function() {
+                                                    // Clear session error via AJAX
+                                                    fetch('api/clear_booking_error.php', {
+                                                        method: 'POST'
+                                                    }).then(() => {
+                                                        errorDiv.style.display = 'none';
+                                                    });
+                                                };
+                                            }
+                                        }, 1000);
+                                        
+                                        // Prevent page refresh from resetting timer
+                                        window.addEventListener('beforeunload', function() {
+                                            // Timer continues server-side
+                                        });
+                                    })();
+                                </script>
+                            <?php elseif ($error === 'OVERLAPPING_DATES' && isset($_SESSION['duplicate_booking_error'])): ?>
                                 <?php $existing = $_SESSION['duplicate_booking_error']; ?>
                                 <div class="alert alert-danger" role="alert" style="position: sticky; top: 20px; z-index: 1000; animation: none !important;">
                                     <h5 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Booking Not Allowed</h5>
                                     <p class="mb-2"><strong>You already have an active booking for overlapping dates.</strong></p>
-                                    <p class="mb-3">Only one room can be booked per account at a time.</p>
+                                    <p class="mb-3">Please choose different dates or cancel your existing booking.</p>
                                     <hr>
                                     <h6 class="mb-3">Your Existing Booking:</h6>
                                     <ul class="mb-3">

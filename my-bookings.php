@@ -270,7 +270,14 @@ $bookings = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                     <i class="fas fa-eye"></i> View Details
                                 </button>
                                 
-                                <?php if (in_array($booking['current_verification_status'] ?? $booking['status'], ['pending', 'confirmed'])): ?>
+                                <?php 
+                                $booking_status = $booking['current_verification_status'] ?? $booking['status'];
+                                $can_cancel = in_array($booking_status, ['pending', 'confirmed', 'verified', 'pending_payment', 'pending_verification']) && 
+                                              $booking['booking_type'] != 'food_order' &&
+                                              strtotime($booking['check_in_date']) > time();
+                                
+                                if ($can_cancel): 
+                                ?>
                                 <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking('<?php echo $booking['booking_reference']; ?>')">
                                     <i class="fas fa-times"></i> Cancel
                                 </button>
@@ -293,18 +300,189 @@ $bookings = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     
     <?php include 'includes/footer.php'; ?>
     
+    <!-- Cancellation Modal -->
+    <div class="modal fade" id="cancelBookingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Cancel Booking</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="refundCalculation" style="display:none;">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Cancellation Policy</h6>
+                            <p class="mb-0">Refunds are calculated based on how many days before check-in you cancel:</p>
+                            <ul class="mb-0 mt-2">
+                                <li>7+ days: 95% refund</li>
+                                <li>3-6 days: 75% refund</li>
+                                <li>1-2 days: 50% refund</li>
+                                <li>Same day: 25% refund</li>
+                            </ul>
+                            <small class="text-muted">* All refunds subject to 5% processing fee</small>
+                        </div>
+                        
+                        <h6>Refund Calculation:</h6>
+                        <table class="table table-bordered">
+                            <tr>
+                                <td><strong>Booking Reference:</strong></td>
+                                <td id="cancel_booking_ref"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Room/Service:</strong></td>
+                                <td id="cancel_room_name"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Check-in Date:</strong></td>
+                                <td id="cancel_checkin_date"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Days Before Check-in:</strong></td>
+                                <td><span id="cancel_days_before" class="badge bg-info"></span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Paid:</strong></td>
+                                <td>ETB <span id="cancel_total_amount"></span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Refund Percentage:</strong></td>
+                                <td><span id="cancel_refund_percentage" class="badge bg-success"></span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Refund Amount:</strong></td>
+                                <td>ETB <span id="cancel_refund_amount"></span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Processing Fee (5%):</strong></td>
+                                <td>ETB <span id="cancel_processing_fee"></span></td>
+                            </tr>
+                            <tr class="table-success">
+                                <td><strong>Final Refund:</strong></td>
+                                <td><strong>ETB <span id="cancel_final_refund"></span></strong></td>
+                            </tr>
+                        </table>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-clock"></i> Refunds will be processed within 5-7 business days to your original payment method.
+                        </div>
+                    </div>
+                    
+                    <div id="cancelError" class="alert alert-danger" style="display:none;"></div>
+                    <div id="cancelLoading" class="text-center py-4" style="display:none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Calculating refund...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-danger" id="confirmCancelBtn" onclick="confirmCancellation()">
+                        <i class="fas fa-check"></i> Confirm Cancellation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="assets/js/main.js?v=<?php echo time(); ?>"></script>
     <script>
+        let currentBookingRef = '';
+        
         function viewBookingDetails(reference) {
             window.location.href = 'booking-details.php?ref=' + reference;
         }
         
         function cancelBooking(reference) {
-            if (confirm('Are you sure you want to cancel booking ' + reference + '?\n\nThis action cannot be undone and may incur cancellation fees.')) {
-                alert('Cancellation feature to be implemented');
+            currentBookingRef = reference;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('cancelBookingModal'));
+            modal.show();
+            
+            // Show loading
+            document.getElementById('cancelLoading').style.display = 'block';
+            document.getElementById('refundCalculation').style.display = 'none';
+            document.getElementById('cancelError').style.display = 'none';
+            document.getElementById('confirmCancelBtn').style.display = 'inline-block';
+            
+            // Calculate refund
+            fetch('api/cancel_booking.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    booking_reference: reference,
+                    action: 'calculate'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('cancelLoading').style.display = 'none';
+                
+                if (data.success) {
+                    // Display refund calculation
+                    document.getElementById('cancel_booking_ref').textContent = data.data.booking_reference;
+                    document.getElementById('cancel_room_name').textContent = data.data.room_name;
+                    document.getElementById('cancel_checkin_date').textContent = data.data.check_in_date;
+                    document.getElementById('cancel_days_before').textContent = data.data.days_before_checkin + ' days';
+                    document.getElementById('cancel_total_amount').textContent = data.data.total_amount;
+                    document.getElementById('cancel_refund_percentage').textContent = data.data.refund_percentage + '%';
+                    document.getElementById('cancel_refund_amount').textContent = data.data.refund_amount;
+                    document.getElementById('cancel_processing_fee').textContent = data.data.processing_fee;
+                    document.getElementById('cancel_final_refund').textContent = data.data.final_refund;
+                    
+                    document.getElementById('refundCalculation').style.display = 'block';
+                } else {
+                    document.getElementById('cancelError').textContent = data.error;
+                    document.getElementById('cancelError').style.display = 'block';
+                    document.getElementById('confirmCancelBtn').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                document.getElementById('cancelLoading').style.display = 'none';
+                document.getElementById('cancelError').textContent = 'Failed to calculate refund. Please try again.';
+                document.getElementById('cancelError').style.display = 'block';
+            });
+        }
+        
+        function confirmCancellation() {
+            if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+                return;
             }
+            
+            document.getElementById('confirmCancelBtn').disabled = true;
+            document.getElementById('confirmCancelBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+            
+            fetch('api/cancel_booking.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    booking_reference: currentBookingRef,
+                    action: 'confirm'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                    document.getElementById('confirmCancelBtn').disabled = false;
+                    document.getElementById('confirmCancelBtn').innerHTML = '<i class="fas fa-check"></i> Confirm Cancellation';
+                }
+            })
+            .catch(error => {
+                alert('Failed to cancel booking. Please try again.');
+                document.getElementById('confirmCancelBtn').disabled = false;
+                document.getElementById('confirmCancelBtn').innerHTML = '<i class="fas fa-check"></i> Confirm Cancellation';
+            });
         }
         
         // Override formatCurrency function to ensure ETB display

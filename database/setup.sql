@@ -2408,3 +2408,696 @@ UPDATE users SET preferred_language = 'en' WHERE preferred_language NOT IN ('en'
 -- =====================================================
 -- SETUP COMPLETE
 -- =====================================================
+
+-- =====================================================
+-- HARAR RAS HOTEL - REFUND CALCULATION SYSTEM
+-- =====================================================
+-- Refund Policy:
+-- - 7+ days before check-in: 95% Refund
+-- - 3-6 days before check-in: 75% Refund
+-- - 1-2 days before check-in: 50% Refund
+-- - Same day cancellation: 25% Refund
+-- - Past check-in date: No Refund
+-- - Processing fee: 5% on all refunds
+-- =====================================================
+
+-- =====================================================
+-- STEP 1: ALTER BOOKINGS TABLE (Add refund columns)
+-- =====================================================
+
+ALTER TABLE bookings 
+ADD COLUMN IF NOT EXISTS arrival_time DATETIME NULL COMMENT 'Actual arrival time of guest',
+ADD COLUMN IF NOT EXISTS no_show_grace_hours INT DEFAULT 6 COMMENT 'Hours after check-in before marking no-show',
+ADD COLUMN IF NOT EXISTS refund_amount DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Calculated refund amount',
+ADD COLUMN IF NOT EXISTS penalty_amount DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Penalty charged for no-show or late cancellation',
+ADD COLUMN IF NOT EXISTS cancelled_at DATETIME NULL COMMENT 'When booking was cancelled',
+ADD COLUMN IF NOT EXISTS cancelled_by INT NULL COMMENT 'User ID who cancelled the booking',
+ADD COLUMN IF NOT EXISTS cancellation_reason TEXT NULL COMMENT 'Reason for cancellation';
+
+-- Update status enum to include 'no_show'
+ALTER TABLE bookings 
+MODIFY COLUMN status ENUM('pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show') DEFAULT 'pending';
+
+-- Update payment_status enum to include refund statuses
+ALTER TABLE bookings 
+MODIFY COLUMN payment_status ENUM('pending', 'paid', 'refunded', 'partial_refund', 'refund_pending') DEFAULT 'pending';
+
+-- Add indexes for performance
+ALTER TABLE bookings 
+ADD INDEX IF NOT EXISTS idx_status_refund (status),
+ADD INDEX IF NOT EXISTS idx_payment_status_refund (payment_status),
+ADD INDEX IF NOT EXISTS idx_check_in_date_refund (check_in_date),
+ADD INDEX IF NOT EXISTS idx_cancelled_at (cancelled_at);
+
+-- =====================================================
+-- STEP 2: CREATE NO-SHOW DETECTION LOG TABLE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS no_show_detection_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    booking_reference VARCHAR(50) NOT NULL,
+    check_in_date DATETIME NOT NULL,
+    detection_time DATETIME NOT NULL,
+    grace_period_end DATETIME NOT NULL,
+    status ENUM('detected', 'processed', 'error') DEFAULT 'detected',
+    penalty_amount DECIMAL(10,2) DEFAULT 0.00,
+    refund_amount DECIMAL(10,2) DEFAULT 0.00,
+    error_message TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    INDEX idx_booking_id (booking_id),
+    INDEX idx_detection_time (detection_time),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- STEP 3: CREATE REFUND POLICY CONFIGURATION TABLE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS refund_policy_config (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    policy_name VARCHAR(100) NOT NULL,
+    days_before_min INT NOT NULL COMMENT 'Minimum days before check-in',
+    days_before_max INT NULL COMMENT 'Maximum days before check-in (NULL for unlimited)',
+    refund_percentage DECIMAL(5,2) NOT NULL COMMENT 'Refund percentage (0-100)',
+    processing_fee_percentage DECIMAL(5,2) DEFAULT 5.00 COMMENT 'Processing fee percentage',
+    is_active TINYINT(1) DEFAULT 1,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_days_range (days_before_min, days_before_max),
+    INDEX idx_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert Harar Ras Hotel refund policies
+INSERT INTO refund_policy_config (policy_name, days_before_min, days_before_max, refund_percentage, processing_fee_percentage, display_order) VALUES
+('7+ days before check-in', 7, NULL, 95.00, 5.00, 1),
+('3-6 days before check-in', 3, 6, 75.00, 5.00, 2),
+('1-2 days before check-in', 1, 2, 50.00, 5.00, 3),
+('Same day cancellation', 0, 0, 25.00, 5.00, 4),
+('Past check-in date', -999, -1, 0.00, 0.00, 5)
+ON DUPLICATE KEY UPDATE policy_name=policy_name;
+
+-- =====================================================
+-- STEP 4: UPDATE REFUNDS TABLE (Add missing columns)
+-- =====================================================
+
+-- Add columns to existing refunds table if they don't exist
+ALTER TABLE refunds 
+ADD COLUMN IF NOT EXISTS customer_name VARCHAR(255) AFTER customer_id,
+ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255) AFTER customer_name;
+
+-- Add indexes for refunds table
+ALTER TABLE refunds 
+ADD INDEX IF
+ NOT EXISTS idx_refund_status_created (refund_status, created_at),
+ADD INDEX IF NOT EXISTS idx_customer_id_status (customer_id, refund_status),
+ADD INDEX IF NOT EXISTS idx_cancellation_date (cancellation_date);
+
+-- =====================================================
+-- STEP 5: CREATE STORED PROCEDURE FOR REFUND CALCULATION
+-- =====================================================
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS calculate_refund$$
+
+CREATE PROCEDURE calculate_refund(
+    IN p_booking_id INT,
+    IN p_cancellation_date DATETIME,
+    OUT p_refund_percentage DECIMAL(5,2),
+    OUT p_refund_amount DECIMAL(10,2),
+    OUT p_processing_fee DECIMAL(10,2),
+    OUT p_final_refund DECIMAL(10,2),
+    OUT p_days_before INT
+)
+BEGIN
+    DECLARE v_check_in_date DATETIME;
+    DECLARE v_total_price DECIMAL(10,2);
+    DECLARE v_processing_fee_pct DECIMAL(5,2);
+    
+    -- Get booking details
+    SELECT check_in_date, total_price 
+    INTO v_check_in_date, v_total_price
+    FROM bookings 
+    WHERE id = p_booking_id;
+    
+    -- Calculate days before check-in
+    SET p_days_before = DATEDIFF(v_check_in_date, p_cancellation_date);
+    
+    -- Determine refund percentage based on Harar Ras Hotel policy
+    IF p_days_before >= 7 THEN
+        SET p_refund_percentage = 95.00;
+        SET v_processing_fee_pct = 5.00;
+    ELSEIF p_days_before >= 3 AND p_days_before <= 6 THEN
+        SET p_refund_percentage = 75.00;
+        SET v_processing_fee_pct = 5.00;
+    ELSEIF p_days_before >= 1 AND p_days_before <= 2 THEN
+        SET p_refund_percentage = 50.00;
+        SET v_processing_fee_pct = 5.00;
+    ELSEIF p_days_before = 0 THEN
+        SET p_refund_percentage = 25.00;
+        SET v_processing_fee_pct = 5.00;
+    ELSE
+        -- Past check-in date
+        SET p_refund_percentage = 0.00;
+        SET v_processing_fee_pct = 0.00;
+    END IF;
+    
+    -- Calculate amounts
+    SET p_refund_amount = (v_total_price * p_refund_percentage / 100);
+    SET p_processing_fee = (p_refund_amount * v_processing_fee_pct / 100);
+    SET p_final_refund = p_refund_amount - p_processing_fee;
+    
+    -- Ensure no negative values
+    IF p_final_refund < 0 THEN
+        SET p_final_refund = 0;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+-- STEP 6: CREATE STORED PROCEDURE FOR NO-SHOW DETECTION
+-- =====================================================
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS detect_no_shows$$
+
+CREATE PROCEDURE detect_no_shows()
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE v_booking_id INT;
+    DECLARE v_booking_ref VARCHAR(50);
+    DECLARE v_check_in_date DATETIME;
+    DECLARE v_total_price DECIMAL(10,2);
+    DECLARE v_room_price DECIMAL(10,2);
+    DECLARE v_penalty DECIMAL(10,2);
+    DECLARE v_refund DECIMAL(10,2);
+    DECLARE v_grace_end DATETIME;
+    DECLARE v_user_id INT;
+    DECLARE v_customer_name VARCHAR(255);
+    DECLARE v_customer_email VARCHAR(255);
+    
+    -- Cursor for bookings that should be marked as no-show
+    DECLARE no_show_cursor CURSOR FOR
+        SELECT b.id, b.booking_reference, b.check_in_date, b.total_price, r.price, b.user_id,
+               CONCAT(u.first_name, ' ', u.last_name) as customer_name, u.email as customer_email
+        FROM bookings b
+        LEFT JOIN rooms r ON b.room_id = r.id
+        LEFT JOIN users u ON b.user_id = u.id
+        WHERE b.status = 'confirmed'
+        AND b.booking_type = 'room'
+        AND b.arrival_time IS NULL
+        AND TIMESTAMPADD(HOUR, COALESCE(b.no_show_grace_hours, 6), b.check_in_date) < NOW();
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    OPEN no_show_cursor;
+    
+    read_loop: LOOP
+        FETCH no_show_cursor INTO v_booking_id, v_booking_ref, v_check_in_date, v_total_price, 
+                                   v_room_price, v_user_id, v_customer_name, v_customer_email;
+        
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        -- Calculate grace period end
+        SET v_grace_end = TIMESTAMPADD(HOUR, 6, v_check_in_date);
+        
+        -- Calculate penalty (1 night) and refund
+        SET v_penalty = COALESCE(v_room_price, v_total_price * 0.3);
+        SET v_refund = v_total_price - v_penalty;
+        
+        -- Ensure refund is not negative
+        IF v_refund < 0 THEN
+            SET v_refund = 0;
+        END IF;
+        
+        -- Update booking status
+        UPDATE bookings 
+        SET status = 'no_show',
+            penalty_amount = v_penalty,
+            refund_amount = v_refund,
+            payment_status = CASE 
+                WHEN v_refund > 0 THEN 'refund_pending'
+                ELSE payment_status
+            END
+        WHERE id = v_booking_id;
+        
+        -- Log the detection
+        INSERT INTO no_show_detection_log 
+        (booking_id, booking_reference, check_in_date, detection_time, grace_period_end, status, penalty_amount, refund_amount)
+        VALUES 
+        (v_booking_id, v_booking_ref, v_check_in_date, NOW(), v_grace_end, 'processed', v_penalty, v_refund);
+        
+        -- Create refund record if refund amount > 0
+        IF v_refund > 0 THEN
+            INSERT INTO refunds 
+            (booking_id, booking_reference, customer_id, customer_name, customer_email, original_amount, check_in_date, 
+             cancellation_date, days_before_checkin, refund_percentage, refund_amount, 
+             processing_fee, final_refund, refund_status, refund_reference, admin_notes)
+            VALUES
+            (v_booking_id, v_booking_ref, v_user_id, v_customer_name, v_customer_email, v_total_price, v_check_in_date,
+             NOW(), -1, 0, v_refund, 0, v_refund, 'Pending',
+             CONCAT('REF-NS-', DATE_FORMAT(NOW(), '%Y%m%d'), '-', LPAD(v_booking_id, 6, '0')),
+             CONCAT('No-show detected. Penalty: ', v_penalty, ' ETB. Grace period ended at: ', v_grace_end));
+        END IF;
+        
+    END LOOP;
+    
+    CLOSE no_show_cursor;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+-- STEP 7: CREATE FUNCTION TO GET REFUND PERCENTAGE
+-- =====================================================
+
+DELIMITER $$
+
+DROP FUNCTION IF EXISTS get_refund_percentage$$
+
+CREATE FUNCTION get_refund_percentage(
+    p_check_in_date DATETIME,
+    p_cancellation_date DATETIME
+) RETURNS DECIMAL(5,2)
+DETERMINISTIC
+BEGIN
+    DECLARE v_days_before INT;
+    DECLARE v_refund_pct DECIMAL(5,2);
+    
+    SET v_days_before = DATEDIFF(p_check_in_date, p_cancellation_date);
+    
+    IF v_days_before >= 7 THEN
+        SET v_refund_pct = 95.00;
+    ELSEIF v_days_before >= 3 AND v_days_before <= 6 THEN
+        SET v_refund_pct = 75.00;
+    ELSEIF v_days_before >= 1 AND v_days_before <= 2 THEN
+        SET v_refund_pct = 50.00;
+    ELSEIF v_days_before = 0 THEN
+        SET v_refund_pct = 25.00;
+    ELSE
+        SET v_refund_pct = 0.00;
+    END IF;
+    
+    RETURN v_refund_pct;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+-- STEP 8: CREATE TRIGGER FOR AUTOMATIC REFUND CREATION
+-- =====================================================
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS after_booking_cancelled$$
+
+CREATE TRIGGER after_booking_cancelled
+AFTER UPDATE ON bookings
+FOR EACH ROW
+BEGIN
+    DECLARE v_refund_pct DECIMAL(5,2);
+    DECLARE v_refund_amt DECIMAL(10,2);
+    DECLARE v_processing_fee DECIMAL(10,2);
+    DECLARE v_final_refund DECIMAL(10,2);
+    DECLARE v_days_before INT;
+    DECLARE v_customer_name VARCHAR(255);
+    DECLARE v_customer_email VARCHAR(255);
+    
+    -- Only process if status changed to 'cancelled' and payment was made
+    IF NEW.status = 'cancelled' AND OLD.status != 'cancelled' AND NEW.payment_status = 'paid' THEN
+        
+        -- Calculate refund
+        CALL calculate_refund(
+            NEW.id,
+            NEW.cancelled_at,
+            v_refund_pct,
+            v_refund_amt,
+            v_processing_fee,
+            v_final_refund,
+            v_days_before
+        );
+        
+        -- Update booking with refund amounts
+        UPDATE bookings 
+        SET refund_amount = v_final_refund,
+            penalty_amount = NEW.total_price - v_refund_amt,
+            payment_status = CASE 
+                WHEN v_final_refund > 0 THEN 'refund_pending'
+                ELSE 'paid'
+            END
+        WHERE id = NEW.id;
+        
+        -- Get customer details
+        SELECT CONCAT(first_name, ' ', last_name), email
+        INTO v_customer_name, v_customer_email
+        FROM users
+        WHERE id = NEW.user_id;
+        
+        -- Create refund record
+        INSERT INTO refunds 
+        (booking_id, booking_reference, customer_id, customer_name, customer_email,
+         original_amount, check_in_date, cancellation_date, days_before_checkin,
+         refund_percentage, refund_amount, processing_fee, processing_fee_percentage,
+         final_refund, refund_status, refund_reference, admin_notes)
+        VALUES
+        (NEW.id, NEW.booking_reference, NEW.user_id, v_customer_name, v_customer_email,
+         NEW.total_price, NEW.check_in_date, NEW.cancelled_at, v_days_before,
+         v_refund_pct, v_refund_amt, v_processing_fee, 5.00, v_final_refund, 'Pending',
+         CONCAT('REF-', DATE_FORMAT(NOW(), '%Y%m%d'), '-', LPAD(NEW.id, 6, '0')),
+         CONCAT('Cancelled ', v_days_before, ' days before check-in. Policy: ', v_refund_pct, '% refund.'));
+        
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- =====================================================
+-- STEP 9: CREATE EVENT FOR AUTOMATIC NO-SHOW DETECTION
+-- =====================================================
+
+-- Drop existing event if exists
+DROP EVENT IF EXISTS auto_detect_no_shows;
+
+-- Create event to run every hour
+CREATE EVENT IF NOT EXISTS auto_detect_no_shows
+ON SCHEDULE EVERY 1 HOUR
+STARTS CURRENT_TIMESTAMP
+DO
+    CALL detect_no_shows();
+
+-- =====================================================
+-- REFUND SYSTEM SETUP COMPLETE
+-- =====================================================
+
+SELECT 'Harar Ras Hotel Refund Calculation System installed successfully!' as message;
+SELECT 'Event Scheduler Status:' as info, @@event_scheduler as status;
+
+-- =====================================================
+-- USEFUL QUERIES FOR TESTING
+-- =====================================================
+
+-- Test refund calculation:
+-- CALL calculate_refund(1, NOW(), @pct, @amt, @fee, @final, @days);
+-- SELECT @pct as percentage, @amt as refund_amount, @fee as processing_fee, @final as final_refund, @days as days_before;
+
+-- Get refund percentage:
+-- SELECT get_refund_percentage('2026-04-15 14:00:00', NOW()) as refund_percentage;
+
+-- Manual no-show detection:
+-- CALL detect_no_shows();
+
+-- View pending refunds:
+-- SELECT * FROM refunds WHERE refund_status = 'Pending' ORDER BY created_at DESC;
+
+-- View no-show bookings:
+-- SELECT * FROM bookings WHERE status = 'no_show' ORDER BY check_in_date DESC;
+
+-- View no-show detection log:
+-- SELECT * FROM no_show_detection_log ORDER BY detection_time DESC LIMIT 10;
+
+-- =====================================================
+-- END OF REFUND SYSTEM SETUP
+-- =====================================================
+
+
+-- =====================================================
+-- SAFARICOM ETHIOPIA M-PESA INTEGRATION
+-- =====================================================
+-- M-Pesa Payment Integration for Hotel Management System
+-- Supports: STK Push (C2B), Payment Verification, Callbacks
+-- =====================================================
+
+-- =====================================================
+-- STEP 1: CREATE M-PESA TRANSACTIONS TABLE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS mpesa_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NULL COMMENT 'Reference to bookings table',
+    merchant_request_id VARCHAR(100) NULL COMMENT 'M-Pesa Merchant Request ID',
+    checkout_request_id VARCHAR(100) NULL COMMENT 'M-Pesa Checkout Request ID',
+    transaction_id VARCHAR(100) NULL COMMENT 'M-Pesa Transaction ID (MPESA Receipt)',
+    phone_number VARCHAR(20) NOT NULL COMMENT 'Customer phone number (251XXXXXXXXX)',
+    amount DECIMAL(10,2) NOT NULL COMMENT 'Transaction amount in ETB',
+    account_reference VARCHAR(100) NOT NULL COMMENT 'Booking reference or account ref',
+    transaction_desc VARCHAR(255) NULL COMMENT 'Transaction description',
+    transaction_type ENUM('C2B', 'B2C', 'B2B') DEFAULT 'C2B' COMMENT 'Transaction type',
+    status ENUM('pending', 'processing', 'completed', 'failed', 'cancelled', 'timeout') DEFAULT 'pending',
+    result_code VARCHAR(10) NULL COMMENT 'M-Pesa result code',
+    result_desc TEXT NULL COMMENT 'M-Pesa result description',
+    callback_received TINYINT(1) DEFAULT 0 COMMENT 'Whether callback was received',
+    callback_data JSON NULL COMMENT 'Full callback JSON data',
+    api_request JSON NULL COMMENT 'Original API request data',
+    api_response JSON NULL COMMENT 'API response data',
+    error_message TEXT NULL COMMENT 'Error message if failed',
+    initiated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'When STK push was initiated',
+    completed_at TIMESTAMP NULL COMMENT 'When payment was completed',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL,
+    INDEX idx_booking_id (booking_id),
+    INDEX idx_merchant_request (merchant_request_id),
+    INDEX idx_checkout_request (checkout_request_id),
+    INDEX idx_transaction_id (transaction_id),
+    INDEX idx_phone_number (phone_number),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at),
+    UNIQUE KEY unique_checkout_request (checkout_request_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- STEP 2: CREATE M-PESA ACCESS TOKENS TABLE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS mpesa_access_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    access_token TEXT NOT NULL COMMENT 'Bearer token from M-Pesa API',
+    token_type VARCHAR(50) DEFAULT 'Bearer',
+    expires_in INT NOT NULL COMMENT 'Token validity in seconds',
+    expires_at TIMESTAMP NOT NULL COMMENT 'Calculated expiration timestamp',
+    is_active TINYINT(1) DEFAULT 1 COMMENT 'Whether token is currently active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_expires_at (expires_at),
+    INDEX idx_is_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- STEP 3: CREATE M-PESA API LOGS TABLE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS mpesa_api_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    transaction_id INT NULL COMMENT 'Reference to mpesa_transactions',
+    endpoint VARCHAR(255) NOT NULL COMMENT 'API endpoint called',
+    request_method VARCHAR(10) NOT NULL COMMENT 'HTTP method (GET, POST)',
+    request_headers JSON NULL COMMENT 'Request headers',
+    request_body JSON NULL COMMENT 'Request body',
+    response_code INT NULL COMMENT 'HTTP response code',
+    response_headers JSON NULL COMMENT 'Response headers',
+    response_body JSON NULL COMMENT 'Response body',
+    execution_time DECIMAL(10,3) NULL COMMENT 'API call duration in seconds',
+    error_message TEXT NULL COMMENT 'Error message if failed',
+    ip_address VARCHAR(45) NULL COMMENT 'Client IP address',
+    user_agent TEXT NULL COMMENT 'Client user agent',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (transaction_id) REFERENCES mpesa_transactions(id) ON DELETE SET NULL,
+    INDEX idx_transaction_id (transaction_id),
+    INDEX idx_endpoint (endpoint),
+    INDEX idx_created_at (created_at),
+    INDEX idx_response_code (response_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- STEP 4: CREATE M-PESA CALLBACK LOGS TABLE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS mpesa_callback_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    transaction_id INT NULL COMMENT 'Reference to mpesa_transactions',
+    callback_type ENUM('success', 'timeout', 'error') NOT NULL,
+    merchant_request_id VARCHAR(100) NULL,
+    checkout_request_id VARCHAR(100) NULL,
+    result_code VARCHAR(10) NULL,
+    result_desc TEXT NULL,
+    callback_data JSON NOT NULL COMMENT 'Full callback payload',
+    processed TINYINT(1) DEFAULT 0 COMMENT 'Whether callback was processed',
+    processing_error TEXT NULL COMMENT 'Error during callback processing',
+    ip_address VARCHAR(45) NULL COMMENT 'Callback source IP',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP NULL,
+    
+    FOREIGN KEY (transaction_id) REFERENCES mpesa_transactions(id) ON DELETE SET NULL,
+    INDEX idx_transaction_id (transaction_id),
+    INDEX idx_checkout_request (checkout_request_id),
+    INDEX idx_processed (processed),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- STEP 5: CREATE STORED PROCEDURE - GET VALID ACCESS TOKEN
+-- =====================================================
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS get_valid_mpesa_token$
+
+CREATE PROCEDURE get_valid_mpesa_token(
+    OUT p_access_token TEXT,
+    OUT p_is_valid TINYINT
+)
+BEGIN
+    DECLARE v_token TEXT;
+    DECLARE v_expires_at TIMESTAMP;
+    
+    -- Get the most recent active token that hasn't expired
+    SELECT access_token, expires_at 
+    INTO v_token, v_expires_at
+    FROM mpesa_access_tokens
+    WHERE is_active = 1 
+    AND expires_at > NOW()
+    ORDER BY created_at DESC
+    LIMIT 1;
+    
+    IF v_token IS NOT NULL THEN
+        SET p_access_token = v_token;
+        SET p_is_valid = 1;
+    ELSE
+        SET p_access_token = NULL;
+        SET p_is_valid = 0;
+    END IF;
+END$
+
+DELIMITER ;
+
+-- =====================================================
+-- STEP 6: CREATE STORED PROCEDURE - STORE ACCESS TOKEN
+-- =====================================================
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS store_mpesa_token$
+
+CREATE PROCEDURE store_mpesa_token(
+    IN p_access_token TEXT,
+    IN p_expires_in INT
+)
+BEGIN
+    DECLARE v_expires_at TIMESTAMP;
+    
+    -- Calculate expiration time (subtract 60 seconds for safety margin)
+    SET v_expires_at = DATE_ADD(NOW(), INTERVAL (p_expires_in - 60) SECOND);
+    
+    -- Deactivate all previous tokens
+    UPDATE mpesa_access_tokens SET is_active = 0;
+    
+    -- Insert new token
+    INSERT INTO mpesa_access_tokens (access_token, expires_in, expires_at, is_active)
+    VALUES (p_access_token, p_expires_in, v_expires_at, 1);
+END$
+
+DELIMITER ;
+
+-- =====================================================
+-- STEP 7: CREATE STORED PROCEDURE - UPDATE TRANSACTION STATUS
+-- =====================================================
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS update_mpesa_transaction_status$
+
+CREATE PROCEDURE update_mpesa_transaction_status(
+    IN p_checkout_request_id VARCHAR(100),
+    IN p_transaction_id VARCHAR(100),
+    IN p_result_code VARCHAR(10),
+    IN p_result_desc TEXT,
+    IN p_status VARCHAR(20),
+    IN p_callback_data JSON
+)
+BEGIN
+    DECLARE v_transaction_id INT;
+    DECLARE v_booking_id INT;
+    
+    -- Update M-Pesa transaction
+    UPDATE mpesa_transactions
+    SET 
+        transaction_id = p_transaction_id,
+        result_code = p_result_code,
+        result_desc = p_result_desc,
+        status = p_status,
+        callback_received = 1,
+        callback_data = p_callback_data,
+        completed_at = NOW()
+    WHERE checkout_request_id = p_checkout_request_id;
+    
+    -- Get transaction and booking IDs
+    SELECT id, booking_id INTO v_transaction_id, v_booking_id
+    FROM mpesa_transactions
+    WHERE checkout_request_id = p_checkout_request_id;
+    
+    -- If payment successful, update booking status
+    IF p_result_code = '0' AND v_booking_id IS NOT NULL THEN
+        UPDATE bookings
+        SET 
+            payment_status = 'paid',
+            status = 'confirmed',
+            verification_status = 'verified',
+            verified_at = NOW()
+        WHERE id = v_booking_id;
+        
+        -- Log activity
+        INSERT INTO booking_activity_log (booking_id, activity_type, description, created_at)
+        VALUES (v_booking_id, 'payment_verified', CONCAT('M-Pesa payment verified. Transaction ID: ', p_transaction_id), NOW());
+    END IF;
+    
+    SELECT v_transaction_id as transaction_id, v_booking_id as booking_id;
+END$
+
+DELIMITER ;
+
+-- =====================================================
+-- STEP 8: CREATE EVENT - CLEANUP OLD LOGS (Optional)
+-- =====================================================
+
+-- Enable event scheduler if not already enabled
+SET GLOBAL event_scheduler = ON;
+
+-- Drop existing event if exists
+DROP EVENT IF EXISTS cleanup_old_mpesa_logs;
+
+-- Create event to cleanup logs older than 90 days
+CREATE EVENT IF NOT EXISTS cleanup_old_mpesa_logs
+ON SCHEDULE EVERY 1 DAY
+STARTS CURRENT_TIMESTAMP
+DO
+BEGIN
+    -- Delete old API logs (keep 90 days)
+    DELETE FROM mpesa_api_logs 
+    WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY);
+    
+    -- Delete old callback logs (keep 90 days)
+    DELETE FROM mpesa_callback_logs 
+    WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY) AND processed = 1;
+    
+    -- Deactivate expired tokens
+    UPDATE mpesa_access_tokens 
+    SET is_active = 0 
+    WHERE expires_at < NOW() AND is_active = 1;
+END;
+
+-- =====================================================
+-- M-PESA INTEGRATION SETUP COMPLETED
+-- =====================================================
+
+SELECT 'M-Pesa Integration tables and procedures created successfully!' as message;

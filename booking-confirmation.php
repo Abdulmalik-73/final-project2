@@ -5,6 +5,9 @@ require_once 'includes/functions.php';
 
 $booking_data = null;
 $booking_ref = isset($_GET['booking_ref']) ? sanitize_input($_GET['booking_ref']) : '';
+if (empty($booking_ref)) {
+    $booking_ref = isset($_GET['ref']) ? sanitize_input($_GET['ref']) : '';
+}
 
 if (empty($booking_ref)) {
     header('Location: index.php');

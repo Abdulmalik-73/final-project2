@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_feedback'])) {
     $existing_feedback = $check_stmt->get_result();
     
     if ($existing_feedback->num_rows > 0) {
-        $error = 'You have already submitted feedback for this booking.';
+        // Feedback already submitted
     } else {
         $overall_rating = isset($_POST['overall_rating']) ? (int)$_POST['overall_rating'] : 0;
         $service_quality = isset($_POST['service_quality']) ? (int)$_POST['service_quality'] : 0;
@@ -52,13 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_feedback'])) {
         $booking_type = sanitize_input($_POST['booking_type'] ?? 'room');
         
         // Validate ratings (must be between 1 and 5)
-        if ($overall_rating < 1 || $overall_rating > 5) {
-            $feedback_error = 'Overall rating must be between 1 and 5 stars';
-        } elseif ($service_quality < 1 || $service_quality > 5) {
-            $feedback_error = 'Service quality rating must be between 1 and 5 stars';
-        } elseif ($cleanliness < 1 || $cleanliness > 5) {
-            $feedback_error = 'Cleanliness rating must be between 1 and 5 stars';
-        } else {
+        if ($overall_rating >= 1 && $overall_rating <= 5 && 
+            $service_quality >= 1 && $service_quality <= 5 && 
+            $cleanliness >= 1 && $cleanliness <= 5) {
+            
             // Insert feedback into database
             $feedback_query = "INSERT INTO customer_feedback (booking_id, customer_id, payment_id, overall_rating, service_quality, cleanliness, comments, booking_type, service_type, created_at) 
                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
@@ -71,9 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_feedback'])) {
                 
                 // Log the feedback submission
                 error_log("Feedback submitted - Booking ID: $booking_id, Overall: $overall_rating, Service: $service_quality, Cleanliness: $cleanliness");
-            } else {
-                $feedback_error = 'Failed to submit feedback: ' . $conn->error;
-                error_log("Feedback submission failed: " . $conn->error);
             }
         }
     }
@@ -135,11 +129,6 @@ $check_feedback_stmt->execute();
 $feedback_result = $check_feedback_stmt->get_result();
 if ($feedback_result->num_rows > 0) {
     $feedback_exists = true;
-}
-
-// Check if booking is in correct status for payment upload
-if (!in_array($booking['verification_status'], ['pending_payment', 'rejected'])) {
-    $error = 'This booking is not eligible for payment upload.';
 }
 
 // Generate payment reference if not exists
@@ -736,13 +725,6 @@ if ($booking['payment_deadline'] && strtotime($booking['payment_deadline']) < ti
                                     <?php if ($feedback_success): ?>
                                     <div class="alert alert-success alert-dismissible fade show" role="alert" style="padding: 10px 15px; font-size: 13px; margin-bottom: 15px; border-radius: 8px;">
                                         <i class="fas fa-check-circle"></i> <?php echo $feedback_success; ?>
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                    </div>
-                                    <?php endif; ?>
-                                    
-                                    <?php if ($feedback_error): ?>
-                                    <div class="alert alert-danger alert-dismissible fade show" role="alert" style="padding: 10px 15px; font-size: 13px; margin-bottom: 15px; border-radius: 8px;">
-                                        <i class="fas fa-exclamation-circle"></i> <?php echo $feedback_error; ?>
                                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                     </div>
                                     <?php endif; ?>

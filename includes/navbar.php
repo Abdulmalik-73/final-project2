@@ -178,6 +178,7 @@
                             <li><a class="dropdown-item" href="profile.php" style="padding: 0.35rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-id-card me-2 text-primary" style="font-size: 0.8rem;"></i> <?php echo __('account.view_profile'); ?></a></li>
                             <li><a class="dropdown-item" href="profile.php?tab=photo" style="padding: 0.35rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-camera me-2 text-info" style="font-size: 0.8rem;"></i> <?php echo __('account.change_photo'); ?></a></li>
                             <li><a class="dropdown-item" href="profile.php?tab=info" style="padding: 0.35rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-edit me-2 text-success" style="font-size: 0.8rem;"></i> <?php echo __('account.update_info'); ?></a></li>
+                            <li><a class="dropdown-item" href="my-bookings.php" style="padding: 0.35rem 0.8rem; font-size: 0.85rem;"><i class="fas fa-calendar-check me-2 text-warning" style="font-size: 0.8rem;"></i> <?php echo __('account.my_bookings'); ?></a></li>
                             <li><hr class="dropdown-divider" style="margin: 0.2rem 0;"></li>
                             
                             <!-- Settings Section -->
