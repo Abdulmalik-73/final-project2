@@ -85,6 +85,8 @@ $rooms = get_all_rooms();
                     'start' => 1,
                     'end' => 4,
                     'price' => 2000,
+                    'capacity' => 1,
+                    'location' => 'G+3',
                     'description' => 'Cozy single room with modern amenities, perfect for solo travelers',
                     'amenities' => ['1 Single Bed', 'Free WiFi', 'Air Conditioning', 'Private Bathroom'],
                     'images' => [
@@ -101,6 +103,8 @@ $rooms = get_all_rooms();
                     'start' => 5,
                     'end' => 8,
                     'price' => 2500,
+                    'capacity' => 2,
+                    'location' => 'G+3',
                     'description' => 'Comfortable double room with basic amenities for couples or friends',
                     'amenities' => ['1 Double Bed', 'Free WiFi', 'Air Conditioning', 'Mini Fridge'],
                     'images' => [
@@ -117,6 +121,8 @@ $rooms = get_all_rooms();
                     'start' => 9,
                     'end' => 12,
                     'price' => 3000,
+                    'capacity' => 1,
+                    'location' => 'G+2',
                     'description' => 'Spacious single room with premium amenities and city views',
                     'amenities' => ['1 Queen Bed', 'Premium WiFi', 'Smart TV', 'Work Desk'],
                     'images' => [
@@ -133,6 +139,8 @@ $rooms = get_all_rooms();
                     'start' => 13,
                     'end' => 16,
                     'price' => 3500,
+                    'capacity' => 2,
+                    'location' => 'G+2',
                     'description' => 'Premium double room with elegant furnishings and city views',
                     'amenities' => ['1 Double Bed', 'Premium WiFi', 'Smart TV', 'Balcony'],
                     'images' => [
@@ -149,6 +157,8 @@ $rooms = get_all_rooms();
                     'start' => 17,
                     'end' => 20,
                     'price' => 3000,
+                    'capacity' => 2,
+                    'location' => 'G+1',
                     'description' => 'Luxurious room with king-size bed and modern amenities',
                     'amenities' => ['1 King Size Bed', 'Premium WiFi', 'Smart TV', 'Mini Bar'],
                     'images' => [
@@ -165,6 +175,8 @@ $rooms = get_all_rooms();
                     'start' => 21,
                     'end' => 28,
                     'price' => 4000,
+                    'capacity' => 2,
+                    'location' => 'G+1',
                     'description' => 'Spacious suite with separate living area and premium amenities',
                     'amenities' => ['King Size Bed', 'Living Area', 'Premium WiFi', 'Mini Bar'],
                     'images' => [
@@ -185,6 +197,8 @@ $rooms = get_all_rooms();
                     'start' => 29,
                     'end' => 32,
                     'price' => 4000,
+                    'capacity' => 4,
+                    'location' => 'G+1',
                     'description' => 'Perfect for families with multiple beds and spacious layout',
                     'amenities' => ['Multiple Beds', 'Free WiFi', 'Smart TV', 'Extra Space'],
                     'images' => [
@@ -201,6 +215,8 @@ $rooms = get_all_rooms();
                     'start' => 33,
                     'end' => 37,
                     'price' => 6000,
+                    'capacity' => 2,
+                    'location' => 'G+2',
                     'description' => 'Luxurious suite with separate bedroom, living room, and executive amenities',
                     'amenities' => ['King Size Bed', 'Separate Living Room', 'Executive Lounge Access', 'Premium Amenities'],
                     'images' => [
@@ -218,6 +234,8 @@ $rooms = get_all_rooms();
                     'start' => 38,
                     'end' => 39,
                     'price' => 8000,
+                    'capacity' => 4,
+                    'location' => 'G+3',
                     'description' => 'The ultimate luxury experience with panoramic views and exclusive services',
                     'amenities' => ['Master Bedroom + Guest Room', 'Private Dining Area', 'Butler Service', 'Panoramic City Views'],
                     'images' => [
@@ -264,6 +282,16 @@ $rooms = get_all_rooms();
                                         <?php echo $status_info['text']; ?> <?php echo $status_info['icon']; ?>
                                     </span>
                                 </p>
+                                
+                                <!-- Capacity and Location -->
+                                <div class="mb-2 d-flex justify-content-between">
+                                    <p class="mb-0">
+                                        <strong>Capacity:</strong> <?php echo $room_type['capacity']; ?> guest<?php echo $room_type['capacity'] > 1 ? 's' : ''; ?>
+                                    </p>
+                                    <p class="mb-0">
+                                        <strong>Location:</strong> <?php echo $room_type['location']; ?>
+                                    </p>
+                                </div>
                                 
                                 <!-- Services Section -->
                                 <div class="mb-2">
