@@ -9,6 +9,10 @@ if (!is_logged_in()) {
     exit();
 }
 
+// Get selected food item from URL parameters
+$selected_item = isset($_GET['item']) ? sanitize_input($_GET['item']) : '';
+$selected_price = isset($_GET['price']) ? (float)$_GET['price'] : 0;
+
 $error = '';
 $success = '';
 
@@ -491,14 +495,37 @@ $food_items = array_filter($food_items, function($category) {
                         </div>
                         <div class="card-body">
                             <div id="orderSummary">
+                                <?php if (!empty($selected_item)): ?>
                                 <div class="alert alert-success">
                                     <i class="fas fa-check-circle"></i>
-                                    <strong>Food Order Selected</strong>
-                                    <p class="mb-0 mt-2 small">You have selected food items from the Services menu. Please complete the reservation details to place your order.</p>
+                                    <strong>Food Item Selected</strong>
                                 </div>
-                                <div class="text-muted small">
-                                    <p><i class="fas fa-info-circle"></i> Your order will be confirmed after you submit the form with your preferred date and time.</p>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                                        <div>
+                                            <strong><?php echo htmlspecialchars($selected_item); ?></strong>
+                                            <br><small class="text-muted">Quantity: 1</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <strong class="text-gold"><?php echo format_currency($selected_price); ?></strong>
+                                        </div>
+                                    </div>
                                 </div>
+                                <hr>
+                                <div class="d-flex justify-content-between">
+                                    <strong>Total:</strong>
+                                    <span class="text-gold fs-4"><?php echo format_currency($selected_price); ?></span>
+                                </div>
+                                <div class="text-muted small mt-3">
+                                    <p class="mb-0"><i class="fas fa-info-circle"></i> Complete the reservation details below to place your order.</p>
+                                </div>
+                                <?php else: ?>
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>No Item Selected</strong>
+                                    <p class="mb-0 mt-2 small">Please select a food item from the Services menu first.</p>
+                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

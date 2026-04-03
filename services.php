@@ -118,7 +118,7 @@ while ($row = $services_result->fetch_assoc()) {
                                         <i class="fas fa-lock"></i>
                                     </button>
                                     <?php else: ?>
-                                    <a href="food-booking.php" class="btn btn-sm btn-gold">
+                                    <a href="food-booking.php?item=<?php echo urlencode($service['name']); ?>&price=<?php echo $service['price']; ?>" class="btn btn-sm btn-gold">
                                         Order
                                     </a>
                                     <?php endif; ?>
@@ -165,7 +165,7 @@ while ($row = $services_result->fetch_assoc()) {
                                         <i class="fas fa-lock"></i>
                                     </button>
                                     <?php else: ?>
-                                    <a href="food-booking.php" class="btn btn-sm btn-gold">
+                                    <a href="food-booking.php?item=<?php echo urlencode($service['name']); ?>&price=<?php echo $service['price']; ?>" class="btn btn-sm btn-gold">
                                         Order
                                     </a>
                                     <?php endif; ?>
