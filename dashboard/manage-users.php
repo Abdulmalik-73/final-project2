@@ -182,6 +182,7 @@ $stats = $conn->query($stats_query)->fetch_assoc();
         .badge-receptionist { background-color: #ffc107; }
         .badge-manager { background-color: #fd7e14; }
         .badge-admin { background-color: #dc3545; }
+        .badge-super_admin { background-color: #6f42c1; color: white; }
     </style>
 </head>
 <body>
