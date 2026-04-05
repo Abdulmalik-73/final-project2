@@ -41,42 +41,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!$room) {
         $error = 'Invalid room selected';
     } else {
-        // Acquire room lock before creating booking
-        $lock_result = $lockManager->acquireRoomLock($room_id, $_SESSION['user_id'], $check_in, $check_out);
+        // Create booking directly - overlap check is done in create_booking()
+        $nights = calculate_nights($check_in, $check_out);
+        $total_price = $room['price'] * $nights;
         
-        if (!$lock_result['success']) {
-            $error = 'Unable to lock room for booking: ' . $lock_result['message'];
-        } elseif ($lock_result['status'] === 'waiting') {
-            // User is in waiting queue
-            $_SESSION['room_lock_id'] = $lock_result['lock_id'];
-            $_SESSION['waiting_room'] = $room_id;
-            set_message('info', 'This room is currently being booked by another user. You are in the waiting queue at position #' . $lock_result['position'] . '. You will be notified when it\'s your turn.');
-            header('Location: my-bookings.php?waiting=1');
-            exit();
-        } else {
-            // Lock acquired successfully, proceed with booking
-            $_SESSION['room_lock_id'] = $lock_result['lock_id'];
-            
-            $nights = calculate_nights($check_in, $check_out);
-            $total_price = $room['price'] * $nights;
-            
-            $booking_data = [
-                'user_id' => $_SESSION['user_id'],
-                'room_id' => $room_id,
-                'check_in' => $check_in,
-                'check_out' => $check_out,
-                'customers' => $customers,
-                'total_price' => $total_price,
-                'special_requests' => $special_requests
-            ];
-            
-            error_log("Booking data being passed to create_booking: " . print_r($booking_data, true));
-            
-            $result = create_booking($booking_data);
-            
-            if ($result['success']) {
-                // Debug: Log successful booking creation
-                error_log("Booking created successfully with ID: " . $result['booking_id']);
+        $booking_data = [
+            'user_id' => $_SESSION['user_id'],
+            'room_id' => $room_id,
+            'check_in' => $check_in,
+            'check_out' => $check_out,
+            'customers' => $customers,
+            'total_price' => $total_price,
+            'special_requests' => $special_requests
+        ];
+        
+        error_log("Booking data being passed to create_booking: " . print_r($booking_data, true));
+        
+        $result = create_booking($booking_data);
+        
+        if ($result['success']) {
+            // Debug: Log successful booking creation
+            error_log("Booking created successfully with ID: " . $result['booking_id']);
                 
                 // Generate payment reference and set deadline
                 $payment_ref = 'HRH-' . str_pad($result['booking_id'], 4, '0', STR_PAD_LEFT) . '-' . strtoupper(substr(md5($result['booking_id'] . time()), 0, 6));
@@ -116,23 +101,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 header('Location: payment-upload.php?booking=' . $result['booking_id']);
                 exit();
             } else {
-                // Release lock if booking failed
-                $lockManager->releaseRoomLock($lock_result['lock_id'], 'booking_failed');
+                // Booking failed - show error message
                 
                 // Check if this is a max booking limit error
                 if (isset($result['error_code']) && $result['error_code'] === 'MAX_BOOKING_LIMIT' && isset($result['existing_bookings'])) {
                     $_SESSION['max_booking_error'] = [
                         'existing_bookings' => $result['existing_bookings'],
                         'booking_count' => $result['booking_count'],
-                        'check_in_date' => $result['check_in_date'] ?? date('F j, Y', strtotime($check_in_date))
+                        'check_in_date' => $result['check_in_date'] ?? date('F j, Y', strtotime($check_in))
                     ];
                     $_SESSION['max_booking_error_time'] = time(); // Store timestamp
                     $error = 'MAX_BOOKING_LIMIT'; // Flag for display
                 }
-                // Check if this is an overlapping dates error
-                elseif (isset($result['error_code']) && $result['error_code'] === 'OVERLAPPING_DATES' && isset($result['existing_booking'])) {
-                    $existing = $result['existing_booking'];
-                    $_SESSION['duplicate_booking_error'] = $existing;
+                // Check if this is a room not available error
+                elseif (isset($result['error_code']) && $result['error_code'] === 'ROOM_NOT_AVAILABLE' && isset($result['blocking_booking'])) {
+                    $blocking = $result['blocking_booking'];
+                    $_SESSION['room_not_available_error'] = $blocking;
                     $error = 'OVERLAPPING_DATES'; // Flag for display
                 } 
                 // Check if this is a duplicate booking error (legacy)
