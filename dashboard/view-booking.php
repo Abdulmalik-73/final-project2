@@ -108,9 +108,9 @@ if (!empty($booking['check_in_date']) && !empty($booking['check_out_date'])) {
                     <button onclick="window.print()" class="btn btn-primary me-2">
                         <i class="fas fa-print"></i> Print
                     </button>
-                    <button onclick="window.close()" class="btn btn-secondary">
+                    <a href="manage-bookings.php" class="btn btn-secondary">
                         <i class="fas fa-times"></i> Close
-                    </button>
+                    </a>
                 </div>
             </div>
             
@@ -292,9 +292,9 @@ if (!empty($booking['check_in_date']) && !empty($booking['check_out_date'])) {
                     <i class="fas fa-ban"></i> Cancel Booking
                 </button>
                 <?php endif; ?>
-                <button onclick="window.close()" class="btn btn-secondary">
+                <a href="manage-bookings.php" class="btn btn-secondary">
                     <i class="fas fa-times"></i> Close
-                </button>
+                </a>
             </div>
         </div>
     </div>
