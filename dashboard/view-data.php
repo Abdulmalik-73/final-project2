@@ -19,6 +19,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error_message = 'Failed to delete activity logs: ' . $conn->error;
             }
         }
+    } elseif (isset($_POST['delete_booking_activity_logs'])) {
+        // Delete selected booking activity logs
+        $ids = $_POST['booking_activity_ids'] ?? [];
+        if (!empty($ids)) {
+            $ids_str = implode(',', array_map('intval', $ids));
+            $delete_query = "DELETE FROM booking_activity_log WHERE id IN ($ids_str)";
+            if ($conn->query($delete_query)) {
+                $success_message = count($ids) . ' booking activity log(s) deleted successfully!';
+            } else {
+                $error_message = 'Failed to delete booking activity logs: ' . $conn->error;
+            }
+        }
     } elseif (isset($_POST['clear_all_activity'])) {
         // Clear all activity logs
         $delete_query = "DELETE FROM user_activity_log";
@@ -26,6 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success_message = 'All activity logs cleared successfully!';
         } else {
             $error_message = 'Failed to clear activity logs: ' . $conn->error;
+        }
+    } elseif (isset($_POST['clear_all_booking_activity'])) {
+        // Clear all booking activity logs
+        $delete_query = "DELETE FROM booking_activity_log";
+        if ($conn->query($delete_query)) {
+            $success_message = 'All booking activity logs cleared successfully!';
+        } else {
+            $error_message = 'Failed to clear booking activity logs: ' . $conn->error;
         }
     } elseif (isset($_POST['delete_old_activity'])) {
         // Delete activity logs older than 30 days
@@ -35,6 +55,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success_message = $affected . ' old activity log(s) deleted successfully!';
         } else {
             $error_message = 'Failed to delete old activity logs: ' . $conn->error;
+        }
+    } elseif (isset($_POST['delete_old_booking_activity'])) {
+        // Delete booking activity logs older than 30 days
+        $delete_query = "DELETE FROM booking_activity_log WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)";
+        if ($conn->query($delete_query)) {
+            $affected = $conn->affected_rows;
+            $success_message = $affected . ' old booking activity log(s) deleted successfully!';
+        } else {
+            $error_message = 'Failed to delete old booking activity logs: ' . $conn->error;
         }
     }
 }
@@ -198,6 +227,13 @@ $total_pages = ceil($total_records / $limit);
                             <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#clearAllModal">
                                 <i class="fas fa-trash-alt"></i> Clear All
                             </button>
+                            <?php elseif ($data_type == 'booking_activity'): ?>
+                            <button type="button" class="btn btn-sm btn-warning me-1" data-bs-toggle="modal" data-bs-target="#deleteOldBookingModal">
+                                <i class="fas fa-clock"></i> Delete Old Logs
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#clearAllBookingModal">
+                                <i class="fas fa-trash-alt"></i> Clear All
+                            </button>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -216,6 +252,14 @@ $total_pages = ceil($total_records / $limit);
                                     <i class="fas fa-trash"></i> Delete Selected
                                 </button>
                                 <span class="text-muted ms-2" id="selectedCount">0 selected</span>
+                            </div>
+                        <?php elseif ($data_type == 'booking_activity'): ?>
+                        <form method="POST" id="bookingActivityForm">
+                            <div class="mb-3">
+                                <button type="submit" name="delete_booking_activity_logs" class="btn btn-sm btn-danger" id="deleteSelectedBookingBtn" disabled>
+                                    <i class="fas fa-trash"></i> Delete Selected
+                                </button>
+                                <span class="text-muted ms-2" id="selectedBookingCount">0 selected</span>
                             </div>
                         <?php endif; ?>
                         <div class="table-responsive">
@@ -262,6 +306,9 @@ $total_pages = ceil($total_records / $limit);
                                         <th>IP Address</th>
                                         <th>Created</th>
                                         <?php elseif ($data_type == 'booking_activity'): ?>
+                                        <th style="width: 40px;">
+                                            <input type="checkbox" id="selectAllBooking" class="form-check-input">
+                                        </th>
                                         <th>ID</th>
                                         <th>Booking Ref</th>
                                         <th>User</th>
@@ -368,6 +415,9 @@ $total_pages = ceil($total_records / $limit);
                                         <td><?php echo date('M j, Y H:i', strtotime($row['created_at'])); ?></td>
                                         
                                         <?php elseif ($data_type == 'booking_activity'): ?>
+                                        <td>
+                                            <input type="checkbox" name="booking_activity_ids[]" value="<?php echo $row['id']; ?>" class="form-check-input booking-activity-checkbox">
+                                        </td>
                                         <td><?php echo $row['id']; ?></td>
                                         <td><strong><?php echo $row['booking_reference']; ?></strong></td>
                                         <td><?php echo htmlspecialchars($row['user_name']); ?></td>
@@ -391,7 +441,7 @@ $total_pages = ceil($total_records / $limit);
                                 </tbody>
                             </table>
                         </div>
-                        <?php if ($data_type == 'user_activity'): ?>
+                        <?php if ($data_type == 'user_activity' || $data_type == 'booking_activity'): ?>
                         </form>
                         <?php endif; ?>
                         
@@ -480,6 +530,60 @@ $total_pages = ceil($total_records / $limit);
         </div>
     </div>
     
+    <!-- Delete Old Booking Activity Logs Modal -->
+    <div class="modal fade" id="deleteOldBookingModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="fas fa-clock me-2"></i> Delete Old Booking Activity Logs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            This will delete all booking activity logs older than 30 days.
+                        </div>
+                        <p>Are you sure you want to delete old booking activity logs?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="delete_old_booking_activity" class="btn btn-warning">
+                            <i class="fas fa-trash me-2"></i> Delete Old Logs
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Clear All Booking Activity Logs Modal -->
+    <div class="modal fade" id="clearAllBookingModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-trash-alt me-2"></i> Clear All Booking Activity Logs</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>WARNING:</strong> This will permanently delete ALL booking activity logs!
+                        </div>
+                        <p>This action cannot be undone. Are you sure you want to clear all booking activity logs?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="clear_all_booking_activity" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-2"></i> Clear All Logs
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Checkbox selection for activity logs
@@ -520,6 +624,51 @@ $total_pages = ceil($total_records / $limit);
                     if (e.submitter && e.submitter.name === 'delete_activity_logs') {
                         const checkedCount = Array.from(activityCheckboxes).filter(cb => cb.checked).length;
                         if (!confirm('Are you sure you want to delete ' + checkedCount + ' activity log(s)?')) {
+                            e.preventDefault();
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Checkbox selection for booking activity logs
+        const selectAllBooking = document.getElementById('selectAllBooking');
+        const bookingActivityCheckboxes = document.querySelectorAll('.booking-activity-checkbox');
+        const deleteSelectedBookingBtn = document.getElementById('deleteSelectedBookingBtn');
+        const selectedBookingCount = document.getElementById('selectedBookingCount');
+        const bookingActivityForm = document.getElementById('bookingActivityForm');
+        
+        if (selectAllBooking && bookingActivityCheckboxes.length > 0) {
+            // Select all functionality
+            selectAllBooking.addEventListener('change', function() {
+                bookingActivityCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateBookingDeleteButton();
+            });
+            
+            // Individual checkbox change
+            bookingActivityCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateBookingDeleteButton();
+                    // Update select all state
+                    selectAllBooking.checked = Array.from(bookingActivityCheckboxes).every(cb => cb.checked);
+                });
+            });
+            
+            // Update delete button state
+            function updateBookingDeleteButton() {
+                const checkedCount = Array.from(bookingActivityCheckboxes).filter(cb => cb.checked).length;
+                deleteSelectedBookingBtn.disabled = checkedCount === 0;
+                selectedBookingCount.textContent = checkedCount + ' selected';
+            }
+            
+            // Confirm before deleting
+            if (bookingActivityForm) {
+                bookingActivityForm.addEventListener('submit', function(e) {
+                    if (e.submitter && e.submitter.name === 'delete_booking_activity_logs') {
+                        const checkedCount = Array.from(bookingActivityCheckboxes).filter(cb => cb.checked).length;
+                        if (!confirm('Are you sure you want to delete ' + checkedCount + ' booking activity log(s)?')) {
                             e.preventDefault();
                         }
                     }
