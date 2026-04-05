@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 elseif (isset($result['error_code']) && $result['error_code'] === 'ROOM_NOT_AVAILABLE' && isset($result['blocking_booking'])) {
                     $blocking = $result['blocking_booking'];
                     $_SESSION['room_not_available_error'] = $blocking;
-                    $error = 'OVERLAPPING_DATES'; // Flag for display
+                    $error = 'ROOM_WAITING_STATE'; // Flag for display
                 } 
                 // Check if this is a duplicate booking error (legacy)
                 elseif (isset($result['error_code']) && $result['error_code'] === 'DUPLICATE_BOOKING' && isset($result['existing_booking'])) {
@@ -423,6 +423,30 @@ $rooms = get_all_rooms();
                                         });
                                     })();
                                 </script>
+                            <?php elseif ($error === 'ROOM_WAITING_STATE' && isset($_SESSION['room_not_available_error'])): ?>
+                                <?php $blocking = $_SESSION['room_not_available_error']; ?>
+                                <div class="alert alert-warning" role="alert" style="position: sticky; top: 20px; z-index: 1000; animation: none !important;">
+                                    <h5 class="alert-heading"><i class="fas fa-clock"></i> Room Under Waiting State</h5>
+                                    <p class="mb-2"><strong>The Room is Under Waiting State, please book another Room!</strong></p>
+                                    <p class="mb-3">This room has a pending booking that is awaiting receptionist approval.</p>
+                                    <hr>
+                                    <h6 class="mb-3">Blocking Booking Details:</h6>
+                                    <ul class="mb-3">
+                                        <li><strong>Room:</strong> <?php echo htmlspecialchars($blocking['room_name']); ?> (Room <?php echo htmlspecialchars($blocking['room_number']); ?>)</li>
+                                        <li><strong>Check-in:</strong> <?php echo htmlspecialchars($blocking['check_in']); ?></li>
+                                        <li><strong>Check-out:</strong> <?php echo htmlspecialchars($blocking['check_out']); ?></li>
+                                        <li><strong>Status:</strong> <span class="badge bg-warning"><?php echo htmlspecialchars($blocking['status']); ?></span></li>
+                                    </ul>
+                                    <div class="d-flex gap-2">
+                                        <a href="booking.php" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-search"></i> Choose Another Room
+                                        </a>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="this.parentElement.parentElement.style.display='none'; <?php unset($_SESSION['room_not_available_error']); ?>">
+                                            <i class="fas fa-times"></i> Dismiss
+                                        </button>
+                                    </div>
+                                </div>
+                                <?php unset($_SESSION['room_not_available_error']); ?>
                             <?php elseif ($error === 'OVERLAPPING_DATES' && isset($_SESSION['duplicate_booking_error'])): ?>
                                 <?php $existing = $_SESSION['duplicate_booking_error']; ?>
                                 <div class="alert alert-danger" role="alert" style="position: sticky; top: 20px; z-index: 1000; animation: none !important;">
