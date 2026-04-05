@@ -428,7 +428,7 @@ $stats = $conn->query($stats_query)->fetch_assoc();
                                                 <a href="edit-user.php?id=<?php echo $user['id']; ?>" class="btn btn-sm btn-warning" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id']; ?>)" title="Delete">
+                                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id']; ?>)" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </td>
@@ -525,14 +525,26 @@ $stats = $conn->query($stats_query)->fetch_assoc();
         }
         
         function deleteUser(userId) {
+            console.log('deleteUser called with userId:', userId);
+            
             if (confirm('⚠️ PERMANENT DELETION WARNING ⚠️\n\nAre you sure you want to PERMANENTLY DELETE this user?\n\nThis will:\n• Delete the user account permanently\n• Delete all their bookings and data\n• This action CANNOT be undone\n\nClick OK to permanently delete, or Cancel to keep the user.')) {
+                console.log('User confirmed deletion');
+                
                 // Create form and submit
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = 'delete-user.php';
                 form.innerHTML = '<input type="hidden" name="user_id" value="' + userId + '">';
                 document.body.appendChild(form);
+                
+                console.log('Form created and appended, submitting...');
+                console.log('Form action:', form.action);
+                console.log('Form method:', form.method);
+                console.log('Form data:', new FormData(form));
+                
                 form.submit();
+            } else {
+                console.log('User cancelled deletion');
             }
         }
     </script>

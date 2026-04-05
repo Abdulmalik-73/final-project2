@@ -1,5 +1,11 @@
 <?php
 session_start();
+
+// Add debugging at the very top
+file_put_contents('delete_debug.log', date('Y-m-d H:i:s') . " - Delete script accessed\n", FILE_APPEND);
+file_put_contents('delete_debug.log', "POST data: " . print_r($_POST, true) . "\n", FILE_APPEND);
+file_put_contents('delete_debug.log', "REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD'] . "\n", FILE_APPEND);
+
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
 
