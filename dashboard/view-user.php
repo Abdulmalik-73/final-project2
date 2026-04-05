@@ -7,8 +7,14 @@ require_role('admin');
 
 $user_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-// Get user
-$user_query = "SELECT * FROM users WHERE id = ?";
+// Get user with OAuth information
+$user_query = "SELECT u.*, 
+               ot.provider as oauth_provider_name,
+               ot.provider_user_id as oauth_user_id,
+               ot.created_at as oauth_linked_at
+               FROM users u
+               LEFT JOIN oauth_tokens ot ON u.id = ot.user_id
+               WHERE u.id = ?";
 $stmt = $conn->prepare($user_query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -18,6 +24,20 @@ if (!$user) {
     header('Location: manage-users.php?error=User not found');
     exit();
 }
+
+// Get user's booking count
+$booking_count_query = "SELECT COUNT(*) as total FROM bookings WHERE user_id = ?";
+$booking_stmt = $conn->prepare($booking_count_query);
+$booking_stmt->bind_param("i", $user_id);
+$booking_stmt->execute();
+$booking_count = $booking_stmt->get_result()->fetch_assoc()['total'];
+
+// Get user's activity log
+$activity_query = "SELECT * FROM user_activity_log WHERE user_id = ? ORDER BY created_at DESC LIMIT 10";
+$activity_stmt = $conn->prepare($activity_query);
+$activity_stmt->bind_param("i", $user_id);
+$activity_stmt->execute();
+$activities = $activity_stmt->get_result();
 
 // Get audit logs for this user
 $audit_query = "SELECT * FROM admin_audit_logs WHERE target_user_id = ? ORDER BY timestamp DESC LIMIT 20";
@@ -164,92 +184,215 @@ $audit_logs = $audit_stmt->get_result();
                     </div>
                     
                     <!-- User Information -->
-                    <div class="info-section">
-                        <h5><i class="fas fa-user me-2"></i> Personal Information</h5>
-                        <div class="info-row">
-                            <span class="info-label">User ID:</span>
-                            <span class="info-value">#<?php echo $user['id']; ?></span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Full Name:</span>
-                            <span class="info-value"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Email:</span>
-                            <span class="info-value"><?php echo htmlspecialchars($user['email']); ?></span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Phone:</span>
-                            <span class="info-value"><?php echo htmlspecialchars($user['phone'] ?? 'N/A'); ?></span>
-                        </div>
-                    </div>
-                    
-                    <!-- Account Information -->
-                    <div class="info-section">
-                        <h5><i class="fas fa-lock me-2"></i> Account Information</h5>
-                        <div class="info-row">
-                            <span class="info-label">Role:</span>
-                            <span class="info-value">
-                                <span class="badge bg-primary"><?php echo ucfirst($user['role']); ?></span>
-                            </span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Status:</span>
-                            <span class="info-value">
-                                <?php if ($user['status'] === 'active'): ?>
-                                    <span class="badge bg-success">Active</span>
-                                <?php elseif ($user['status'] === 'inactive'): ?>
-                                    <span class="badge bg-secondary">Inactive</span>
-                                <?php else: ?>
-                                    <span class="badge bg-danger">Suspended</span>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="info-section">
+                                <h5><i class="fas fa-user me-2"></i> Personal Information</h5>
+                                <div class="info-row">
+                                    <span class="info-label">User ID:</span>
+                                    <span class="info-value">#<?php echo $user['id']; ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Username:</span>
+                                    <span class="info-value"><?php echo htmlspecialchars($user['username']); ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Full Name:</span>
+                                    <span class="info-value"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Email:</span>
+                                    <span class="info-value">
+                                        <?php echo htmlspecialchars($user['email']); ?>
+                                        <?php if ($user['email_verified']): ?>
+                                            <i class="fas fa-check-circle text-success ms-2" title="Email Verified"></i>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Phone:</span>
+                                    <span class="info-value"><?php echo htmlspecialchars($user['phone'] ?? 'N/A'); ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Address:</span>
+                                    <span class="info-value"><?php echo htmlspecialchars($user['address'] ?? 'N/A'); ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Preferred Language:</span>
+                                    <span class="info-value">
+                                        <?php 
+                                        $langs = ['en' => 'English', 'am' => 'Amharic', 'om' => 'Afaan Oromo'];
+                                        echo $langs[$user['preferred_language']] ?? 'English';
+                                        ?>
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- OAuth Information -->
+                            <?php if ($user['google_id'] || $user['oauth_provider_name']): ?>
+                            <div class="info-section">
+                                <h5><i class="fab fa-google me-2"></i> OAuth / Social Login Information</h5>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    This user registered using <strong><?php echo ucfirst($user['oauth_provider'] ?? $user['oauth_provider_name'] ?? 'Google'); ?></strong> authentication
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">OAuth Provider:</span>
+                                    <span class="info-value">
+                                        <span class="badge bg-danger">
+                                            <i class="fab fa-google me-1"></i>
+                                            <?php echo ucfirst($user['oauth_provider'] ?? $user['oauth_provider_name'] ?? 'Google'); ?>
+                                        </span>
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Google ID:</span>
+                                    <span class="info-value">
+                                        <code><?php echo htmlspecialchars($user['google_id'] ?? $user['oauth_user_id'] ?? 'N/A'); ?></code>
+                                    </span>
+                                </div>
+                                <?php if ($user['oauth_linked_at']): ?>
+                                <div class="info-row">
+                                    <span class="info-label">OAuth Linked:</span>
+                                    <span class="info-value"><?php echo date('M j, Y H:i', strtotime($user['oauth_linked_at'])); ?></span>
+                                </div>
                                 <?php endif; ?>
-                            </span>
+                                <?php if ($user['profile_picture']): ?>
+                                <div class="info-row">
+                                    <span class="info-label">Profile Picture:</span>
+                                    <span class="info-value">
+                                        <img src="<?php echo htmlspecialchars($user['profile_picture']); ?>" 
+                                             alt="Profile" 
+                                             style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                                    </span>
+                                </div>
+                                <?php endif; ?>
+                                <div class="alert alert-warning mt-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Security Note:</strong> This user does not have a traditional password. They authenticate through Google OAuth.
+                                </div>
+                            </div>
+                            <?php else: ?>
+                            <div class="info-section">
+                                <h5><i class="fas fa-key me-2"></i> Authentication Method</h5>
+                                <div class="alert alert-success">
+                                    <i class="fas fa-lock me-2"></i>
+                                    This user registered using <strong>traditional email/password</strong> authentication
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Password Status:</span>
+                                    <span class="info-value">
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i> Password Set (Encrypted)
+                                        </span>
+                                    </span>
+                                </div>
+                                <?php if ($user['password_changed_at']): ?>
+                                <div class="info-row">
+                                    <span class="info-label">Last Password Change:</span>
+                                    <span class="info-value"><?php echo date('M j, Y H:i', strtotime($user['password_changed_at'])); ?></span>
+                                </div>
+                                <?php endif; ?>
+                                <div class="alert alert-info mt-3">
+                                    <i class="fas fa-shield-alt me-2"></i>
+                                    <strong>Security:</strong> Passwords are encrypted using bcrypt hashing and cannot be viewed by anyone, including administrators.
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Created:</span>
-                            <span class="info-value"><?php echo date('M j, Y H:i', strtotime($user['created_at'])); ?></span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Last Updated:</span>
-                            <span class="info-value"><?php echo date('M j, Y H:i', strtotime($user['updated_at'])); ?></span>
+                        
+                        <div class="col-md-4">
+                            <!-- Account Status -->
+                            <div class="info-section">
+                                <h5><i class="fas fa-lock me-2"></i> Account Status</h5>
+                                <div class="info-row">
+                                    <span class="info-label">Role:</span>
+                                    <span class="info-value">
+                                        <span class="badge bg-primary"><?php echo ucfirst(str_replace('_', ' ', $user['role'])); ?></span>
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Status:</span>
+                                    <span class="info-value">
+                                        <?php if ($user['status'] === 'active'): ?>
+                                            <span class="badge bg-success">Active</span>
+                                        <?php elseif ($user['status'] === 'inactive'): ?>
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger">Suspended</span>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Total Bookings:</span>
+                                    <span class="info-value">
+                                        <strong><?php echo $booking_count; ?></strong>
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Last Login:</span>
+                                    <span class="info-value">
+                                        <?php echo $user['last_login'] ? date('M j, Y H:i', strtotime($user['last_login'])) : 'Never'; ?>
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Created:</span>
+                                    <span class="info-value"><?php echo date('M j, Y H:i', strtotime($user['created_at'])); ?></span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Last Updated:</span>
+                                    <span class="info-value"><?php echo date('M j, Y H:i', strtotime($user['updated_at'])); ?></span>
+                                </div>
+                            </div>
+                            
+                            <!-- Notification Preferences -->
+                            <div class="info-section">
+                                <h5><i class="fas fa-bell me-2"></i> Notifications</h5>
+                                <div class="info-row">
+                                    <span class="info-label">Email Notifications:</span>
+                                    <span class="info-value">
+                                        <?php echo $user['email_notifications'] ? '<i class="fas fa-check text-success"></i> Enabled' : '<i class="fas fa-times text-danger"></i> Disabled'; ?>
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">SMS Notifications:</span>
+                                    <span class="info-value">
+                                        <?php echo $user['sms_notifications'] ? '<i class="fas fa-check text-success"></i> Enabled' : '<i class="fas fa-times text-danger"></i> Disabled'; ?>
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Booking Reminders:</span>
+                                    <span class="info-value">
+                                        <?php echo $user['booking_reminders'] ? '<i class="fas fa-check text-success"></i> Enabled' : '<i class="fas fa-times text-danger"></i> Disabled'; ?>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Activity Log -->
                     <div class="info-section">
-                        <h5><i class="fas fa-history me-2"></i> Activity Log</h5>
-                        <?php if ($audit_logs && $audit_logs->num_rows > 0): ?>
+                        <h5><i class="fas fa-history me-2"></i> Recent Activity</h5>
+                        <?php if ($activities && $activities->num_rows > 0): ?>
                         <div class="table-responsive">
                             <table class="table table-sm mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Date</th>
-                                        <th>Action</th>
-                                        <th>Changed Fields</th>
-                                        <th>Admin</th>
+                                        <th>Date & Time</th>
+                                        <th>Activity Type</th>
+                                        <th>Description</th>
+                                        <th>IP Address</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php while ($log = $audit_logs->fetch_assoc()): ?>
+                                    <?php while ($activity = $activities->fetch_assoc()): ?>
                                     <tr>
-                                        <td><?php echo date('M j, Y H:i', strtotime($log['timestamp'])); ?></td>
-                                        <td><span class="badge bg-info"><?php echo ucfirst($log['action']); ?></span></td>
+                                        <td><?php echo date('M j, Y H:i', strtotime($activity['created_at'])); ?></td>
                                         <td>
-                                            <?php 
-                                            $fields = json_decode($log['changed_fields'], true);
-                                            echo implode(', ', $fields ?? []);
-                                            ?>
+                                            <span class="badge bg-info"><?php echo ucfirst(str_replace('_', ' ', $activity['activity_type'])); ?></span>
                                         </td>
-                                        <td>
-                                            <?php 
-                                            $admin_query = "SELECT first_name, last_name FROM users WHERE id = ?";
-                                            $admin_stmt = $conn->prepare($admin_query);
-                                            $admin_stmt->bind_param("i", $log['admin_id']);
-                                            $admin_stmt->execute();
-                                            $admin = $admin_stmt->get_result()->fetch_assoc();
-                                            echo $admin ? htmlspecialchars($admin['first_name'] . ' ' . $admin['last_name']) : 'System';
-                                            ?>
-                                        </td>
+                                        <td><?php echo htmlspecialchars($activity['description'] ?? '-'); ?></td>
+                                        <td><code><?php echo htmlspecialchars($activity['ip_address'] ?? 'N/A'); ?></code></td>
                                     </tr>
                                     <?php endwhile; ?>
                                 </tbody>

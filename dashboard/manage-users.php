@@ -102,8 +102,17 @@ $count_result = $conn->query($count_query);
 $total = $count_result->fetch_assoc()['total'];
 $total_pages = ceil($total / $per_page);
 
-// Get users
-$users_query = "SELECT * FROM users $where ORDER BY created_at DESC LIMIT $offset, $per_page";
+// Get users with OAuth information
+$users_query = "SELECT u.*, 
+                CASE WHEN u.google_id IS NOT NULL THEN 'Google' 
+                     WHEN ot.provider IS NOT NULL THEN ot.provider 
+                     ELSE NULL END as oauth_method
+                FROM users u
+                LEFT JOIN oauth_tokens ot ON u.id = ot.user_id
+                $where 
+                GROUP BY u.id
+                ORDER BY u.created_at DESC 
+                LIMIT $offset, $per_page";
 $users = $conn->query($users_query);
 
 // Get statistics
@@ -369,6 +378,7 @@ $stats = $conn->query($stats_query)->fetch_assoc();
                                             <th>Email</th>
                                             <th>Phone</th>
                                             <th>Role</th>
+                                            <th>Auth Method</th>
                                             <th>Status</th>
                                             <th>Created</th>
                                             <th>Actions</th>
@@ -386,8 +396,19 @@ $stats = $conn->query($stats_query)->fetch_assoc();
                                             <td><?php echo htmlspecialchars($user['phone'] ?? 'N/A'); ?></td>
                                             <td>
                                                 <span class="badge badge-<?php echo $user['role']; ?>">
-                                                    <?php echo ucfirst($user['role']); ?>
+                                                    <?php echo ucfirst(str_replace('_', ' ', $user['role'])); ?>
                                                 </span>
+                                            </td>
+                                            <td>
+                                                <?php if ($user['oauth_method']): ?>
+                                                    <span class="badge bg-danger" title="OAuth User">
+                                                        <i class="fab fa-google me-1"></i><?php echo $user['oauth_method']; ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-secondary" title="Email/Password">
+                                                        <i class="fas fa-key me-1"></i>Password
+                                                    </span>
+                                                <?php endif; ?>
                                             </td>
                                             <td>
                                                 <?php if ($user['status'] === 'active'): ?>
