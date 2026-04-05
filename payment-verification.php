@@ -644,8 +644,19 @@ if ($stats_result) {
                                                     echo "Verification pending. Requires manual review.";
                                                 }
                                             } else {
-                                                // It's plain text, display as is
-                                                echo nl2br(htmlspecialchars($notes));
+                                                // It's plain text - check for technical errors and simplify
+                                                if (strpos($notes, 'CURL Error') !== false || 
+                                                    strpos($notes, 'Could not resolve host') !== false ||
+                                                    strpos($notes, 'api.ethiotelecom.et') !== false ||
+                                                    strpos($notes, 'Connection failed') !== false ||
+                                                    strpos($notes, 'timeout') !== false) {
+                                                    echo "Automatic verification unavailable. Requires manual verification.";
+                                                } elseif (strpos($notes, 'Verification failed') !== false) {
+                                                    echo "Automatic verification failed. Requires manual verification.";
+                                                } else {
+                                                    // Display normal notes as is
+                                                    echo nl2br(htmlspecialchars($notes));
+                                                }
                                             }
                                             ?>
                                         </p>
