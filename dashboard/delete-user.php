@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 $new_values = json_encode(['deleted' => true]);
                 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-                $audit_stmt->bind_param("isisss", $_SESSION['user_id'], $action, $user_id, $changed_fields, $old_values, $new_values, $ip);
+                $audit_stmt->bind_param("isissss", $_SESSION['user_id'], $action, $user_id, $changed_fields, $old_values, $new_values, $ip);
                 $audit_stmt->execute();
                 error_log("Audit log created successfully");
             }
