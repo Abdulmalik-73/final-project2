@@ -6,6 +6,16 @@ require_once 'includes/RoomLockManager.php';
 // Initialize Room Lock Manager
 $lockManager = new RoomLockManager($conn);
 
+// Clear error session if user is starting fresh (no POST and no error parameter)
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && !isset($_GET['error'])) {
+    // Only clear if user clicked "Choose Another Room" or navigated normally
+    if (isset($_GET['clear_error'])) {
+        unset($_SESSION['room_not_available_error']);
+        unset($_SESSION['duplicate_booking_error']);
+        unset($_SESSION['max_booking_error']);
+    }
+}
+
 $selected_room_id = isset($_GET['room']) ? (int)$_GET['room'] : null;
 $selected_room = null;
 
@@ -425,7 +435,7 @@ $rooms = get_all_rooms();
                                 </script>
                             <?php elseif ($error === 'ROOM_WAITING_STATE' && isset($_SESSION['room_not_available_error'])): ?>
                                 <?php $blocking = $_SESSION['room_not_available_error']; ?>
-                                <div class="alert alert-warning" role="alert" style="position: sticky; top: 20px; z-index: 1000; animation: none !important;">
+                                <div class="alert alert-warning" role="alert" id="roomWaitingAlert" style="position: sticky; top: 20px; z-index: 1000; animation: none !important;">
                                     <h5 class="alert-heading"><i class="fas fa-clock"></i> Room Under Waiting State</h5>
                                     <p class="mb-2"><strong>The Room is Under Waiting State, please book another Room!</strong></p>
                                     <p class="mb-3">This room has a pending booking that is awaiting receptionist approval.</p>
@@ -438,15 +448,14 @@ $rooms = get_all_rooms();
                                         <li><strong>Status:</strong> <span class="badge bg-warning"><?php echo htmlspecialchars($blocking['status']); ?></span></li>
                                     </ul>
                                     <div class="d-flex gap-2">
-                                        <a href="booking.php" class="btn btn-primary btn-sm">
+                                        <a href="booking.php?clear_error=1" class="btn btn-primary btn-sm">
                                             <i class="fas fa-search"></i> Choose Another Room
                                         </a>
-                                        <button type="button" class="btn btn-secondary btn-sm" onclick="this.parentElement.parentElement.style.display='none'; <?php unset($_SESSION['room_not_available_error']); ?>">
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('roomWaitingAlert').style.display='none';">
                                             <i class="fas fa-times"></i> Dismiss
                                         </button>
                                     </div>
                                 </div>
-                                <?php unset($_SESSION['room_not_available_error']); ?>
                             <?php elseif ($error === 'OVERLAPPING_DATES' && isset($_SESSION['duplicate_booking_error'])): ?>
                                 <?php $existing = $_SESSION['duplicate_booking_error']; ?>
                                 <div class="alert alert-danger" role="alert" style="position: sticky; top: 20px; z-index: 1000; animation: none !important;">
