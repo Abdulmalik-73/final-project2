@@ -14,7 +14,7 @@
 USE harar_ras_hotel;
 
 -- Set character set
-SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+SET NAMES utf8mb4;
 
 -- Disable foreign key checks temporarily for table creation
 SET FOREIGN_KEY_CHECKS = 0;
@@ -2370,13 +2370,13 @@ DELIMITER ;
 -- CREATE EVENT - AUTO CLEANUP EXPIRED LOCKS
 -- =====================================================
 
--- Enable event scheduler
-SET GLOBAL event_scheduler = ON;
+-- Enable event scheduler (requires SUPER privilege - run manually if needed)
+-- SET GLOBAL event_scheduler = ON;
 
 -- Drop existing event if exists
 DROP EVENT IF EXISTS auto_cleanup_expired_locks;
 
--- Create event to run every minute
+-- Create event to run every minute (optional - requires event_scheduler to be ON)
 CREATE EVENT IF NOT EXISTS auto_cleanup_expired_locks
 ON SCHEDULE EVERY 1 MINUTE
 DO
@@ -3070,13 +3070,13 @@ DELIMITER ;
 -- STEP 8: CREATE EVENT - CLEANUP OLD LOGS (Optional)
 -- =====================================================
 
--- Enable event scheduler if not already enabled
-SET GLOBAL event_scheduler = ON;
+-- Enable event scheduler if not already enabled (requires SUPER privilege - run manually if needed)
+-- SET GLOBAL event_scheduler = ON;
 
 -- Drop existing event if exists
 DROP EVENT IF EXISTS cleanup_old_mpesa_logs;
 
--- Create event to cleanup logs older than 90 days
+-- Create event to cleanup logs older than 90 days (optional - requires event_scheduler to be ON)
 CREATE EVENT IF NOT EXISTS cleanup_old_mpesa_logs
 ON SCHEDULE EVERY 1 DAY
 STARTS CURRENT_TIMESTAMP

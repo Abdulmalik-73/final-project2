@@ -189,9 +189,54 @@ function create_booking($data) {
     }
     
     // ============================================
+    // CHECK FOR OVERLAPPING BOOKINGS (PREVENT DOUBLE BOOKING)
+    // ============================================
+    $overlap_check = $conn->prepare("
+        SELECT b.id, b.booking_reference, b.status, b.check_in_date, b.check_out_date, r.name as room_name, r.room_number
+        FROM bookings b
+        JOIN rooms r ON b.room_id = r.id
+        WHERE b.room_id = ?
+        AND b.status IN ('pending', 'confirmed', 'checked_in')
+        AND NOT (b.check_out_date <= ? OR b.check_in_date >= ?)
+    ");
+    
+    if (!$overlap_check) {
+        error_log("Failed to prepare overlap check: " . $conn->error);
+        return ['success' => false, 'message' => 'Database error: ' . $conn->error];
+    }
+    
+    $overlap_check->bind_param("iss", $room_id, $check_in_date, $check_out_date);
+    $overlap_check->execute();
+    $overlap_result = $overlap_check->get_result();
+    
+    if ($overlap_result->num_rows > 0) {
+        $blocking_booking = $overlap_result->fetch_assoc();
+        
+        error_log("Room $room_id is already booked for dates $check_in_date to $check_out_date. Blocking booking: " . $blocking_booking['booking_reference']);
+        
+        $status_message = $blocking_booking['status'] === 'pending' 
+            ? 'This room is currently on hold (waiting for approval) for the selected dates.' 
+            : 'This room is already booked for the selected dates.';
+        
+        return [
+            'success' => false,
+            'message' => $status_message . ' Please choose different dates or another room.',
+            'error_code' => 'ROOM_NOT_AVAILABLE',
+            'blocking_booking' => [
+                'reference' => $blocking_booking['booking_reference'],
+                'status' => ucfirst($blocking_booking['status']),
+                'room_name' => $blocking_booking['room_name'],
+                'room_number' => $blocking_booking['room_number'],
+                'check_in' => date('F j, Y', strtotime($blocking_booking['check_in_date'])),
+                'check_out' => date('F j, Y', strtotime($blocking_booking['check_out_date']))
+            ]
+        ];
+    }
+    
+    // ============================================
     // All checks passed - proceed with booking
     // Note: We allow up to 3 bookings per day (same check-in date)
-    // No restriction on overlapping dates as long as daily limit is not exceeded
+    // Room must not have overlapping bookings in pending/confirmed/checked_in status
     // ============================================
     
     // Validate user exists

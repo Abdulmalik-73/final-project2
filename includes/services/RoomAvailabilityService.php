@@ -244,8 +244,8 @@ class RoomAvailabilityService {
                     booking_hold_expires_at, is_expired
                   FROM bookings
                   WHERE room_id = ?
-                  AND status IN ('pending', 'confirmed', 'checked_in', 'pending_payment', 'pending_verification', 'verified')
-                  AND is_expired = FALSE
+                  AND status IN ('pending', 'confirmed', 'checked_in')
+                  AND (is_expired IS NULL OR is_expired = FALSE)
                   AND NOT (check_out_date <= ? OR check_in_date >= ?)";
         
         if ($exclude_booking_id) {
