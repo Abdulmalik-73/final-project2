@@ -128,7 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $error = 'Booking failed. Please try again. Error: ' . $result['message'];
                 }
             }
-        }
     }
 }
 
