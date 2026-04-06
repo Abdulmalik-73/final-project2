@@ -878,6 +878,28 @@ if ($booking['payment_deadline'] && strtotime($booking['payment_deadline']) < ti
                             
                             <!-- Payment Upload Form -->
                             <?php if (in_array($booking['verification_status'], ['pending_payment', 'rejected']) && !$deadline_passed): ?>
+                            
+                            <!-- Chapa Online Payment Option -->
+                            <div class="mb-4">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><i class="fas fa-credit-card"></i> Pay Online with Chapa</h5>
+                                    </div>
+                                    <div class="card-body text-center py-4">
+                                        <p class="mb-3">Pay securely using Mobile Money, Bank Transfer, or Card</p>
+                                        <button type="button" id="chapaPayBtn" class="btn btn-success btn-lg">
+                                            <i class="fas fa-lock"></i> Pay Now - <?php echo format_currency($booking['total_price']); ?>
+                                        </button>
+                                        <p class="text-muted mt-2 mb-0"><small><i class="fas fa-shield-alt"></i> Secure payment powered by Chapa</small></p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center my-4">
+                                <p class="text-muted">— OR —</p>
+                                <h6>Pay Manually and Upload Transaction ID</h6>
+                            </div>
+                            
                             <form method="POST" enctype="multipart/form-data" id="paymentForm">
                                 <!-- Payment Method Selection -->
                                 <div class="mb-4">
@@ -1164,6 +1186,44 @@ if ($booking['payment_deadline'] && strtotime($booking['payment_deadline']) < ti
                 window.location.href = 'index.php';
             }
         }
+        
+        // Chapa Payment Integration
+        document.getElementById('chapaPayBtn')?.addEventListener('click', function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            // Call API to initialize payment
+            fetch('api/chapa/initialize.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    booking_id: <?php echo $booking_id; ?>
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.checkout_url) {
+                    // Redirect to Chapa checkout page
+                    window.location.href = data.checkout_url;
+                } else {
+                    alert(data.message || 'Failed to initialize payment');
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        });
     </script>
 </body>
 </html>
