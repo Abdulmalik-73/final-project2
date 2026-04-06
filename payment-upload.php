@@ -1212,10 +1212,21 @@ if ($booking['payment_deadline'] && strtotime($booking['payment_deadline']) < ti
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
-                return response.json();
+                return response.text(); // Get as text first
             })
-            .then(data => {
-                console.log('Chapa API Response:', data); // Debug log
+            .then(text => {
+                console.log('Raw API Response:', text); // Debug log
+                
+                // Try to parse as JSON
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('JSON Parse Error:', e);
+                    throw new Error('Invalid response from server: ' + text.substring(0, 100));
+                }
+                
+                console.log('Parsed Chapa API Response:', data); // Debug log
                 
                 if (data.success && data.checkout_url) {
                     // Redirect to Chapa checkout page
@@ -1230,7 +1241,7 @@ if ($booking['payment_deadline'] && strtotime($booking['payment_deadline']) < ti
             })
             .catch(error => {
                 console.error('Chapa Error:', error);
-                alert('Connection error. Please check:\n1. Database is running\n2. Chapa keys are configured\n3. Try manual payment instead');
+                alert('Error: ' + error.message + '\n\nPlease:\n1. Check if database is set up\n2. Check browser console (F12) for details\n3. Try manual payment instead');
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             });
