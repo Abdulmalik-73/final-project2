@@ -215,13 +215,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && empty($error) && !isset($_POST['subm
             $update_stmt->bind_param("sssi", $payment_method, $transaction_id, $verification_status, $booking_id);
             
             if ($update_stmt->execute()) {
-                // Update room status to "waiting" for room bookings
+                // Update room status to "booked" (waiting state) for room bookings
+                // Room will change to "occupied" only after receptionist approval
                 if ($booking['booking_type'] == 'room' && !empty($booking['room_id'])) {
                     $room_status_query = "UPDATE rooms SET status = 'booked' WHERE id = ?";
                     $room_status_stmt = $conn->prepare($room_status_query);
                     $room_status_stmt->bind_param("i", $booking['room_id']);
                     $room_status_stmt->execute();
-                    error_log("Room status updated to 'booked' for room ID: " . $booking['room_id']);
+                    error_log("Room status updated to 'booked' (waiting for approval) for room ID: " . $booking['room_id']);
                 }
                 
                 // Log the transaction ID submission with verification result

@@ -128,6 +128,15 @@ if ($_POST && isset($_POST['action'])) {
                 $booking = $log_stmt->get_result()->fetch_assoc();
                 
                 if ($booking) {
+                    // Update room status to 'occupied' when receptionist approves
+                    if (!empty($booking['room_id'])) {
+                        $room_occupied_query = "UPDATE rooms SET status = 'occupied' WHERE id = ?";
+                        $room_occupied_stmt = $conn->prepare($room_occupied_query);
+                        $room_occupied_stmt->bind_param("i", $booking['room_id']);
+                        $room_occupied_stmt->execute();
+                        error_log("Room status updated to 'occupied' after receptionist approval for room ID: " . $booking['room_id']);
+                    }
+                    
                     // Log the activity
                     log_booking_activity($booking['id'], $booking['user_id'], 'checked_in', 'pending', 'checked_in', 'Booking approved and checked in by receptionist', $_SESSION['user_id']);
                     
