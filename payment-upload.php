@@ -326,19 +326,22 @@ $already_submitted = ($booking['verification_status'] === 'pending_verification'
     <div class="section-card card">
         <div class="section-header" style="background:#1DBF73; color:#fff;">
             <div><i class="fas fa-bolt me-2"></i> Pay Online with Chapa</div>
-            <div style="margin-top:8px; font-size:0.85rem; font-weight:400; opacity:0.95;">
+            <div style="margin-top:8px; font-size:0.82rem; font-weight:400; opacity:0.95;">
+                Pay with the following two phone numbers:
+            </div>
+            <div style="margin-top:5px; font-size:0.85rem; font-weight:400; opacity:0.95;">
                 <span style="margin-right:12px;">
-                    <i class="fas fa-phone-alt me-1"></i>
                     <span onclick="copyPhone('0900112233', this)" 
                           style="cursor:pointer; text-decoration:underline; text-underline-offset:3px;"
                           title="Click to copy">0900112233</span>
+                    <i class="fas fa-copy ms-1" style="font-size:0.75rem; opacity:0.8;"></i>
                 </span>
                 <span style="opacity:0.7; margin-right:12px;">|</span>
                 <span>
-                    <i class="fas fa-phone-alt me-1"></i>
                     <span onclick="copyPhone('0900123456', this)"
                           style="cursor:pointer; text-decoration:underline; text-underline-offset:3px;"
                           title="Click to copy">0900123456</span>
+                    <i class="fas fa-copy ms-1" style="font-size:0.75rem; opacity:0.8;"></i>
                 </span>
             </div>
         </div>
