@@ -331,17 +331,19 @@ $already_submitted = ($booking['verification_status'] === 'pending_verification'
             </div>
             <div style="margin-top:5px; font-size:0.85rem; font-weight:400; opacity:0.95;">
                 <span style="margin-right:12px;">
-                    <span onclick="copyPhone('0900112233', this)" 
-                          style="cursor:pointer; text-decoration:underline; text-underline-offset:3px;"
-                          title="Click to copy">0900112233</span>
-                    <i class="fas fa-copy ms-1" style="font-size:0.75rem; opacity:0.8;"></i>
+                    0900112233
+                    <i class="fas fa-copy ms-1" 
+                       onclick="copyPhone('0900112233', this)" 
+                       style="cursor:pointer; font-size:0.8rem; opacity:0.85;"
+                       title="Copy number"></i>
                 </span>
                 <span style="opacity:0.7; margin-right:12px;">|</span>
                 <span>
-                    <span onclick="copyPhone('0900123456', this)"
-                          style="cursor:pointer; text-decoration:underline; text-underline-offset:3px;"
-                          title="Click to copy">0900123456</span>
-                    <i class="fas fa-copy ms-1" style="font-size:0.75rem; opacity:0.8;"></i>
+                    0900123456
+                    <i class="fas fa-copy ms-1"
+                       onclick="copyPhone('0900123456', this)"
+                       style="cursor:pointer; font-size:0.8rem; opacity:0.85;"
+                       title="Copy number"></i>
                 </span>
             </div>
         </div>
@@ -480,24 +482,21 @@ function previewFile(file) {
 
 function copyPhone(number, el) {
     navigator.clipboard.writeText(number).then(function() {
-        var orig = el.textContent;
-        el.textContent = 'Copied!';
-        el.style.fontWeight = 'bold';
+        el.className = 'fas fa-check ms-1';
+        el.style.color = '#fff';
         setTimeout(function() {
-            el.textContent = orig;
-            el.style.fontWeight = '';
+            el.className = 'fas fa-copy ms-1';
+            el.style.color = '';
         }, 1500);
     }).catch(function() {
-        // Fallback for older browsers
         var ta = document.createElement('textarea');
         ta.value = number;
         document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        var orig = el.textContent;
-        el.textContent = 'Copied!';
-        setTimeout(function() { el.textContent = orig; }, 1500);
+        el.className = 'fas fa-check ms-1';
+        setTimeout(function() { el.className = 'fas fa-copy ms-1'; }, 1500);
     });
 }
 </script>
