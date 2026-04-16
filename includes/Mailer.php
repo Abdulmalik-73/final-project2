@@ -45,21 +45,23 @@ class Mailer {
 
         error_log("Mailer::send to=$toEmail | BREVO_KEY=" . (empty($brevoKey) ? 'MISSING' : 'SET') . " | FROM=$fromAddress");
 
-        // ── Primary: Brevo HTTP API (no SMTP activation needed) ──────────────
+        // ── Primary: Brevo HTTP API ───────────────────────────────────────
         if (!empty($brevoKey)) {
-            return self::sendViaBrevo($brevoKey, $toEmail, $toName, $subject, $htmlBody, $fromAddress, $fromName);
+            $result = self::sendViaBrevo($brevoKey, $toEmail, $toName, $subject, $htmlBody, $fromAddress, $fromName);
+            if ($result['success']) return $result;
+            error_log("Mailer: Brevo HTTP API failed: " . $result['message'] . " — trying Gmail fallback");
         }
 
-        // ── Fallback: Brevo SMTP relay ────────────────────────────────────────
+        // ── Fallback: Gmail SMTP port 465 (SSL) ───────────────────────────────
         $mail = new PHPMailer(true);
         try {
             $mail->isSMTP();
-            $mail->Host       = 'smtp-relay.brevo.com';
+            $mail->Host       = 'smtp.gmail.com';
             $mail->SMTPAuth   = true;
-            $mail->Username   = 'a81bdd001@smtp-brevo.com';
-            $mail->Password   = '0mMv3qc1x8DaAdwh';
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = 587;
+            $mail->Username   = 'nureabdulmalik8@gmail.com';
+            $mail->Password   = 'iiukgbxrhupklhht'; // Gmail App Password
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // SSL port 465
+            $mail->Port       = 465;
             $mail->CharSet    = 'UTF-8';
             $mail->Timeout    = 15;
             $mail->setFrom($fromAddress, $fromName);
@@ -69,11 +71,11 @@ class Mailer {
             $mail->Body    = $htmlBody;
             $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $htmlBody));
             $mail->send();
-            error_log("Mailer: sent to $toEmail via Brevo SMTP");
-            return ['success' => true, 'message' => 'Email sent via Brevo SMTP'];
+            error_log("Mailer: sent to $toEmail via Gmail SSL port 465");
+            return ['success' => true, 'message' => 'Email sent via Gmail'];
         } catch (Exception $e) {
             $err = $mail->ErrorInfo;
-            error_log("Mailer SMTP ERROR to $toEmail: $err");
+            error_log("Mailer Gmail ERROR to $toEmail: $err");
             return ['success' => false, 'message' => $err];
         }
     }
