@@ -122,208 +122,117 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
         }
-        
         .feedback-container {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 12px;
         }
-        
         .feedback-card {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
             overflow: hidden;
-            max-width: 700px;
+            max-width: 520px;
             width: 100%;
-            animation: slideUp 0.6s ease-out;
+            animation: slideUp 0.4s ease-out;
         }
-        
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity:0; transform:translateY(20px); }
+            to   { opacity:1; transform:translateY(0); }
         }
-        
         .feedback-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
+            padding: 16px 20px;
             text-align: center;
         }
-        
         .feedback-header h1 {
-            font-size: 2.2rem;
+            font-size: 1.25rem;
             font-weight: 700;
-            margin: 0 0 15px 0;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin: 0 0 8px;
         }
-        
         .feedback-message {
             background: rgba(255,255,255,0.2);
-            padding: 20px;
-            border-radius: 15px;
-            margin: 20px 0;
-            backdrop-filter: blur(10px);
-        }
-        
-        .feedback-message h4 {
-            margin: 0 0 10px 0;
-            font-size: 1.3rem;
-        }
-        
-        .feedback-message p {
+            padding: 10px 14px;
+            border-radius: 8px;
             margin: 0;
-            font-size: 1.1rem;
-            opacity: 0.9;
         }
-        
-        .form-section {
-            padding: 40px;
-        }
-        
-        .rating-group {
-            margin-bottom: 30px;
-        }
-        
+        .feedback-message h4 { margin:0 0 3px; font-size:0.9rem; }
+        .feedback-message p  { margin:0; font-size:0.8rem; opacity:0.9; }
+        .form-section { padding: 14px 18px; }
+        .rating-group { margin-bottom: 12px; }
         .rating-label {
             font-weight: 600;
             color: #333;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
         }
-        
-        .rating-label i {
-            color: #667eea;
-            width: 20px;
-        }
-        
-        .star-rating {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-        
+        .rating-label i { color: #667eea; width: 16px; font-size: 0.8rem; }
+        .star-rating { display: flex; gap: 3px; margin-bottom: 3px; }
         .star {
-            font-size: 2rem;
+            font-size: 1.4rem;
             color: #ddd;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s;
         }
-        
-        .star:hover,
-        .star.active {
-            color: #ffc107;
-            transform: scale(1.1);
-        }
-        
-        .rating-text {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 5px;
-        }
-        
+        .star:hover, .star.active { color: #ffc107; transform: scale(1.1); }
+        .rating-text { font-size: 0.75rem; color: #888; }
         .form-control {
             border: 2px solid #e1e5e9;
-            border-radius: 12px;
-            padding: 15px;
-            font-size: 1rem;
-            transition: all 0.3s;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
         }
-        
         .form-control:focus {
             border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            box-shadow: 0 0 0 0.15rem rgba(102,126,234,0.2);
         }
-        
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            padding: 15px 40px;
-            border-radius: 25px;
+            padding: 9px 22px;
+            border-radius: 20px;
             font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s;
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            font-size: 0.85rem;
+            transition: all 0.2s;
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 25px rgba(102, 126, 234, 0.4);
-        }
-        
+        .btn-primary:hover { transform: translateY(-1px); }
         .btn-secondary {
             background: #6c757d;
             border: none;
-            padding: 15px 40px;
-            border-radius: 25px;
+            padding: 9px 22px;
+            border-radius: 20px;
             font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s;
+            font-size: 0.85rem;
+            transition: all 0.2s;
         }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
-            transform: translateY(-2px);
-        }
-        
+        .btn-secondary:hover { background: #5a6268; transform: translateY(-1px); }
         .booking-info {
             background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            font-size: 0.82rem;
         }
-        
-        .booking-info h5 {
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-        
-        .alert {
-            border-radius: 12px;
-            border: none;
-            padding: 15px 20px;
-            margin: 20px 0;
-        }
-        
-        .success-message {
-            text-align: center;
-            padding: 40px;
-        }
-        
-        .success-message i {
-            font-size: 4rem;
-            color: #28a745;
-            margin-bottom: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .feedback-header {
-                padding: 20px;
-            }
-            
-            .feedback-header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .form-section {
-                padding: 20px;
-            }
-            
-            .star {
-                font-size: 1.5rem;
-            }
+        .booking-info h5 { color: #667eea; margin-bottom: 8px; font-size: 0.85rem; }
+        .booking-info p  { margin-bottom: 3px; }
+        .alert { border-radius: 8px; border: none; padding: 10px 14px; margin: 10px 0; font-size: 0.82rem; }
+        .success-message { text-align: center; padding: 24px 16px; }
+        .success-message i { font-size: 2.5rem; color: #28a745; margin-bottom: 12px; display: block; }
+        .success-message h3 { font-size: 1.1rem; }
+        .mb-4 { margin-bottom: 12px !important; }
+        @media (max-width: 480px) {
+            .feedback-header { padding: 12px; }
+            .form-section { padding: 12px; }
+            .star { font-size: 1.2rem; }
         }
     </style>
 </head>
@@ -428,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <i class="fas fa-comment"></i>
                                 Comments & Suggestions (Optional)
                             </label>
-                            <textarea name="comments" class="form-control" rows="4" 
+                            <textarea name="comments" class="form-control" rows="2" 
                                       placeholder="Share your thoughts, suggestions, or ideas to help us improve..."></textarea>
                         </div>
                         
