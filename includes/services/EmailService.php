@@ -2,8 +2,13 @@
 /**
  * Email Service Class
  * Handles all email notifications for Harar Ras Hotel
- * Uses PHPMailer for SMTP email sending
+ * Uses local PHPMailer files (no Composer)
  */
+
+// Load local PHPMailer files
+require_once __DIR__ . '/../phpmailer/Exception.php';
+require_once __DIR__ . '/../phpmailer/PHPMailer.php';
+require_once __DIR__ . '/../phpmailer/SMTP.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
@@ -14,7 +19,6 @@ class EmailService {
     private $mailer;
     private $enabled;
 
-    // Helper to get config value from constant or env
     private static function cfg($key, $default = '') {
         if (defined($key)) return constant($key);
         $v = getenv($key);
@@ -28,15 +32,7 @@ class EmailService {
         $this->initializeMailer();
     }
     
-    /**
-     * Initialize PHPMailer with SMTP configuration
-     */
     private function initializeMailer() {
-        // Use local PHPMailer files (no Composer needed)
-        require_once __DIR__ . '/../phpmailer/Exception.php';
-        require_once __DIR__ . '/../phpmailer/PHPMailer.php';
-        require_once __DIR__ . '/../phpmailer/SMTP.php';
-        
         $this->mailer = new PHPMailer(true);
         
         try {
