@@ -375,9 +375,36 @@ $bookings = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                 
                                 <?php 
                                 $booking_status = $booking['current_verification_status'] ?? $booking['status'];
-                                $can_cancel = in_array($booking_status, ['pending', 'confirmed', 'verified', 'pending_payment', 'pending_verification']) && 
-                                              $booking['booking_type'] != 'food_order' &&
-                                              (!empty($booking['check_in_date']) && strtotime($booking['check_in_date']) > time());
+                                
+                                // Check if booking can be cancelled
+                                $can_cancel = false;
+                                
+                                // Must be in cancellable status
+                                $cancellable_statuses = ['pending', 'confirmed', 'verified', 'pending_payment', 'pending_verification'];
+                                
+                                // Must not be food order
+                                $is_not_food_order = $booking['booking_type'] != 'food_order';
+                                
+                                // Must not be already cancelled or completed
+                                $not_cancelled_or_completed = !in_array($booking_status, ['cancelled', 'checked_out', 'no_show']);
+                                
+                                // Check-in date must be in the future (allow cancellation until check-in date)
+                                $check_in_future = false;
+                                if (!empty($booking['check_in_date'])) {
+                                    $check_in_date = new DateTime($booking['check_in_date']);
+                                    $current_date = new DateTime();
+                                    $current_date->setTime(0, 0, 0); // Set to start of day
+                                    $check_in_future = $current_date <= $check_in_date;
+                                }
+                                
+                                // Final cancellation check
+                                $can_cancel = in_array($booking_status, $cancellable_statuses) && 
+                                              $is_not_food_order && 
+                                              $not_cancelled_or_completed && 
+                                              $check_in_future;
+                                
+                                // Debug: Show cancel button for verified bookings (remove this comment in production)
+                                // Status: <?php echo $booking_status; ?>, Can Cancel: <?php echo $can_cancel ? 'Yes' : 'No'; ?>
                                 
                                 if ($can_cancel): 
                                 ?>
