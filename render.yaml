@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ras-hotel-project-phase2
+    name: harar-ras-hotel-booking
     runtime: docker
     dockerfilePath: ./Dockerfile
     envVars:
@@ -15,7 +15,7 @@ services:
       - key: DB_NAME
         value: railway
       - key: SITE_URL
-        value: https://ras-hotel-project-phase2.onrender.com
+        value: https://harar-ras-hotel-booking.onrender.com
       - key: SITE_NAME
         value: "Harar Ras Hotel"
       - key: CHAPA_SECRET_KEY
@@ -25,9 +25,9 @@ services:
       - key: CHAPA_BASE_URL
         value: https://api.chapa.co/v1
       - key: CHAPA_CALLBACK_URL
-        value: https://ras-hotel-project-phase2.onrender.com/api/chapa/callback.php
+        value: https://harar-ras-hotel-booking.onrender.com/api/chapa/callback.php
       - key: CHAPA_RETURN_URL
-        value: https://ras-hotel-project-phase2.onrender.com/chapa-return.php
+        value: https://harar-ras-hotel-booking.onrender.com/chapa-return.php
       - key: EMAIL_ENABLED
         value: "true"
       - key: EMAIL_HOST
@@ -51,7 +51,7 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
-        value: https://ras-hotel-project-phase2.onrender.com/oauth-callback.php
+        value: https://harar-ras-hotel-booking.onrender.com/oauth-callback.php
       - key: SESSION_COOKIE_SECURE
         value: "1"
       - key: TIMEZONE
@@ -75,6 +75,6 @@ services:
       - key: HOTEL_SUPPORT_EMAIL
         value: info@hararrashotel.com
       - key: HOTEL_WEBSITE_URL
-        value: https://ras-hotel-project-phase2.onrender.com
+        value: https://harar-ras-hotel-booking.onrender.com
       - key: ADMIN_EMAIL
         value: info@hararrashotel.com
