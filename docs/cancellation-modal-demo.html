@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cancellation Modal Demo - Harar Ras Hotel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            padding: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .demo-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="demo-card">
+            <h1 class="text-center mb-4">
+                <i class="fas fa-hotel text-warning"></i>
+                Harar Ras Hotel
+            </h1>
+            <h3 class="text-center mb-4">Cancellation Feature Demo</h3>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Click the button below to see the cancellation modal in action
+            </div>
+            
+            <div class="text-center">
+                <button class="btn btn-danger btn-lg" data-bs-toggle="modal" data-bs-target="#cancelBookingModal">
+                    <i class="fas fa-times-circle me-2"></i>
+                    Cancel Booking Demo
+                </button>
+            </div>
+            
+            <hr class="my-4">
+            
+            <h5>Sample Booking Details:</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><strong>Reference:</strong> HRH20260421001</li>
+                        <li><strong>Room:</strong> Deluxe Double Room #15</li>
+                        <li><strong>Check-in:</strong> April 28, 2026</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><strong>Check-out:</strong> April 30, 2026</li>
+                        <li><strong>Total Paid:</strong> ETB 5,000.00</li>
+                        <li><strong>Days Before:</strong> 7 days</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Cancellation Modal -->
+    <div class="modal fade" id="cancelBookingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Harar Ras Hotel - Cancellation Policy
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Cancellation Policy Card -->
+                    <div class="card border-0 bg-light mb-4">
+                        <div class="card-body">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Refund Schedule
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center p-3 bg-white rounded shadow-sm">
+                                        <div class="flex-shrink-0">
+                                            <div class="badge bg-success rounded-circle p-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                                <span class="fs-6 fw-bold">95%</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <div class="fw-bold text-dark">7+ days before arrival</div>
+                                            <small class="text-muted">Full refund minus 5% fee</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center p-3 bg-white rounded shadow-sm">
+                                        <div class="flex-shrink-0">
+                                            <div class="badge bg-info rounded-circle p-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                                <span class="fs-6 fw-bold">75%</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <div class="fw-bold text-dark">3-6 days before arrival</div>
+                                            <small class="text-muted">Partial refund</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center p-3 bg-white rounded shadow-sm">
+                                        <div class="flex-shrink-0">
+                                            <div class="badge bg-warning rounded-circle p-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                                <span class="fs-6 fw-bold">50%</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <div class="fw-bold text-dark">1-2 days before arrival</div>
+                                            <small class="text-muted">Half refund</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center p-3 bg-white rounded shadow-sm">
+                                        <div class="flex-shrink-0">
+                                            <div class="badge bg-danger rounded-circle p-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                                <span class="fs-6 fw-bold">25%</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <div class="fw-bold text-dark">Same day cancellation</div>
+                                            <small class="text-muted">Minimal refund</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning mt-3 mb-0">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <small><strong>Note:</strong> All refunds are subject to a 5% processing fee</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Refund Calculation Results (Demo) -->
+                    <div class="card border-primary mb-3">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Your Refund Calculation</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="border-start border-primary border-4 ps-3">
+                                        <small class="text-muted d-block">Booking Reference</small>
+                                        <strong class="text-dark">HRH20260421001</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="border-start border-primary border-4 ps-3">
+                                        <small class="text-muted d-block">Room/Service</small>
+                                        <strong class="text-dark">Deluxe Double Room</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="border-start border-info border-4 ps-3">
+                                        <small class="text-muted d-block">Check-in Date</small>
+                                        <strong class="text-dark">April 28, 2026</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="border-start border-info border-4 ps-3">
+                                        <small class="text-muted d-block">Days Before Check-in</small>
+                                        <span class="badge bg-info fs-6">7 days</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr class="my-3">
+                            
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                                        <span class="text-muted">Total Amount Paid</span>
+                                        <strong class="fs-5">ETB 5,000.00</strong>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                                        <span class="text-muted">Refund Percentage</span>
+                                        <span class="badge bg-success fs-6">95%</span>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                                        <span class="text-muted">Refund Amount</span>
+                                        <strong class="text-success">ETB 4,750.00</strong>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                                        <span class="text-muted">Processing Fee (5%)</span>
+                                        <strong class="text-danger">- ETB 237.50</strong>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center p-4 rounded" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+                                        <span class="fs-5 fw-bold">Final Refund Amount</span>
+                                        <strong class="fs-3">ETB 4,512.50</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info border-0 shadow-sm">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-clock fs-4 me-3 mt-1"></i>
+                            <div>
+                                <h6 class="alert-heading mb-2">Refund Processing Time</h6>
+                                <p class="mb-0 small">Your refund will be processed within <strong>5-7 business days</strong> and credited to your original payment method.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Close
+                    </button>
+                    <button type="button" class="btn btn-danger px-4" onclick="showSuccess()">
+                        <i class="fas fa-check me-2"></i>Confirm Cancellation (Demo)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showSuccess() {
+            alert('✅ Demo Mode: In production, this would cancel the booking and process the refund.');
+        }
+    </script>
+</body>
+</html>

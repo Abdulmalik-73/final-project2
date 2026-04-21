@@ -1,0 +1,1712 @@
+/* ===================================
+   Harar Ras Hotel - Custom Styles
+   =================================== */
+
+:root {
+    --primary-gold: #D4AF37;
+    --dark-gold: #B8941F;
+    --cream: #F5F5DC;
+    --slate-dark: #1E293B;
+    --text-dark: #334155;
+    --text-light: #64748B;
+    --border-color: #E2E8F0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-dark);
+    line-height: 1.6;
+    background-image: url('../images/hotel/exterior/hotel-main.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
+
+/* Add overlay to make content readable */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    z-index: -1;
+}
+
+/* Typography */
+.text-gold {
+    color: var(--primary-gold) !important;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--slate-dark);
+}
+
+.section-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Buttons */
+.btn-gold {
+    background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    font-weight: 600;
+}
+
+/* Background Gold Class */
+.bg-gold {
+    background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold)) !important;
+    color: white !important;
+}
+
+.btn-gold:hover {
+    color: white;
+}
+
+.btn-outline-light {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 12px 32px;
+    font-weight: 600;
+}
+
+.btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: white;
+    color: white;
+}
+
+/* Navigation */
+.navbar {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 1rem 0;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--slate-dark) !important;
+}
+
+.navbar-brand .text-gold {
+    color: var(--primary-gold) !important;
+}
+
+.nav-link {
+    color: var(--text-dark) !important;
+    font-weight: 500;
+    margin: 0 0.5rem;
+}
+
+.nav-link:hover {
+    color: var(--primary-gold) !important;
+}
+
+.nav-link.active {
+    color: var(--primary-gold) !important;
+}
+
+/* Hero Section */
+.hero-section {
+    position: relative;
+    height: 90vh;
+    min-height: 600px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.hero-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(30, 41, 59, 0.7) 50%, rgba(30, 41, 59, 0.4) 100%);
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    color: white;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(212, 175, 55, 0.2);
+    backdrop-filter: blur(10px);
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.hero-badge i {
+    color: var(--primary-gold);
+}
+
+.hero-title {
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+}
+
+.hero-description {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+    max-width: 600px;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Stats Section */
+.stats-section {
+    background: white;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stat-item {
+    padding: 1rem;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    color: var(--primary-gold);
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--slate-dark);
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin: 0;
+}
+
+/* Features Section */
+.features-section {
+    background: white;
+}
+
+.feature-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    height: 100%;
+}
+
+.feature-card:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(212, 175, 55, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.feature-icon i {
+    font-size: 1.5rem;
+    color: var(--primary-gold);
+}
+
+.feature-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--slate-dark);
+}
+
+.feature-description {
+    color: var(--text-light);
+    margin: 0;
+}
+
+/* Rooms Preview Section */
+.rooms-preview {
+    background: #F8FAFC;
+}
+
+.room-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    height: 100%;
+}
+
+.room-card:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.room-image {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}
+
+.room-card-body {
+    padding: 1.5rem;
+}
+
+.room-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--slate-dark);
+}
+
+.room-description {
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.room-features {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.room-features span {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.room-features i {
+    color: var(--primary-gold);
+    margin-right: 0.25rem;
+}
+
+.room-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.room-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-gold);
+}
+
+/* Service Cards */
+.service-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    height: 100%;
+}
+
+.service-card:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.service-image {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}
+
+.service-card-body {
+    padding: 1.5rem;
+}
+
+.service-category {
+    display: inline-block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary-gold);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+}
+
+.service-category i {
+    margin-right: 0.25rem;
+}
+
+.service-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--slate-dark);
+}
+
+.service-description {
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    min-height: 60px;
+}
+
+.service-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.service-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-gold);
+}
+
+.services-preview {
+    background: #F8FAFC;
+}
+
+
+/* CTA Section */
+.cta-section {
+    background: var(--slate-dark);
+    color: white;
+    padding: 5rem 0;
+}
+
+.cta-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.cta-description {
+    font-size: 1.1rem;
+    opacity: 0.8;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Footer */
+.footer {
+    background: var(--slate-dark);
+    color: white;
+    padding: 3rem 0 1rem;
+}
+
+.footer-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--primary-gold);
+}
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-links li {
+    margin-bottom: 0.5rem;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: var(--primary-gold);
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1.5rem;
+    margin-top: 2rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.social-links {
+    display: flex;
+    gap: 1rem;
+}
+
+.social-links a {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.social-links a:hover {
+    background: var(--primary-gold);
+    transform: translateY(-3px);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .hero-title {
+        font-size: 3.5rem;
+    }
+    
+    .section-title {
+        font-size: 2.25rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .hero-title {
+        font-size: 3rem;
+    }
+    
+    .hero-description {
+        font-size: 1.1rem;
+    }
+    
+    .section-title {
+        font-size: 2rem;
+    }
+    
+    .feature-card {
+        margin-bottom: 2rem;
+    }
+    
+    .stat-item {
+        margin-bottom: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        height: 70vh;
+        min-height: 500px;
+    }
+    
+    .hero-title {
+        font-size: 2.5rem;
+        line-height: 1.3;
+    }
+    
+    .hero-description {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .section-title {
+        font-size: 1.8rem;
+    }
+    
+    .hero-buttons {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .hero-buttons .btn {
+        width: 100%;
+        padding: 14px 24px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+    
+    .cta-title {
+        font-size: 2rem;
+    }
+    
+    .room-card-body {
+        padding: 1.25rem;
+    }
+    
+    .room-features {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-description {
+        font-size: 0.95rem;
+    }
+    
+    .section-title {
+        font-size: 1.6rem;
+    }
+    
+    .hero-badge {
+        font-size: 0.8rem;
+        padding: 0.4rem 1rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .feature-card {
+        padding: 1.5rem;
+    }
+    
+    .feature-title {
+        font-size: 1.25rem;
+    }
+    
+    .room-name {
+        font-size: 1.25rem;
+    }
+    
+    .room-price {
+        font-size: 1.25rem;
+    }
+    
+    .cta-title {
+        font-size: 1.75rem;
+    }
+    
+    .cta-description {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-section {
+        height: 60vh;
+        min-height: 450px;
+    }
+    
+    .hero-title {
+        font-size: 1.8rem;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+    }
+    
+    .hero-content {
+        padding: 0 1rem;
+    }
+    
+    .feature-card {
+        padding: 1.25rem;
+    }
+    
+    .room-image {
+        height: 200px;
+    }
+}
+
+/* Loading Spinner */
+.spinner-border-gold {
+    border-color: var(--primary-gold);
+    border-right-color: transparent;
+}
+
+/* Alert Styles */
+.alert-gold {
+    background-color: rgba(212, 175, 55, 0.1);
+    border-color: var(--primary-gold);
+    color: var(--dark-gold);
+}
+
+/* Back Button Styles */
+.btn-outline-secondary {
+    border-color: var(--border-color);
+    color: var(--text-dark);
+    transition: all 0.3s ease;
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--slate-dark);
+    border-color: var(--slate-dark);
+    color: white;
+}
+
+/* Logout Button Styles */
+.btn-outline-danger {
+    transition: all 0.3s ease;
+}
+
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+/* Gold Outline Button */
+.btn-outline-gold {
+    border: 2px solid var(--primary-gold);
+    color: var(--primary-gold);
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-gold:hover {
+    background: var(--primary-gold);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3);
+}
+
+/* Dropdown Menu Enhancements - ALL DROPDOWNS RESPONSIVE */
+.dropdown-menu {
+    border: none !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 8px !important;
+    max-height: 400px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 1050 !important;
+}
+
+/* Services & Book Now Dropdown Responsiveness */
+.dropdown-menu:not(.user-dropdown) {
+    min-width: 250px !important;
+    max-width: 350px !important;
+}
+
+.dropdown-item {
+    padding: 0.75rem 1.25rem !important;
+    transition: all 0.3s ease !important;
+    font-size: 0.9rem !important;
+    line-height: 1.4 !important;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(212, 175, 55, 0.1) !important;
+    color: var(--primary-gold) !important;
+    padding-left: 1.5rem !important;
+}
+
+.dropdown-item.text-danger:hover {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    color: #dc3545 !important;
+}
+
+.dropdown-item.active {
+    background-color: #f7931e !important;
+    color: white !important;
+}
+
+/* Responsive Dropdown Adjustments for ALL Dropdowns */
+@media (max-width: 768px) {
+    .dropdown-menu:not(.user-dropdown) {
+        min-width: 220px !important;
+        max-width: 280px !important;
+        max-height: 60vh !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .dropdown-item {
+        padding: 0.6rem 1rem !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .dropdown-item:hover {
+        padding-left: 1.2rem !important;
+    }
+    
+    .dropdown-item i {
+        font-size: 0.8rem !important;
+        margin-right: 0.4rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .dropdown-menu:not(.user-dropdown) {
+        min-width: 200px !important;
+        max-width: 250px !important;
+        max-height: 50vh !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .dropdown-item {
+        padding: 0.5rem 0.8rem !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .dropdown-item:hover {
+        padding-left: 1rem !important;
+    }
+}
+
+/* Room Cards Layout Fix */
+.room-card {
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.room-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Ensure proper Bootstrap grid behavior */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.col-md-6, .col-lg-4 {
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+/* Fix card heights to be equal */
+.card.h-100 {
+    height: 100% !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-body .mt-3 {
+    margin-top: auto !important;
+}
+
+/* Responsive grid fixes */
+@media (min-width: 768px) {
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+@media (min-width: 992px) {
+    .col-lg-4 {
+        flex: 0 0 33.333333%;
+        max-width: 33.333333%;
+    }
+}
+
+/* Room Status Styling */
+.card-body .text-success {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.card-body .text-danger {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.card-body p strong {
+    color: var(--slate-dark);
+}
+
+
+/* User Account Dropdown Styles - FIXED VERSION */
+.user-profile-icon {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.user-profile-icon:hover {
+    transform: scale(1.1);
+}
+
+/* MAIN DROPDOWN CONTAINER - SCROLLABLE & RESPONSIVE */
+.user-dropdown {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    max-height: 350px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    min-width: 280px !important;
+    width: 280px !important;
+    position: absolute !important;
+    z-index: 1050 !important;
+    padding: 0 !important;
+}
+
+/* SCROLLBAR STYLING - ALWAYS VISIBLE */
+.user-dropdown::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.user-dropdown::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 3px !important;
+}
+
+.user-dropdown::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 3px !important;
+}
+
+.user-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+}
+
+/* Firefox scrollbar */
+.user-dropdown {
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+}
+
+/* COMPACT DROPDOWN ITEMS */
+.user-dropdown .dropdown-item {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+    white-space: nowrap !important;
+    border: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.user-dropdown .dropdown-item:hover {
+    background-color: #f8f9fa !important;
+    color: var(--primary-gold) !important;
+    padding-left: 1rem !important;
+}
+
+.user-dropdown .dropdown-item i {
+    width: 16px !important;
+    text-align: center !important;
+    margin-right: 0.5rem !important;
+    font-size: 0.8rem !important;
+}
+
+/* COMPACT HEADERS */
+.user-dropdown .dropdown-header {
+    font-size: 0.7rem !important;
+    padding: 0.3rem 0.8rem !important;
+    margin: 0.2rem 0 0.1rem 0 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: #6c757d !important;
+}
+
+/* USER INFO HEADER - COMPACT */
+.user-dropdown .dropdown-header[style*="padding: 0.3rem"] {
+    padding: 0.5rem 0.8rem !important;
+    margin: 0 !important;
+}
+
+.user-dropdown .dropdown-header .text-center {
+    text-align: center !important;
+}
+
+.user-dropdown .dropdown-header .fa-user-circle {
+    font-size: 2rem !important;
+    margin-bottom: 0.3rem !important;
+}
+
+.user-dropdown .dropdown-header .fw-bold {
+    font-size: 0.9rem !important;
+    margin-bottom: 0.1rem !important;
+}
+
+.user-dropdown .dropdown-header .small {
+    font-size: 0.75rem !important;
+}
+
+.user-dropdown .dropdown-header .badge {
+    font-size: 0.7rem !important;
+    padding: 0.2rem 0.4rem !important;
+    margin-top: 0.2rem !important;
+}
+
+/* COMPACT LOGOUT BUTTON */
+.user-dropdown .btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+    border: none !important;
+    font-weight: 600 !important;
+    padding: 0.4rem 0.6rem !important;
+    font-size: 0.8rem !important;
+    margin: 0.3rem 0.5rem !important;
+    width: calc(100% - 1rem) !important;
+    transition: all 0.3s ease !important;
+}
+
+.user-dropdown .btn-danger:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 6px rgba(220, 53, 69, 0.3) !important;
+}
+
+/* MINIMAL DIVIDERS */
+.user-dropdown .dropdown-divider {
+    margin: 0.2rem 0 !important;
+    border-color: #e9ecef !important;
+    opacity: 0.5 !important;
+}
+
+/* MOBILE RESPONSIVE DESIGN */
+@media (max-width: 768px) {
+    .user-dropdown {
+        max-height: 70vh !important;
+        min-width: 260px !important;
+        width: 260px !important;
+        font-size: 14px !important;
+    }
+    
+    .user-dropdown .dropdown-item {
+        padding: 0.35rem 0.7rem !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .user-dropdown .dropdown-header {
+        font-size: 0.65rem !important;
+        padding: 0.25rem 0.7rem !important;
+    }
+    
+    .user-dropdown .dropdown-header .fa-user-circle {
+        font-size: 1.8rem !important;
+    }
+    
+    .user-dropdown .dropdown-header .fw-bold {
+        font-size: 0.85rem !important;
+    }
+    
+    .user-dropdown .dropdown-header .small {
+        font-size: 0.7rem !important;
+    }
+    
+    .user-dropdown .btn-danger {
+        font-size: 0.75rem !important;
+        padding: 0.35rem 0.5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-dropdown {
+        max-height: 60vh !important;
+        min-width: 240px !important;
+        width: 240px !important;
+    }
+    
+    .user-dropdown .dropdown-item {
+        padding: 0.3rem 0.6rem !important;
+        font-size: 0.75rem !important;
+    }
+    
+    .user-dropdown .dropdown-header {
+        font-size: 0.6rem !important;
+        padding: 0.2rem 0.6rem !important;
+    }
+    
+    .user-dropdown .dropdown-header .fa-user-circle {
+        font-size: 1.6rem !important;
+    }
+    
+    .user-dropdown .dropdown-header .fw-bold {
+        font-size: 0.8rem !important;
+    }
+    
+    .user-dropdown .dropdown-header .small {
+        font-size: 0.65rem !important;
+    }
+}
+
+/* ENSURE DROPDOWN APPEARS ABOVE EVERYTHING */
+.dropdown-menu.show {
+    z-index: 1050 !important;
+}
+
+/* SMOOTH SCROLLING */
+.user-dropdown {
+    scroll-behavior: smooth !important;
+}
+
+/* Dark Mode Styles (Beta) */
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+body.dark-mode .navbar {
+    background-color: #2d2d2d !important;
+}
+
+body.dark-mode .card {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+}
+
+body.dark-mode .text-muted {
+    color: #b0b0b0 !important;
+}
+
+
+/* ===================================
+   Restaurant & Services Cards
+   =================================== */
+.hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.card-img-top {
+    transition: transform 0.3s ease;
+}
+
+.hover-lift:hover .card-img-top {
+    transform: scale(1.05);
+}
+
+.badge.bg-gold {
+    background-color: #d4af37 !important;
+    color: #fff;
+}
+
+/* Service cards responsive */
+@media (max-width: 768px) {
+    .hover-lift:hover {
+        transform: translateY(-5px);
+    }
+}
+
+/* ===================================
+   Discover Our Spaces Gallery Styles
+   =================================== */
+
+/* Gallery Section */
+.discover-spaces-gallery {
+    background: #f8f9fa;
+    padding: 4rem 0;
+}
+
+.discover-spaces-gallery .card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 100%;
+}
+
+.discover-spaces-gallery .card-img-top {
+    height: 250px;
+    object-fit: cover;
+}
+
+/* Number Badge Styling */
+.discover-spaces-gallery .position-absolute {
+    z-index: 10;
+}
+
+.discover-spaces-gallery .bg-gold {
+    background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold)) !important;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Card Body Styling */
+.discover-spaces-gallery .card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.discover-spaces-gallery .card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--slate-dark);
+    margin-bottom: 0.75rem;
+}
+
+.discover-spaces-gallery .card-text {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    flex-grow: 1;
+    margin-bottom: 1rem;
+}
+
+/* Price and Button Row */
+.discover-spaces-gallery .d-flex.justify-content-between {
+    margin-top: auto;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.discover-spaces-gallery .text-gold {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.discover-spaces-gallery .btn-outline-gold {
+    font-size: 0.85rem;
+    padding: 0.4rem 1rem;
+    border-width: 2px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.discover-spaces-gallery .btn-outline-gold:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3);
+}
+
+/* View All Buttons Section */
+.discover-spaces-gallery .text-center.mt-5 {
+    padding-top: 2rem;
+    border-top: 2px solid #e9ecef;
+}
+
+.discover-spaces-gallery .btn-gold,
+.discover-spaces-gallery .btn-outline-gold.btn-lg {
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.discover-spaces-gallery .btn-gold:hover,
+.discover-spaces-gallery .btn-outline-gold.btn-lg:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+}
+
+/* Responsive Design for Gallery */
+@media (max-width: 992px) {
+    .discover-spaces-gallery .card-img-top {
+        height: 220px;
+    }
+    
+    .discover-spaces-gallery .card-body {
+        padding: 1.25rem;
+    }
+    
+    .discover-spaces-gallery .card-title {
+        font-size: 1.15rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .discover-spaces-gallery {
+        padding: 3rem 0;
+    }
+    
+    .discover-spaces-gallery .card-img-top {
+        height: 200px;
+    }
+    
+    .discover-spaces-gallery .card-body {
+        padding: 1rem;
+    }
+    
+    .discover-spaces-gallery .card-title {
+        font-size: 1.1rem;
+    }
+    
+    .discover-spaces-gallery .card-text {
+        font-size: 0.85rem;
+    }
+    
+    .discover-spaces-gallery .text-gold {
+        font-size: 1rem;
+    }
+    
+    .discover-spaces-gallery .btn-outline-gold {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.8rem;
+    }
+    
+    .discover-spaces-gallery .text-center.mt-5 .btn {
+        margin-bottom: 0.5rem;
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .discover-spaces-gallery .card-img-top {
+        height: 180px;
+    }
+    
+    .discover-spaces-gallery .position-absolute.bg-gold {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.6rem;
+    }
+    
+    .discover-spaces-gallery .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .discover-spaces-gallery .btn-outline-gold {
+        width: 100%;
+        text-align: center;
+    }
+}
+/* Enhanced Image Overlay for Names and Numbers */
+.bg-gradient-dark {
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, transparent 100%) !important;
+}
+
+/* Enhanced Number Badges */
+.discover-spaces-gallery .rounded-pill {
+    border-radius: 50px !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+}
+
+.discover-spaces-gallery .fs-5 {
+    font-size: 1.1rem !important;
+    font-weight: 800 !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Image Overlay Text */
+.discover-spaces-gallery .position-absolute h6 {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    letter-spacing: 0.5px;
+}
+
+/* Card Title Enhancement */
+.discover-spaces-gallery .card-title.text-gold {
+    font-size: 1.2rem !important;
+    margin-bottom: 0.75rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Mobile Responsive Enhancements */
+@media (max-width: 768px) {
+    .discover-spaces-gallery .fs-5 {
+        font-size: 1rem !important;
+    }
+    
+    .discover-spaces-gallery .position-absolute h6 {
+        font-size: 0.8rem !important;
+    }
+    
+    .discover-spaces-gallery .card-title.text-gold {
+        font-size: 1.1rem !important;
+    }
+}
+/* ===================================
+   Prominent Cart Overlay Buttons
+   =================================== */
+
+/* Cart Overlay Button Styling */
+.cart-overlay-btn {
+    background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold)) !important;
+    border: 3px solid white !important;
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+    padding: 12px 24px !important;
+    border-radius: 50px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
+    transform: scale(0.9) !important;
+    transition: all 0.3s ease !important;
+}
+
+.cart-overlay-btn:hover {
+    background: linear-gradient(135deg, var(--dark-gold), var(--primary-gold)) !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.4) !important;
+    border-color: var(--cream) !important;
+    color: white !important;
+}
+
+.cart-overlay-btn:active {
+    transform: scale(0.95) !important;
+}
+
+/* Card Hover Effects for Cart Visibility */
+.discover-spaces-gallery .card {
+    cursor: pointer;
+}
+
+/* Mobile Responsive Cart Buttons */
+@media (max-width: 768px) {
+    .cart-overlay-btn {
+        font-size: 0.9rem !important;
+        padding: 10px 20px !important;
+        letter-spacing: 0.5px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .cart-overlay-btn {
+        font-size: 0.8rem !important;
+        padding: 8px 16px !important;
+    }
+    
+    /* Always show cart button on mobile for better UX */
+    .cart-overlay-btn {
+        opacity: 0.9 !important;
+    }
+}
+
+/* Enhanced Card Image Container */
+.discover-spaces-gallery .position-relative {
+    overflow: hidden;
+    border-radius: 12px 12px 0 0;
+}
+
+/* Cart Success Animation */
+@keyframes cartSuccess {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.2) rotate(5deg); }
+    50% { transform: scale(1.1) rotate(-5deg); }
+    75% { transform: scale(1.15) rotate(3deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+.cart-success-animation {
+    animation: cartSuccess 0.6s ease-in-out;
+}
+
+/* Floating Cart Icon */
+.floating-cart-icon {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+.floating-cart-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    color: white;
+}
+
+.floating-cart-icon .badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ===================================
+   Nested Dropdown for Language Selector
+   =================================== */
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu .dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -1px;
+    margin-left: 0;
+    display: none;
+}
+
+.dropdown-submenu .dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-submenu > a::after {
+    transform: rotate(-90deg);
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    margin-top: -2px;
+}
+
+/* Mobile responsive nested dropdown */
+@media (max-width: 768px) {
+    .dropdown-submenu .dropdown-menu {
+        position: static;
+        float: none;
+        width: auto;
+        margin-top: 0;
+        background-color: #f8f9fa;
+        border: 0;
+        box-shadow: none;
+        padding-left: 1rem;
+    }
+    
+    .dropdown-submenu .dropdown-item {
+        padding-left: 2rem;
+    }
+}
+
+
+/* ===================================
+   User Account Dropdown - Compact Size
+   =================================== */
+.user-dropdown {
+    max-height: 450px !important;
+    overflow-y: auto !important;
+    min-width: 260px !important;
+    max-width: 280px !important;
+    padding: 0 !important;
+}
+
+/* Compact dropdown items */
+.user-dropdown .dropdown-item {
+    padding: 0.35rem 0.8rem !important;
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+}
+
+/* Compact dropdown header */
+.user-dropdown .dropdown-header {
+    padding: 0.25rem 0.8rem !important;
+    font-size: 0.7rem !important;
+    line-height: 1.2 !important;
+}
+
+/* Compact user info header */
+.user-dropdown > li:first-child {
+    padding: 0.4rem 0.5rem !important;
+}
+
+.user-dropdown .text-center {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.user-dropdown .fw-bold {
+    font-size: 0.85rem !important;
+    margin-bottom: 0.1rem !important;
+    line-height: 1.2 !important;
+}
+
+.user-dropdown .small {
+    font-size: 0.7rem !important;
+    line-height: 1.2 !important;
+}
+
+.user-dropdown .badge {
+    font-size: 0.65rem !important;
+    padding: 0.15rem 0.4rem !important;
+    margin-top: 0.15rem !important;
+}
+
+/* Compact dividers */
+.user-dropdown .dropdown-divider {
+    margin: 0.2rem 0 !important;
+}
+
+/* Compact icons */
+.user-dropdown .dropdown-item i,
+.user-dropdown .dropdown-header i {
+    font-size: 0.8rem !important;
+    width: 16px !important;
+}
+
+/* Language submenu compact */
+.language-submenu {
+    padding-left: 1.8rem !important;
+    background-color: #f8f9fa !important;
+    margin: 0 !important;
+}
+
+.language-submenu .dropdown-item {
+    padding: 0.3rem 0.8rem !important;
+    font-size: 0.8rem !important;
+    line-height: 1.2 !important;
+}
+
+/* Chevron icon */
+.fa-chevron-down,
+.fa-chevron-up {
+    font-size: 0.7rem !important;
+}
+
+/* Remove scrollbar appearance but keep functionality */
+.user-dropdown::-webkit-scrollbar {
+    width: 5px;
+}
+
+.user-dropdown::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.user-dropdown::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.user-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+
+/* ===================================
+   Mobile Responsive Dropdown Fix
+   =================================== */
+@media (max-width: 768px) {
+    .user-dropdown {
+        position: fixed !important;
+        top: 60px !important;
+        right: 10px !important;
+        left: 10px !important;
+        max-height: calc(100vh - 80px) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: auto !important;
+        z-index: 9999 !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+    }
+    
+    /* Ensure dropdown is scrollable on mobile */
+    .navbar-collapse .dropdown-menu {
+        max-height: calc(100vh - 80px) !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Language submenu on mobile */
+    .language-submenu {
+        padding-left: 1.5rem !important;
+        max-height: none !important;
+    }
+    
+    /* Make sure dropdown items are touchable */
+    .user-dropdown .dropdown-item {
+        min-height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    /* Compact spacing on mobile */
+    .user-dropdown .dropdown-header {
+        padding: 0.3rem 0.8rem !important;
+    }
+    
+    .user-dropdown .dropdown-item {
+        padding: 0.5rem 0.8rem !important;
+    }
+}
+
+/* For very small phones */
+@media (max-width: 480px) {
+    .user-dropdown {
+        top: 55px !important;
+        right: 5px !important;
+        left: 5px !important;
+        max-height: calc(100vh - 70px) !important;
+    }
+}
+
+
+/* Mobile dropdown backdrop */
+@media (max-width: 768px) {
+    /* Add backdrop when dropdown is open */
+    .dropdown-menu.show::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: -1;
+    }
+    
+    /* Ensure navbar dropdowns work properly on mobile */
+    .navbar-nav .dropdown-menu {
+        position: absolute !important;
+        will-change: transform;
+    }
+    
+    /* User dropdown specific positioning */
+    .navbar-nav .user-dropdown {
+        position: fixed !important;
+        transform: none !important;
+    }
+    
+    /* Smooth scrolling on mobile */
+    .user-dropdown {
+        -webkit-overflow-scrolling: touch !important;
+        scroll-behavior: smooth !important;
+    }
+    
+    /* Make sure all content is visible */
+    .user-dropdown > li:last-child {
+        margin-bottom: 1rem !important;
+    }
+}
