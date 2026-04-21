@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "*.php",
+      "use": "@vercel/php"
+    },
+    {
+      "src": "api/**/*.php",
+      "use": "@vercel/php"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "DB_HOST": "@db_host",
+    "DB_PORT": "39882",
+    "DB_USER": "@db_user",
+    "DB_PASS": "@db_pass",
+    "DB_NAME": "railway",
+    "SITE_NAME": "Harar Ras Hotel",
+    "CHAPA_SECRET_KEY": "@chapa_secret_key",
+    "CHAPA_PUBLIC_KEY": "@chapa_public_key",
+    "CHAPA_BASE_URL": "https://api.chapa.co/v1",
+    "EMAIL_ENABLED": "true",
+    "EMAIL_HOST": "smtp-relay.brevo.com",
+    "EMAIL_PORT": "587",
+    "EMAIL_ENCRYPTION": "tls",
+    "EMAIL_USERNAME": "a81bdd001@smtp-brevo.com",
+    "EMAIL_PASSWORD": "0mMv3qc1x8DaAdwh",
+    "EMAIL_FROM_NAME": "Harar Ras Hotel",
+    "SESSION_COOKIE_SECURE": "1",
+    "TIMEZONE": "Africa/Addis_Ababa",
+    "APP_ENV": "production",
+    "CURRENCY_SYMBOL": "ETB",
+    "CURRENCY_CODE": "ETB",
+    "HOTEL_NAME": "Harar Ras Hotel",
+    "HOTEL_PHONE": "+251-25-666-1234",
+    "HOTEL_ADDRESS": "Harar, Ethiopia",
+    "HOTEL_SUPPORT_EMAIL": "info@hararrashotel.com"
+  }
+}

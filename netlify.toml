@@ -1,0 +1,23 @@
+[build]
+  publish = "."
+  command = "echo 'No build command needed for PHP'"
+
+[build.environment]
+  PHP_VERSION = "8.2"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.php"
+  status = 200
+  conditions = {Role = ["admin"]}
+
+[context.production.environment]
+  DB_HOST = "your_db_host"
+  DB_PORT = "39882"
+  DB_USER = "your_db_user"
+  DB_PASS = "your_db_password"
+  DB_NAME = "railway"
+  SITE_NAME = "Harar Ras Hotel"
+  HOTEL_NAME = "Harar Ras Hotel"
+  CURRENCY_SYMBOL = "ETB"
+  CURRENCY_CODE = "ETB"
