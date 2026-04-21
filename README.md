@@ -1,4 +1,4 @@
-# 🏨 Harar Ras Hotel — Hotel Management System
+# 🏨 Harar Ras Hotel — Hotel Management System (Updated)
 
 A full-featured hotel management web application built with **PHP**, **MySQL**, **Bootstrap 5**, and **Chapa Payment Gateway**. Designed for Harar Ras Hotel, Ethiopia.
 
