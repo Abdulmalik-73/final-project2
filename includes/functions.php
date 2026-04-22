@@ -211,103 +211,44 @@ function create_booking($data) {
     }
     
     // ============================================
-    // CHECK FOR OVERLAPPING BOOKINGS (PREVENT DOUBLE BOOKING)
+    // Validate user exists (before entering transaction)
     // ============================================
-    $overlap_check = $conn->prepare("
-        SELECT b.id, b.booking_reference, b.status, b.check_in_date, b.check_out_date, r.name as room_name, r.room_number
-        FROM bookings b
-        JOIN rooms r ON b.room_id = r.id
-        WHERE b.room_id = ?
-        AND b.status IN ('pending', 'confirmed', 'checked_in')
-        AND NOT (b.check_out_date <= ? OR b.check_in_date >= ?)
-    ");
-    
-    if (!$overlap_check) {
-        error_log("Failed to prepare overlap check: " . $conn->error);
-        return ['success' => false, 'message' => 'Database error: ' . $conn->error];
-    }
-    
-    $overlap_check->bind_param("iss", $room_id, $check_in_date, $check_out_date);
-    $overlap_check->execute();
-    $overlap_result = $overlap_check->get_result();
-    
-    if ($overlap_result->num_rows > 0) {
-        $blocking_booking = $overlap_result->fetch_assoc();
-        
-        error_log("Room $room_id is already booked for dates $check_in_date to $check_out_date. Blocking booking: " . $blocking_booking['booking_reference']);
-        
-        $status_message = $blocking_booking['status'] === 'pending' 
-            ? 'This room is currently on hold (waiting for approval) for the selected dates.' 
-            : 'This room is already booked for the selected dates.';
-        
-        return [
-            'success' => false,
-            'message' => $status_message . ' Please choose different dates or another room.',
-            'error_code' => 'ROOM_NOT_AVAILABLE',
-            'blocking_booking' => [
-                'reference' => $blocking_booking['booking_reference'],
-                'status' => ucfirst($blocking_booking['status']),
-                'room_name' => $blocking_booking['room_name'],
-                'room_number' => $blocking_booking['room_number'],
-                'check_in' => date('F j, Y', strtotime($blocking_booking['check_in_date'])),
-                'check_out' => date('F j, Y', strtotime($blocking_booking['check_out_date']))
-            ]
-        ];
-    }
-    
-    // ============================================
-    // All checks passed - proceed with booking
-    // Note: We allow up to 3 bookings per day (same check-in date)
-    // Room must not have overlapping bookings in pending/confirmed/checked_in status
-    // ============================================
-    
-    // Validate user exists
     $user_check = $conn->prepare("SELECT id, email FROM users WHERE id = ?");
     if (!$user_check) {
         error_log("Failed to prepare user check query: " . $conn->error);
         return ['success' => false, 'message' => 'Database error: ' . $conn->error];
     }
-    
     $user_check->bind_param("i", $user_id);
     $user_check->execute();
     $user_result = $user_check->get_result();
-    
     error_log("User check result rows: " . $user_result->num_rows);
-    
     if ($user_result->num_rows == 0) {
-        // Get total users in database for debugging
         $total_users = $conn->query("SELECT COUNT(*) as count FROM users")->fetch_assoc()['count'];
         error_log("User ID $user_id not found in database. Total users in database: $total_users");
         return ['success' => false, 'message' => 'User account not found. Please log in again.'];
     }
-    
     $user_data = $user_result->fetch_assoc();
     error_log("User found: " . $user_data['email']);
-    
-    // Validate room exists and is active
+
+    // Validate room exists and is active (before entering transaction)
     $room_check = $conn->prepare("SELECT id, name FROM rooms WHERE id = ? AND status = 'active'");
     if (!$room_check) {
         error_log("Failed to prepare room check query: " . $conn->error);
         return ['success' => false, 'message' => 'Database error: ' . $conn->error];
     }
-    
     $room_check->bind_param("i", $room_id);
     $room_check->execute();
     $room_result = $room_check->get_result();
-    
     error_log("Room check result rows: " . $room_result->num_rows);
-    
     if ($room_result->num_rows == 0) {
-        // Get total rooms in database for debugging
         $total_rooms = $conn->query("SELECT COUNT(*) as count FROM rooms")->fetch_assoc()['count'];
         error_log("Room ID $room_id not found or inactive. Total rooms in database: $total_rooms");
         return ['success' => false, 'message' => 'Room not found or is unavailable. Please select a different room.'];
     }
-    
     $room_data = $room_result->fetch_assoc();
     error_log("Room found: " . $room_data['name']);
-    
-    // Generate unique booking reference
+
+    // Generate unique booking reference (before entering transaction)
     do {
         $booking_ref = 'HRH' . date('Ymd') . rand(1000, 9999);
         $ref_check = $conn->prepare("SELECT id FROM bookings WHERE booking_reference = ?");
@@ -315,30 +256,97 @@ function create_booking($data) {
         $ref_check->execute();
         $ref_exists = $ref_check->get_result()->num_rows > 0;
     } while ($ref_exists);
-    
-    // Insert booking with correct column names and schema
-    $query = "INSERT INTO bookings (user_id, room_id, booking_reference, check_in_date, check_out_date, 
-              customers, total_price, special_requests, status, booking_type, verification_status) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'room', 'pending_payment')";
-    
-    $stmt = $conn->prepare($query);
-    if (!$stmt) {
-        error_log("Failed to prepare insert query: " . $conn->error);
-        return ['success' => false, 'message' => 'Database error: ' . $conn->error];
-    }
-    
-    $stmt->bind_param("iisssids", $user_id, $room_id, $booking_ref, $check_in_date, $check_out_date, $customers, $total_price, $special_requests);
-    
-    if ($stmt->execute()) {
-        error_log("Booking created successfully with ID: " . $conn->insert_id);
+
+    // ============================================
+    // ATOMIC DOUBLE-BOOKING PREVENTION
+    // Use a transaction + SELECT FOR UPDATE to lock the room row so that
+    // two concurrent requests cannot both pass the overlap check and both
+    // insert a booking for the same room/dates.
+    // ============================================
+    $conn->begin_transaction();
+
+    try {
+        // Lock the room row for the duration of this transaction.
+        // Any other transaction trying to lock the same room will wait here.
+        $lock_stmt = $conn->prepare("SELECT id FROM rooms WHERE id = ? FOR UPDATE");
+        if (!$lock_stmt) {
+            throw new Exception('Database error (lock): ' . $conn->error);
+        }
+        $lock_stmt->bind_param("i", $room_id);
+        $lock_stmt->execute();
+        $lock_stmt->close();
+
+        // CHECK FOR OVERLAPPING BOOKINGS (inside the lock)
+        $overlap_check = $conn->prepare("
+            SELECT b.id, b.booking_reference, b.status, b.check_in_date, b.check_out_date,
+                   r.name as room_name, r.room_number
+            FROM bookings b
+            JOIN rooms r ON b.room_id = r.id
+            WHERE b.room_id = ?
+            AND b.status IN ('pending', 'confirmed', 'checked_in')
+            AND NOT (b.check_out_date <= ? OR b.check_in_date >= ?)
+        ");
+        if (!$overlap_check) {
+            throw new Exception('Database error (overlap): ' . $conn->error);
+        }
+        $overlap_check->bind_param("iss", $room_id, $check_in_date, $check_out_date);
+        $overlap_check->execute();
+        $overlap_result = $overlap_check->get_result();
+
+        if ($overlap_result->num_rows > 0) {
+            $blocking_booking = $overlap_result->fetch_assoc();
+            $conn->rollback();
+
+            error_log("Room $room_id is already booked for dates $check_in_date to $check_out_date. Blocking booking: " . $blocking_booking['booking_reference']);
+
+            $status_message = $blocking_booking['status'] === 'pending'
+                ? 'This room is currently on hold (waiting for approval) for the selected dates.'
+                : 'This room is already booked for the selected dates.';
+
+            return [
+                'success' => false,
+                'message' => $status_message . ' Please choose different dates or another room.',
+                'error_code' => 'ROOM_NOT_AVAILABLE',
+                'blocking_booking' => [
+                    'reference' => $blocking_booking['booking_reference'],
+                    'status'    => ucfirst($blocking_booking['status']),
+                    'room_name' => $blocking_booking['room_name'],
+                    'room_number' => $blocking_booking['room_number'],
+                    'check_in'  => date('F j, Y', strtotime($blocking_booking['check_in_date'])),
+                    'check_out' => date('F j, Y', strtotime($blocking_booking['check_out_date']))
+                ]
+            ];
+        }
+
+        // All checks passed — insert the booking
+        $query = "INSERT INTO bookings (user_id, room_id, booking_reference, check_in_date, check_out_date,
+                  customers, total_price, special_requests, status, booking_type, verification_status)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'room', 'pending_payment')";
+
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            throw new Exception('Database error (insert): ' . $conn->error);
+        }
+        $stmt->bind_param("iisssids", $user_id, $room_id, $booking_ref, $check_in_date, $check_out_date, $customers, $total_price, $special_requests);
+
+        if (!$stmt->execute()) {
+            throw new Exception('Failed to insert booking: ' . $stmt->error);
+        }
+
+        $new_booking_id = $conn->insert_id;
+        $conn->commit();
+
+        error_log("Booking created successfully with ID: $new_booking_id");
         return [
             'success' => true,
-            'booking_id' => $conn->insert_id,
+            'booking_id' => $new_booking_id,
             'booking_reference' => $booking_ref
         ];
-    } else {
-        error_log("Failed to execute insert: " . $stmt->error);
-        return ['success' => false, 'message' => $stmt->error];
+
+    } catch (Exception $e) {
+        $conn->rollback();
+        error_log("create_booking transaction failed: " . $e->getMessage());
+        return ['success' => false, 'message' => $e->getMessage()];
     }
 }
 

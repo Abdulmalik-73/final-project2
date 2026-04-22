@@ -387,6 +387,27 @@ try {
     // Silently ignore
 }
 
+// AUTO-FIX DATABASE: Create room_locks table if it doesn't exist
+// This table is required for the concurrent booking protection (queue system).
+try {
+    $conn->query("CREATE TABLE IF NOT EXISTS `room_locks` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `room_id` INT NOT NULL,
+        `user_id` INT NOT NULL,
+        `session_id` VARCHAR(100) NOT NULL,
+        `lock_status` ENUM('in_process','waiting') DEFAULT 'in_process',
+        `queue_position` INT DEFAULT 1,
+        `check_in_date` DATE NOT NULL,
+        `check_out_date` DATE NOT NULL,
+        `expires_at` TIMESTAMP NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX `idx_room_lock` (`room_id`, `lock_status`),
+        INDEX `idx_user_lock` (`user_id`, `lock_status`),
+        INDEX `idx_expires` (`expires_at`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+} catch (Exception $e) { /* silently ignore */ }
+
 // AUTO-FIX DATABASE: Create services table if it doesn't exist
 try {
     $conn->query("CREATE TABLE IF NOT EXISTS `services` (

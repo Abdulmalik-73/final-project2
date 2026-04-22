@@ -25,8 +25,8 @@ if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
 // Get user's bookings
 $user_id = $_SESSION['user_id'];
 $query = "SELECT b.*, 
-          COALESCE(r.name, 'Room') as room_name,
-          COALESCE(r.room_number, 'N/A') as room_number, 
+          COALESCE(r.name, '') as room_name,
+          COALESCE(r.room_number, '') as room_number, 
           COALESCE(r.image, '') as room_image,
           ref.refund_status,
           ref.final_refund as refund_final_amount,
@@ -46,6 +46,46 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $bookings = $result->fetch_all(MYSQLI_ASSOC);
+
+// Collect booking IDs to fetch related food/service details in bulk
+$booking_ids = array_column($bookings, 'id');
+$food_orders_map    = [];
+$service_booking_map = [];
+
+if (!empty($booking_ids)) {
+    $placeholders = implode(',', array_fill(0, count($booking_ids), '?'));
+    $types = str_repeat('i', count($booking_ids));
+
+    // Fetch food orders with their items
+    $fo_stmt = $conn->prepare(
+        "SELECT fo.*, 
+                GROUP_CONCAT(foi.item_name ORDER BY foi.id SEPARATOR ', ') as items_list,
+                GROUP_CONCAT(CONCAT(foi.quantity,'x ',foi.item_name) ORDER BY foi.id SEPARATOR ', ') as items_detail
+         FROM food_orders fo
+         LEFT JOIN food_order_items foi ON fo.id = foi.order_id
+         WHERE fo.booking_id IN ($placeholders)
+         GROUP BY fo.id"
+    );
+    if ($fo_stmt) {
+        $fo_stmt->bind_param($types, ...$booking_ids);
+        $fo_stmt->execute();
+        foreach ($fo_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $fo) {
+            $food_orders_map[$fo['booking_id']] = $fo;
+        }
+    }
+
+    // Fetch service bookings (spa / laundry)
+    $sb_stmt = $conn->prepare(
+        "SELECT * FROM service_bookings WHERE booking_id IN ($placeholders)"
+    );
+    if ($sb_stmt) {
+        $sb_stmt->bind_param($types, ...$booking_ids);
+        $sb_stmt->execute();
+        foreach ($sb_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $sb) {
+            $service_booking_map[$sb['booking_id']] = $sb;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -96,41 +136,86 @@ $bookings = $result->fetch_all(MYSQLI_ASSOC);
             </div>
             <?php else: ?>
             <div class="row">
-                <?php foreach ($bookings as $booking): ?>
+                <?php foreach ($bookings as $booking):
+                    $btype      = $booking['booking_type'] ?? 'room';
+                    $food_order = $food_orders_map[$booking['id']] ?? null;
+                    $svc_booking = $service_booking_map[$booking['id']] ?? null;
+
+                    // ── Status badge ──────────────────────────────────────────
+                    $status       = $booking['status'];
+                    $status_class = 'secondary';
+                    $status_text  = ucfirst(str_replace('_', ' ', $status));
+                    if ($status === 'confirmed' || $status === 'verified') {
+                        $status_class = 'success';
+                    } elseif ($status === 'pending') {
+                        $status_class = 'warning';
+                    } elseif ($status === 'cancelled') {
+                        $status_class = 'danger';
+                    }
+
+                    // ── Card header icon + title ──────────────────────────────
+                    if ($btype === 'food_order') {
+                        $card_icon  = 'fa-utensils';
+                        $card_title = 'Food Order';
+                    } elseif ($btype === 'spa_service') {
+                        $card_icon  = 'fa-spa';
+                        $card_title = 'Spa Service';
+                    } elseif ($btype === 'laundry_service') {
+                        $card_icon  = 'fa-tshirt';
+                        $card_title = 'Laundry Service';
+                    } else {
+                        $card_icon  = 'fa-bed';
+                        $card_title = $booking['room_name'] ?: 'Room Booking';
+                    }
+
+                    // ── Cancel eligibility ────────────────────────────────────
+                    $can_cancel = false;
+                    if (in_array($status, ['pending', 'confirmed', 'verified'])) {
+                        if ($btype === 'room' && !empty($booking['check_in_date'])) {
+                            $check_in_dt  = new DateTime($booking['check_in_date']);
+                            $today        = new DateTime();
+                            $today->setTime(0, 0, 0);
+                            if ($today <= $check_in_dt) {
+                                $can_cancel = true;
+                            }
+                        } elseif ($btype !== 'room') {
+                            // Services can be cancelled while still pending/confirmed
+                            $can_cancel = true;
+                        }
+                    }
+                ?>
                 <div class="col-lg-6 mb-4">
                     <div class="card h-100 shadow-sm">
+                        <!-- Card Header -->
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">
-                                <i class="fas fa-bed text-gold"></i>
-                                <?php echo htmlspecialchars($booking['room_name']); ?>
+                                <i class="fas <?php echo $card_icon; ?> text-gold me-1"></i>
+                                <?php echo htmlspecialchars($card_title); ?>
                             </h5>
-                            <?php
-                            $status = $booking['status'];
-                            $status_class = 'secondary';
-                            $status_text = ucfirst(str_replace('_', ' ', $status));
-                            
-                            if ($status === 'confirmed' || $status === 'verified') {
-                                $status_class = 'success';
-                            } elseif ($status === 'pending') {
-                                $status_class = 'warning';
-                            } elseif ($status === 'cancelled') {
-                                $status_class = 'danger';
-                            }
-                            ?>
                             <span class="badge bg-<?php echo $status_class; ?>"><?php echo $status_text; ?></span>
                         </div>
+
                         <div class="card-body">
+                            <!-- Booking Reference (all types) -->
                             <div class="row mb-3">
-                                <div class="col-6">
+                                <div class="col-12">
                                     <small class="text-muted">Booking Reference</small>
-                                    <div class="fw-bold"><?php echo $booking['booking_reference']; ?></div>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted">Room Number</small>
-                                    <div class="fw-bold"><?php echo $booking['room_number']; ?></div>
+                                    <div class="fw-bold"><?php echo htmlspecialchars($booking['booking_reference']); ?></div>
                                 </div>
                             </div>
-                            
+
+                            <?php if ($btype === 'room'): ?>
+                            <!-- ══ ROOM BOOKING ══════════════════════════════ -->
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Room Number</small>
+                                    <div class="fw-bold"><?php echo $booking['room_number'] ?: 'N/A'; ?></div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Guests</small>
+                                    <div><?php echo (int)$booking['customers']; ?> person(s)</div>
+                                </div>
+                            </div>
                             <div class="row mb-3">
                                 <div class="col-6">
                                     <small class="text-muted">Check-in</small>
@@ -141,18 +226,95 @@ $bookings = $result->fetch_all(MYSQLI_ASSOC);
                                     <div><?php echo $booking['check_out_date'] ? date('M j, Y', strtotime($booking['check_out_date'])) : 'N/A'; ?></div>
                                 </div>
                             </div>
-                            
+
+                            <?php elseif ($btype === 'food_order'): ?>
+                            <!-- ══ FOOD ORDER ════════════════════════════════ -->
+                            <?php if ($food_order): ?>
                             <div class="row mb-3">
                                 <div class="col-6">
-                                    <small class="text-muted">Guests</small>
-                                    <div><?php echo $booking['customers']; ?> person(s)</div>
+                                    <small class="text-muted">Order Reference</small>
+                                    <div class="fw-bold"><?php echo htmlspecialchars($food_order['order_reference']); ?></div>
                                 </div>
                                 <div class="col-6">
+                                    <small class="text-muted">Guests</small>
+                                    <div><?php echo (int)$food_order['guests']; ?> person(s)</div>
+                                </div>
+                            </div>
+                            <?php if (!empty($food_order['items_detail'])): ?>
+                            <div class="mb-3">
+                                <small class="text-muted">Items Ordered</small>
+                                <div><?php echo htmlspecialchars($food_order['items_detail']); ?></div>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($food_order['table_reservation'] && $food_order['reservation_date']): ?>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Reservation Date</small>
+                                    <div><?php echo date('M j, Y', strtotime($food_order['reservation_date'])); ?></div>
+                                </div>
+                                <?php if ($food_order['reservation_time']): ?>
+                                <div class="col-6">
+                                    <small class="text-muted">Reservation Time</small>
+                                    <div><?php echo date('g:i A', strtotime($food_order['reservation_time'])); ?></div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
+                            <?php else: ?>
+                            <div class="mb-3 text-muted"><small>Order details not available.</small></div>
+                            <?php endif; ?>
+
+                            <?php elseif ($btype === 'spa_service' || $btype === 'laundry_service'): ?>
+                            <!-- ══ SPA / LAUNDRY SERVICE ══════════════════════ -->
+                            <?php if ($svc_booking): ?>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Service</small>
+                                    <div class="fw-bold"><?php echo htmlspecialchars($svc_booking['service_name']); ?></div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Category</small>
+                                    <div><?php echo ucfirst($svc_booking['service_category']); ?></div>
+                                </div>
+                            </div>
+                            <?php if ($svc_booking['service_date']): ?>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Service Date</small>
+                                    <div><?php echo date('M j, Y', strtotime($svc_booking['service_date'])); ?></div>
+                                </div>
+                                <?php if ($svc_booking['service_time']): ?>
+                                <div class="col-6">
+                                    <small class="text-muted">Service Time</small>
+                                    <div><?php echo date('g:i A', strtotime($svc_booking['service_time'])); ?></div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($svc_booking['quantity'] > 1): ?>
+                            <div class="mb-3">
+                                <small class="text-muted">Quantity</small>
+                                <div><?php echo (int)$svc_booking['quantity']; ?></div>
+                            </div>
+                            <?php endif; ?>
+                            <?php else: ?>
+                            <div class="mb-3">
+                                <small class="text-muted">Service Type</small>
+                                <div><?php echo $btype === 'spa_service' ? 'Spa & Wellness' : 'Laundry'; ?></div>
+                            </div>
+                            <?php endif; ?>
+
+                            <?php endif; // end booking type switch ?>
+
+                            <!-- Total Amount (all types) -->
+                            <div class="row mb-3">
+                                <div class="col-12">
                                     <small class="text-muted">Total Amount</small>
                                     <div class="fw-bold text-success">ETB <?php echo number_format($booking['total_price'], 2); ?></div>
                                 </div>
                             </div>
-                            
+
+                            <!-- Refund info (cancelled bookings) -->
                             <?php if ($booking['status'] === 'cancelled' && !empty($booking['refund_status'])): ?>
                             <div class="alert alert-info mb-3">
                                 <div class="d-flex align-items-start">
@@ -166,13 +328,9 @@ $bookings = $result->fetch_all(MYSQLI_ASSOC);
                                                 <small class="text-muted d-block">Status:</small>
                                                 <?php
                                                 $refund_badge_class = 'secondary';
-                                                if ($booking['refund_status'] === 'Pending') {
-                                                    $refund_badge_class = 'warning';
-                                                } elseif ($booking['refund_status'] === 'Processed') {
-                                                    $refund_badge_class = 'success';
-                                                } elseif ($booking['refund_status'] === 'Rejected') {
-                                                    $refund_badge_class = 'danger';
-                                                }
+                                                if ($booking['refund_status'] === 'Pending')   $refund_badge_class = 'warning';
+                                                elseif ($booking['refund_status'] === 'Processed') $refund_badge_class = 'success';
+                                                elseif ($booking['refund_status'] === 'Rejected')  $refund_badge_class = 'danger';
                                                 ?>
                                                 <span class="badge bg-<?php echo $refund_badge_class; ?> fs-6">
                                                     <?php echo $booking['refund_status']; ?>
@@ -200,39 +358,23 @@ $bookings = $result->fetch_all(MYSQLI_ASSOC);
                                 </div>
                             </div>
                             <?php endif; ?>
-                            
+
+                            <!-- Action buttons -->
                             <div class="d-flex gap-2 flex-wrap">
-                                <button class="btn btn-outline-primary btn-sm" onclick="viewBookingDetails('<?php echo $booking['booking_reference']; ?>')">
+                                <button class="btn btn-outline-primary btn-sm" onclick="viewBookingDetails('<?php echo htmlspecialchars($booking['booking_reference']); ?>')">
                                     <i class="fas fa-eye"></i> View Details
                                 </button>
-                                
                                 <button class="btn btn-outline-secondary btn-sm" onclick="printBooking(<?php echo htmlspecialchars(json_encode($booking)); ?>)">
                                     <i class="fas fa-print"></i> Print
                                 </button>
-                                
-                                <?php 
-                                // Check if booking can be cancelled
-                                $can_cancel = false;
-                                $cancellable_statuses = ['pending', 'confirmed', 'verified'];
-                                $booking_status = $booking['status'];
-                                
-                                if (in_array($booking_status, $cancellable_statuses) && !empty($booking['check_in_date'])) {
-                                    $check_in_date = new DateTime($booking['check_in_date']);
-                                    $current_date = new DateTime();
-                                    $current_date->setTime(0, 0, 0);
-                                    if ($current_date <= $check_in_date) {
-                                        $can_cancel = true;
-                                    }
-                                }
-                                
-                                if ($can_cancel): 
-                                ?>
-                                <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking('<?php echo $booking['booking_reference']; ?>')">
+                                <?php if ($can_cancel): ?>
+                                <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking('<?php echo htmlspecialchars($booking['booking_reference']); ?>')">
                                     <i class="fas fa-times"></i> Cancel
                                 </button>
                                 <?php endif; ?>
                             </div>
                         </div>
+
                         <div class="card-footer text-muted">
                             <small>
                                 <i class="fas fa-clock"></i>
@@ -459,11 +601,116 @@ $bookings = $result->fetch_all(MYSQLI_ASSOC);
         }
         
         function viewBookingDetails(ref) {
-            alert('Booking Reference: ' + ref);
+            window.location.href = 'booking-details.php?ref=' + encodeURIComponent(ref);
         }
         
         function printBooking(booking) {
-            window.print();
+            // Build type-specific detail rows
+            let detailRows = '';
+            const btype = booking.booking_type || 'room';
+
+            if (btype === 'room') {
+                detailRows = `
+                    <tr><td>Room Number</td><td>${booking.room_number || 'N/A'}</td></tr>
+                    <tr><td>Check-in</td><td>${booking.check_in_date ? formatDate(booking.check_in_date) : 'N/A'}</td></tr>
+                    <tr><td>Check-out</td><td>${booking.check_out_date ? formatDate(booking.check_out_date) : 'N/A'}</td></tr>
+                    <tr><td>Guests</td><td>${booking.customers || 1} person(s)</td></tr>`;
+            } else if (btype === 'food_order') {
+                detailRows = `
+                    <tr><td>Order Type</td><td>Food Order</td></tr>
+                    <tr><td>Order Date</td><td>${formatDate(booking.created_at)}</td></tr>`;
+            } else if (btype === 'spa_service') {
+                detailRows = `
+                    <tr><td>Service Type</td><td>Spa &amp; Wellness</td></tr>
+                    <tr><td>Date</td><td>${formatDate(booking.created_at)}</td></tr>`;
+            } else if (btype === 'laundry_service') {
+                detailRows = `
+                    <tr><td>Service Type</td><td>Laundry Service</td></tr>
+                    <tr><td>Date</td><td>${formatDate(booking.created_at)}</td></tr>`;
+            }
+
+            const statusColors = {confirmed:'#28a745', pending:'#ffc107', cancelled:'#dc3545', verified:'#28a745'};
+            const statusColor = statusColors[booking.status] || '#6c757d';
+            const statusText = (booking.status || '').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+            const typeLabel = {room:'Room Booking', food_order:'Food Order', spa_service:'Spa Service', laundry_service:'Laundry Service'}[btype] || 'Booking';
+
+            const receiptHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Booking Receipt - ${booking.booking_reference}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #222; background: #fff; padding: 20px; }
+  .receipt { max-width: 480px; margin: 0 auto; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
+  .receipt-header { background: #1a1a2e; color: #fff; padding: 14px 18px; text-align: center; }
+  .receipt-header .hotel-name { font-size: 16pt; font-weight: bold; letter-spacing: 1px; }
+  .receipt-header .hotel-sub { font-size: 9pt; color: #ccc; margin-top: 2px; }
+  .receipt-title { background: #f4f4f4; border-bottom: 1px solid #ddd; padding: 8px 18px; display: flex; justify-content: space-between; align-items: center; }
+  .receipt-title .type { font-size: 12pt; font-weight: bold; }
+  .receipt-title .status-badge { font-size: 9pt; font-weight: bold; color: #fff; background: ${statusColor}; padding: 3px 10px; border-radius: 12px; }
+  .receipt-body { padding: 14px 18px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 5px 4px; font-size: 10pt; vertical-align: top; border-bottom: 1px solid #f0f0f0; }
+  td:first-child { color: #666; width: 42%; font-size: 9.5pt; }
+  td:last-child { font-weight: 600; }
+  .divider { border: none; border-top: 1px dashed #bbb; margin: 10px 0; }
+  .total-row td { font-size: 12pt; font-weight: bold; color: #1a7a3c; border-bottom: none; padding-top: 8px; }
+  .receipt-footer { background: #f9f9f9; border-top: 1px solid #ddd; padding: 10px 18px; text-align: center; font-size: 8.5pt; color: #888; }
+  @media print {
+    body { padding: 0; }
+    .receipt { border: none; max-width: 100%; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="receipt">
+  <div class="receipt-header">
+    <div class="hotel-name">&#127963; Harar Ras Hotel</div>
+    <div class="hotel-sub">Booking Receipt</div>
+  </div>
+  <div class="receipt-title">
+    <span class="type">${typeLabel}</span>
+    <span class="status-badge">${statusText}</span>
+  </div>
+  <div class="receipt-body">
+    <table>
+      <tr><td>Reference</td><td>${booking.booking_reference}</td></tr>
+      ${detailRows}
+      <tr><td>Payment</td><td>${(booking.payment_status||'pending').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</td></tr>
+      <tr><td>Booked On</td><td>${formatDate(booking.created_at)}</td></tr>
+    </table>
+    <hr class="divider">
+    <table>
+      <tr class="total-row"><td>Total Amount</td><td>ETB ${parseFloat(booking.total_price||0).toFixed(2)}</td></tr>
+    </table>
+  </div>
+  <div class="receipt-footer">
+    Thank you for choosing Harar Ras Hotel &bull; harar-ras-hotel-booking.onrender.com
+  </div>
+</div>
+<div class="no-print" style="text-align:center;margin-top:16px;">
+  <button onclick="window.print()" style="padding:8px 24px;background:#1a1a2e;color:#fff;border:none;border-radius:4px;font-size:11pt;cursor:pointer;">&#128424; Print</button>
+  <button onclick="window.close()" style="padding:8px 18px;background:#eee;color:#333;border:1px solid #ccc;border-radius:4px;font-size:11pt;cursor:pointer;margin-left:8px;">Close</button>
+</div>
+<script>
+  // Auto-trigger print after a short delay so styles load
+  setTimeout(function(){ window.print(); }, 400);
+<\/script>
+</body>
+</html>`;
+
+            const w = window.open('', '_blank', 'width=560,height=700,scrollbars=yes');
+            w.document.write(receiptHtml);
+            w.document.close();
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const d = new Date(dateStr);
+            if (isNaN(d)) return dateStr;
+            return d.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'});
         }
     </script>
 </body>

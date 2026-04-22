@@ -101,31 +101,63 @@ class RoomAvailabilityService {
     }
     
     /**
-     * Create booking with automatic hold/expiration
+     * Create booking with automatic hold/expiration.
+     * Uses SELECT FOR UPDATE inside a transaction to prevent concurrent
+     * double-bookings for the same room and date range.
      */
     public function createBookingWithHold($booking_data) {
-        // Check availability first
-        $availability = $this->checkRoomAvailability(
+        // Validate dates and room status before entering the transaction
+        $pre_check = $this->checkRoomAvailability(
             $booking_data['room_id'],
             $booking_data['check_in_date'],
             $booking_data['check_out_date']
         );
-        
-        if (!$availability['available']) {
+
+        if (!$pre_check['available']) {
             return [
                 'success' => false,
-                'message' => $availability['reason'],
-                'error_code' => $availability['error_code']
+                'message' => $pre_check['reason'],
+                'error_code' => $pre_check['error_code']
             ];
         }
-        
+
         // Calculate hold expiration time
         $hold_expires_at = date('Y-m-d H:i:s', strtotime("+{$this->hold_duration_minutes} minutes"));
-        
+
         // Start transaction
         $this->conn->begin_transaction();
-        
+
         try {
+            // Lock the room row so concurrent requests queue up here instead of
+            // racing past the overlap check.
+            $lock_stmt = $this->conn->prepare("SELECT id FROM rooms WHERE id = ? FOR UPDATE");
+            if (!$lock_stmt) {
+                throw new Exception('Database error (lock): ' . $this->conn->error);
+            }
+            $lock_stmt->bind_param("i", $booking_data['room_id']);
+            $lock_stmt->execute();
+            $lock_stmt->close();
+
+            // Re-check for overlapping bookings inside the lock
+            $overlapping = $this->getOverlappingBookings(
+                $booking_data['room_id'],
+                $booking_data['check_in_date'],
+                $booking_data['check_out_date']
+            );
+
+            if (!empty($overlapping)) {
+                $this->conn->rollback();
+                $blocking = $overlapping[0];
+                $reason = $blocking['status'] === 'pending'
+                    ? 'This room is currently on hold (waiting for approval). Please choose another room or try again later.'
+                    : 'This room is already booked for the selected dates. Please choose different dates or another room.';
+                return [
+                    'success' => false,
+                    'message' => $reason,
+                    'error_code' => $blocking['status'] === 'pending' ? 'ROOM_ON_HOLD' : 'ROOM_BOOKED'
+                ];
+            }
+
             // Insert booking with hold
             $query = "INSERT INTO bookings (
                         user_id, customer_name, customer_email, customer_phone,
@@ -133,8 +165,11 @@ class RoomAvailabilityService {
                         customers, total_price, status, payment_status,
                         booking_hold_expires_at, special_requests, created_at
                       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, ?, NOW())";
-            
+
             $stmt = $this->conn->prepare($query);
+            if (!$stmt) {
+                throw new Exception('Failed to prepare booking insert: ' . $this->conn->error);
+            }
             $stmt->bind_param("isssisssidss",
                 $booking_data['user_id'],
                 $booking_data['customer_name'],
@@ -149,19 +184,19 @@ class RoomAvailabilityService {
                 $hold_expires_at,
                 $booking_data['special_requests'] ?? ''
             );
-            
+
             if (!$stmt->execute()) {
-                throw new Exception('Failed to create booking');
+                throw new Exception('Failed to create booking: ' . $stmt->error);
             }
-            
+
             $booking_id = $stmt->insert_id;
-            
+
             // Log activity
             $this->logBookingActivity($booking_id, 'created', 'Booking created with hold until ' . $hold_expires_at);
-            
+
             // Commit transaction
             $this->conn->commit();
-            
+
             return [
                 'success' => true,
                 'message' => 'Booking created successfully. Please complete payment within ' . $this->hold_duration_minutes . ' minutes.',
@@ -170,7 +205,7 @@ class RoomAvailabilityService {
                 'hold_expires_at' => $hold_expires_at,
                 'hold_duration_minutes' => $this->hold_duration_minutes
             ];
-            
+
         } catch (Exception $e) {
             $this->conn->rollback();
             return [
