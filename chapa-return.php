@@ -46,6 +46,13 @@ if (!is_logged_in()) {
             $_SESSION['role'] = $user['role'];
             $_SESSION['user_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
             $_SESSION['user_email'] = $user['email'];
+            
+            // Security: Store user agent hash to prevent session hijacking
+            $_SESSION['user_agent'] = md5($_SERVER['HTTP_USER_AGENT'] ?? '');
+            $_SESSION['last_activity'] = time();
+            $_SESSION['login_time'] = time();
+            $_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'] ?? '';
+            
             error_log("Session restored for user {$user['id']} after Chapa payment");
         }
     }

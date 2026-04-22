@@ -11,16 +11,10 @@ if (session_status() == PHP_SESSION_NONE) {
 
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
+require_once 'includes/security.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-    // Build absolute URL
-    $proto = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-           || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
-    $host  = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    header("Location: $proto://$host/login.php");
-    exit();
-}
+// Use enhanced security check
+require_secure_auth('login.php');
 
 // Get user's bookings
 $user_id = $_SESSION['user_id'];

@@ -55,6 +55,12 @@ if (isset($_GET['code'])) {
                         $_SESSION['user_email'] = $user['email'];
                         $_SESSION['user_role'] = $user['role'];
                         
+                        // Security: Store user agent hash to prevent session hijacking
+                        $_SESSION['user_agent'] = md5($_SERVER['HTTP_USER_AGENT'] ?? '');
+                        $_SESSION['last_activity'] = time();
+                        $_SESSION['login_time'] = time();
+                        $_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'] ?? '';
+                        
                         // Log successful OAuth login
                         log_user_activity($user['id'], 'login', 'User logged in via Google OAuth', $_SERVER['REMOTE_ADDR'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
                         
