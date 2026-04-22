@@ -118,12 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['user_email'] = $email;
                 $_SESSION['user_role'] = $role;
                 
-                // Security: Store user agent hash to prevent session hijacking
-                $_SESSION['user_agent'] = md5($_SERVER['HTTP_USER_AGENT'] ?? '');
-                $_SESSION['last_activity'] = time();
-                $_SESSION['login_time'] = time();
-                $_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'] ?? '';
-                
                 // Update last login timestamp
                 $update_query = "UPDATE users SET last_login = NOW() WHERE id = ?";
                 $update_stmt = $conn->prepare($update_query);
