@@ -361,6 +361,11 @@ if (!empty($booking_ids)) {
 
                             <!-- Action buttons -->
                             <div class="d-flex gap-2 flex-wrap">
+                                <?php if (in_array($booking['verification_status'] ?? '', ['pending_verification', 'verified']) || $booking['payment_status'] === 'paid'): ?>
+                                <a href="payment-success.php?booking=<?php echo $booking['id']; ?>" class="btn btn-success btn-sm">
+                                    <i class="fas fa-receipt"></i> View My Booking
+                                </a>
+                                <?php endif; ?>
                                 <button class="btn btn-outline-primary btn-sm" onclick="viewBookingDetails('<?php echo htmlspecialchars($booking['booking_reference']); ?>')">
                                     <i class="fas fa-eye"></i> View Details
                                 </button>
