@@ -367,18 +367,17 @@ if (!empty($booking_ids)) {
 
                             <!-- Action buttons -->
                             <div class="d-flex gap-2 flex-wrap">
-                                <?php if (in_array($booking['verification_status'] ?? '', ['pending_verification', 'verified']) || $booking['payment_status'] === 'paid'): ?>
+                                <!-- View My Booking: shown for all booking types -->
                                 <a href="payment-success.php?booking=<?php echo $booking['id']; ?>" class="btn btn-success btn-sm">
                                     <i class="fas fa-receipt"></i> View My Booking
                                 </a>
-                                <?php endif; ?>
                                 <button class="btn btn-outline-primary btn-sm" onclick="viewBookingDetails('<?php echo htmlspecialchars($booking['booking_reference']); ?>')">
                                     <i class="fas fa-eye"></i> View Details
                                 </button>
                                 <button class="btn btn-outline-secondary btn-sm" onclick="printBooking(<?php echo htmlspecialchars(json_encode($booking)); ?>)">
                                     <i class="fas fa-print"></i> Print
                                 </button>
-                                <?php if ($can_cancel): ?>
+                                <?php if ($btype === 'room' && $can_cancel): ?>
                                 <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking('<?php echo htmlspecialchars($booking['booking_reference']); ?>')">
                                     <i class="fas fa-times"></i> Cancel
                                 </button>
