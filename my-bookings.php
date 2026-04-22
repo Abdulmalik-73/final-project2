@@ -196,10 +196,16 @@ if (!empty($booking_ids)) {
                         </div>
 
                         <div class="card-body">
-                            <!-- Booking Reference (all types) -->
+                            <!-- Reference label varies by booking type -->
+                            <?php
+                            $ref_label = 'Booking Reference';
+                            if ($btype === 'food_order')       $ref_label = 'Food Order Reference';
+                            elseif ($btype === 'laundry_service') $ref_label = 'Laundry Service Reference';
+                            elseif ($btype === 'spa_service')     $ref_label = 'Spa & Wellness Reference';
+                            ?>
                             <div class="row mb-3">
                                 <div class="col-12">
-                                    <small class="text-muted">Booking Reference</small>
+                                    <small class="text-muted"><?php echo $ref_label; ?></small>
                                     <div class="fw-bold"><?php echo htmlspecialchars($booking['booking_reference']); ?></div>
                                 </div>
                             </div>
