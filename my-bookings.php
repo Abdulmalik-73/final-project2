@@ -421,22 +421,37 @@ $bookings = $result->fetch_all(MYSQLI_ASSOC);
                     action: 'confirm'
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Booking cancelled successfully! Your refund will be processed within 5-7 business days.');
-                    location.reload();
-                } else {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Cancellation';
-                    document.getElementById('cancelErrorMessage').textContent = data.error || 'Cancellation failed';
-                    document.getElementById('cancelError').style.display = 'block';
+            .then(response => {
+                // Check if response is ok
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                return response.text(); // Get as text first to see what we're getting
+            })
+            .then(text => {
+                console.log('Response:', text); // Debug log
+                try {
+                    const data = JSON.parse(text);
+                    if (data.success) {
+                        alert('Booking cancelled successfully! Your refund request has been submitted for manager approval.');
+                        location.reload();
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Cancellation';
+                        document.getElementById('cancelErrorMessage').textContent = data.error || 'Cancellation failed';
+                        document.getElementById('cancelError').style.display = 'block';
+                    }
+                } catch (e) {
+                    console.error('JSON parse error:', e);
+                    console.error('Response text:', text);
+                    throw new Error('Invalid response from server: ' + text.substring(0, 100));
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Cancellation';
-                document.getElementById('cancelErrorMessage').textContent = 'Network error. Please try again.';
+                document.getElementById('cancelErrorMessage').textContent = 'Error: ' + error.message;
                 document.getElementById('cancelError').style.display = 'block';
             });
         }
