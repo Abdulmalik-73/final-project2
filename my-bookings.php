@@ -403,9 +403,6 @@ $bookings = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                               $not_cancelled_or_completed && 
                                               $check_in_future;
                                 
-                                // Debug: Show cancel button for verified bookings (remove this comment in production)
-                                // Status: <?php echo $booking_status; ?>, Can Cancel: <?php echo $can_cancel ? 'Yes' : 'No'; ?>
-                                
                                 if ($can_cancel): 
                                 ?>
                                 <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking('<?php echo $booking['booking_reference']; ?>')">
