@@ -75,6 +75,13 @@ if (session_status() == PHP_SESSION_NONE) {
     ini_set('session.gc_maxlifetime', 86400);
     ini_set('session.cookie_lifetime', 86400);
     ini_set('session.cookie_samesite', 'Lax');
+    
+    // Ensure session save path is writable
+    $session_path = sys_get_temp_dir() . '/php_sessions';
+    if (!is_dir($session_path)) {
+        @mkdir($session_path, 0777, true);
+    }
+    ini_set('session.save_path', $session_path);
 
     // Detect HTTPS correctly on Render (sits behind Cloudflare/proxy)
     $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
