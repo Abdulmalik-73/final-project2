@@ -1,8 +1,9 @@
 services:
   - type: web
     name: harar-ras-hotel-booking
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    runtime: php
+    buildCommand: composer install --no-dev --optimize-autoloader
+    startCommand: php -S 0.0.0.0:$PORT -t .
     envVars:
       - key: DB_HOST
         sync: false
