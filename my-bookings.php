@@ -367,9 +367,9 @@ if (!empty($booking_ids)) {
 
                             <!-- Action buttons -->
                             <div class="d-flex gap-2 flex-wrap">
-                                <!-- View My Booking: shown for all booking types -->
+                                <!-- View Confirmation: shown for all booking types -->
                                 <a href="payment-success.php?booking=<?php echo $booking['id']; ?>" class="btn btn-success btn-sm">
-                                    <i class="fas fa-receipt"></i> View My Booking
+                                    <i class="fas fa-receipt"></i> View Confirmation
                                 </a>
                                 <button class="btn btn-outline-primary btn-sm" onclick="viewBookingDetails('<?php echo htmlspecialchars($booking['booking_reference']); ?>')">
                                     <i class="fas fa-eye"></i> View Details
