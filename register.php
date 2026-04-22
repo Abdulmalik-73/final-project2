@@ -710,6 +710,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Prevent browser autofill on page load
+        window.addEventListener('load', function() {
+            // Clear all form fields to prevent autofill
+            document.getElementById('full_name').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('phone').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('confirm_password').value = '';
+            
+            // Force browser to not remember form values
+            setTimeout(function() {
+                document.getElementById('signupForm').reset();
+            }, 100);
+        });
+        
         // Password strength validator
         const passwordInput = document.getElementById('password');
         const confirmPasswordInput = document.getElementById('confirm_password');
