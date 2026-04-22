@@ -41,7 +41,11 @@ if (!$booking_data) {
 }
 
 // Check if payment was actually submitted
-if ($booking_data['verification_status'] !== 'pending_verification') {
+// For room bookings: must have gone through the screenshot upload flow.
+// For other booking types (food, spa, laundry) skip this check — they use
+// a different payment flow and should always be viewable here.
+$is_room_booking = ($booking_data['booking_type'] ?? 'room') === 'room';
+if ($is_room_booking && !in_array($booking_data['verification_status'], ['pending_verification', 'verified', 'pending'])) {
     header('Location: payment-upload.php?booking=' . $booking_id);
     exit();
 }
