@@ -4,6 +4,7 @@ require_once 'includes/config.php';
 // Get redirect parameters
 $redirect = isset($_GET['redirect']) ? $_GET['redirect'] : '';
 $room_id = isset($_GET['room']) ? (int)$_GET['room'] : null;
+$tx_ref = isset($_GET['tx_ref']) ? $_GET['tx_ref'] : '';
 
 // Redirect if already logged in
 if (is_logged_in()) {
@@ -12,6 +13,8 @@ if (is_logged_in()) {
         header("Location: $redirect_url");
     } elseif ($redirect == 'food-booking') {
         header("Location: food-booking.php");
+    } elseif ($redirect == 'chapa-return' && $tx_ref) {
+        header("Location: chapa-return.php?tx_ref=" . urlencode($tx_ref));
     } else {
         $role = get_user_role();
         switch($role) {
@@ -97,6 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         header("Location: $base/$rurl");
                     } elseif ($redirect == 'food-booking') {
                         header("Location: $base/food-booking.php");
+                    } elseif ($redirect == 'chapa-return' && $tx_ref) {
+                        header("Location: $base/chapa-return.php?tx_ref=" . urlencode($tx_ref));
                     } else {
                         switch($user['role']) {
                             case 'super_admin':

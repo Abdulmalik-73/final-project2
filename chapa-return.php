@@ -8,15 +8,53 @@ session_start();
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
-if (!is_logged_in()) {
-    header('Location: login.php');
+$tx_ref = trim($_GET['tx_ref'] ?? '');
+if (empty($tx_ref)) {
+    // No transaction reference, redirect to bookings or login
+    if (is_logged_in()) {
+        header('Location: my-bookings.php');
+    } else {
+        header('Location: login.php');
+    }
     exit;
 }
 
-$tx_ref = trim($_GET['tx_ref'] ?? '');
-if (empty($tx_ref)) {
-    header('Location: my-bookings.php');
-    exit;
+// If user is not logged in, try to restore session from transaction
+if (!is_logged_in()) {
+    // Get user_id from the payment/booking record
+    $restore_query = $conn->prepare(
+        "SELECT b.user_id FROM payments p 
+         JOIN bookings b ON p.booking_id = b.id 
+         WHERE p.tx_ref = ? LIMIT 1"
+    );
+    $restore_query->bind_param("s", $tx_ref);
+    $restore_query->execute();
+    $restore_result = $restore_query->get_result()->fetch_assoc();
+    
+    if ($restore_result && $restore_result['user_id']) {
+        // Restore user session
+        $user_id = $restore_result['user_id'];
+        $user_query = $conn->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+        $user_query->bind_param("i", $user_id);
+        $user_query->execute();
+        $user = $user_query->get_result()->fetch_assoc();
+        
+        if ($user) {
+            // Restore session
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_role'] = $user['role'];
+            $_SESSION['role'] = $user['role'];
+            $_SESSION['user_name'] = trim($user['first_name'] . ' ' . $user['last_name']);
+            $_SESSION['user_email'] = $user['email'];
+            error_log("Session restored for user {$user['id']} after Chapa payment");
+        }
+    }
+    
+    // If still not logged in after restore attempt, redirect to login with return URL
+    if (!is_logged_in()) {
+        header('Location: login.php?redirect=chapa-return&tx_ref=' . urlencode($tx_ref));
+        exit;
+    }
 }
 
 // ── Step 1: Verify with Chapa API ────────────────────────────────────────────
