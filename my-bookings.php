@@ -296,12 +296,14 @@ $bookings = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                             <div class="col-md-6">
                                                 <small class="text-muted d-block">Status:</small>
                                                 <?php
-                                                $refund_badge_class = match($booking['refund_status']) {
-                                                    'Pending' => 'warning',
-                                                    'Processed' => 'success',
-                                                    'Rejected' => 'danger',
-                                                    default => 'secondary'
-                                                };
+                                                $refund_badge_class = 'secondary';
+                                                if ($booking['refund_status'] === 'Pending') {
+                                                    $refund_badge_class = 'warning';
+                                                } elseif ($booking['refund_status'] === 'Processed') {
+                                                    $refund_badge_class = 'success';
+                                                } elseif ($booking['refund_status'] === 'Rejected') {
+                                                    $refund_badge_class = 'danger';
+                                                }
                                                 ?>
                                                 <span class="badge bg-<?php echo $refund_badge_class; ?> fs-6">
                                                     <?php echo $booking['refund_status']; ?>
