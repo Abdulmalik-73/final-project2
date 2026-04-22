@@ -4,15 +4,30 @@
  * Handles customer-initiated booking cancellations with refund calculation
  */
 
-session_start();
+// Enable error logging for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/cancel_booking_errors.log');
+
+// Start session first
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
 header('Content-Type: application/json');
 
-require_once '../includes/config.php';
-require_once '../includes/functions.php';
+try {
+    require_once '../includes/config.php';
+    require_once '../includes/functions.php';
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'error' => 'Configuration error: ' . $e->getMessage()]);
+    exit;
+}
 
 // Check if user is logged in
-if (!is_logged_in()) {
-    echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+    echo json_encode(['success' => false, 'error' => 'Unauthorized. Please login again.']);
     exit;
 }
 
@@ -24,11 +39,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception('Invalid JSON input: ' . json_last_error_msg());
+    }
+    
     $booking_reference = $input['booking_reference'] ?? '';
     $action = $input['action'] ?? 'calculate'; // 'calculate' or 'confirm'
     
     if (empty($booking_reference)) {
         throw new Exception('Booking reference is required');
+    }
+    
+    // Check database connection
+    if (!isset($conn) || !$conn) {
+        throw new Exception('Database connection not available');
     }
     
     $user_id = $_SESSION['user_id'];
@@ -191,10 +216,11 @@ try {
             
             echo json_encode([
                 'success' => true,
-                'message' => 'Booking cancelled successfully. Your refund will be processed within 5-7 business days.',
+                'message' => 'Cancellation request submitted successfully! Your refund of ETB ' . number_format($final_refund, 2) . ' is pending manager approval. You will receive your refund within 5-7 business days after approval.',
                 'data' => [
                     'refund_reference' => $refund_reference,
-                    'final_refund' => number_format($final_refund, 2)
+                    'final_refund' => number_format($final_refund, 2),
+                    'status' => 'Pending Manager Approval'
                 ]
             ]);
             
@@ -208,9 +234,18 @@ try {
     
     throw new Exception('Invalid action');
     
-} catch (Exception $e) {
+} catch (mysqli_sql_exception $e) {
+    error_log("SQL Error in cancel_booking.php: " . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'Database error: ' . $e->getMessage(),
+        'code' => 'DB_ERROR'
+    ]);
+} catch (Exception $e) {
+    error_log("Error in cancel_booking.php: " . $e->getMessage());
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage(),
+        'trace' => $e->getTraceAsString()
     ]);
 }

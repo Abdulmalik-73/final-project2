@@ -320,6 +320,36 @@ try {
     // Silently ignore
 }
 
+// AUTO-FIX DATABASE: Add cancellation columns to bookings table if they don't exist
+try {
+    $check_cancelled_at = $conn->query("SHOW COLUMNS FROM bookings LIKE 'cancelled_at'");
+    if ($check_cancelled_at && $check_cancelled_at->num_rows == 0) {
+        $conn->query("ALTER TABLE bookings ADD COLUMN cancelled_at DATETIME NULL COMMENT 'When booking was cancelled'");
+    }
+    
+    $check_cancelled_by = $conn->query("SHOW COLUMNS FROM bookings LIKE 'cancelled_by'");
+    if ($check_cancelled_by && $check_cancelled_by->num_rows == 0) {
+        $conn->query("ALTER TABLE bookings ADD COLUMN cancelled_by INT NULL COMMENT 'User ID who cancelled'");
+    }
+    
+    $check_cancellation_reason = $conn->query("SHOW COLUMNS FROM bookings LIKE 'cancellation_reason'");
+    if ($check_cancellation_reason && $check_cancellation_reason->num_rows == 0) {
+        $conn->query("ALTER TABLE bookings ADD COLUMN cancellation_reason TEXT NULL COMMENT 'Reason for cancellation'");
+    }
+    
+    $check_refund_amount = $conn->query("SHOW COLUMNS FROM bookings LIKE 'refund_amount'");
+    if ($check_refund_amount && $check_refund_amount->num_rows == 0) {
+        $conn->query("ALTER TABLE bookings ADD COLUMN refund_amount DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Refund amount'");
+    }
+    
+    $check_penalty_amount = $conn->query("SHOW COLUMNS FROM bookings LIKE 'penalty_amount'");
+    if ($check_penalty_amount && $check_penalty_amount->num_rows == 0) {
+        $conn->query("ALTER TABLE bookings ADD COLUMN penalty_amount DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Penalty amount'");
+    }
+} catch (Exception $e) {
+    // Silently ignore
+}
+
 // AUTO-FIX DATABASE: Create services table if it doesn't exist
 try {
     $conn->query("CREATE TABLE IF NOT EXISTS `services` (

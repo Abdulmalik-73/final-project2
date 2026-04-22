@@ -433,7 +433,9 @@ $bookings = $result->fetch_all(MYSQLI_ASSOC);
                 try {
                     const data = JSON.parse(text);
                     if (data.success) {
-                        alert('Booking cancelled successfully! Your refund request has been submitted for manager approval.');
+                        // Show detailed success message
+                        const message = data.message || 'Cancellation request submitted successfully!';
+                        alert(message);
                         location.reload();
                     } else {
                         btn.disabled = false;
