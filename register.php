@@ -569,6 +569,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label class="form-label">Full Name *</label>
                     <input type="text" name="full_name" id="full_name" class="form-control" required 
                            placeholder="Enter your full name"
+                           autocomplete="off"
                            value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ''; ?>">
                     <div id="fullname-error" class="field-error" style="display: none;"></div>
                 </div>
@@ -577,6 +578,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label class="form-label">Email Address *</label>
                     <input type="email" name="email" id="email" class="form-control" required 
                            placeholder="Enter your email address"
+                           autocomplete="off"
                            value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
                     <div id="email-error" class="field-error" style="display: none;"></div>
                 </div>
@@ -585,6 +587,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label class="form-label">Phone Number (Optional)</label>
                     <input type="tel" name="phone" id="phone" class="form-control" 
                            placeholder="Enter your phone number (e.g., +251-911-234-567)"
+                           autocomplete="off"
                            value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>">
                 </div>
                 
@@ -592,7 +595,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label class="form-label">Password *</label>
                     <div class="password-input-wrapper" style="position: relative;">
                         <input type="password" name="password" id="password" class="form-control" required minlength="8"
-                               placeholder="Enter strong password (min. 8 characters)">
+                               placeholder="Enter strong password (min. 8 characters)"
+                               autocomplete="new-password">
                         <button type="button" class="btn-toggle-password" onclick="togglePassword('password')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer;">
                             <i class="fas fa-eye" id="password-eye"></i>
                         </button>
@@ -629,7 +633,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label class="form-label">Confirm Password *</label>
                     <div class="password-input-wrapper" style="position: relative;">
                         <input type="password" name="confirm_password" id="confirm_password" class="form-control" required minlength="8"
-                               placeholder="Re-enter your password">
+                               placeholder="Re-enter your password"
+                               autocomplete="new-password">
                         <button type="button" class="btn-toggle-password" onclick="togglePassword('confirm_password')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer;">
                             <i class="fas fa-eye" id="confirm_password-eye"></i>
                         </button>
