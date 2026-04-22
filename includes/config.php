@@ -350,6 +350,43 @@ try {
     // Silently ignore
 }
 
+// AUTO-FIX DATABASE: Create refunds table if it doesn't exist
+try {
+    $conn->query("CREATE TABLE IF NOT EXISTS refunds (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        booking_id INT NOT NULL,
+        booking_reference VARCHAR(50),
+        customer_id INT NOT NULL,
+        customer_name VARCHAR(255),
+        customer_email VARCHAR(255),
+        original_amount DECIMAL(10,2) NOT NULL,
+        check_in_date DATE NOT NULL,
+        cancellation_date DATETIME NOT NULL,
+        days_before_checkin INT NOT NULL,
+        refund_percentage INT NOT NULL,
+        refund_amount DECIMAL(10,2) NOT NULL,
+        processing_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        processing_fee_percentage DECIMAL(5,2) DEFAULT 5.00,
+        final_refund DECIMAL(10,2) NOT NULL,
+        refund_status ENUM('Pending', 'Approved', 'Processed', 'Rejected', 'Completed') DEFAULT 'Pending',
+        refund_method VARCHAR(50),
+        original_transaction_id VARCHAR(100),
+        refund_transaction_id VARCHAR(100),
+        refund_reference VARCHAR(100) UNIQUE,
+        processed_by INT,
+        processed_at DATETIME,
+        rejection_reason TEXT,
+        admin_notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_booking_id (booking_id),
+        INDEX idx_customer_id (customer_id),
+        INDEX idx_refund_status (refund_status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+} catch (Exception $e) {
+    // Silently ignore
+}
+
 // AUTO-FIX DATABASE: Create services table if it doesn't exist
 try {
     $conn->query("CREATE TABLE IF NOT EXISTS `services` (

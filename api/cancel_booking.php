@@ -147,61 +147,94 @@ try {
         $conn->begin_transaction();
         
         try {
-            // Update booking status
-            $update_stmt = $conn->prepare("
-                UPDATE bookings 
-                SET status = 'cancelled',
-                    cancelled_at = NOW(),
-                    cancelled_by = ?,
-                    cancellation_reason = 'Customer initiated cancellation',
-                    refund_amount = ?,
-                    penalty_amount = ?,
-                    payment_status = CASE 
-                        WHEN ? > 0 THEN 'refund_pending'
-                        ELSE payment_status
-                    END
-                WHERE id = ?
-            ");
-            $update_stmt->bind_param("idddi", 
-                $user_id, 
-                $final_refund, 
-                $penalty_amount,
-                $final_refund,
-                $booking['id']
-            );
-            $update_stmt->execute();
+            // Check if cancelled_at column exists
+            $check_column = $conn->query("SHOW COLUMNS FROM bookings LIKE 'cancelled_at'");
+            $has_cancelled_at = ($check_column && $check_column->num_rows > 0);
+            
+            // Update booking status - use dynamic SQL based on available columns
+            if ($has_cancelled_at) {
+                $update_stmt = $conn->prepare("
+                    UPDATE bookings 
+                    SET status = 'cancelled',
+                        cancelled_at = NOW(),
+                        cancelled_by = ?,
+                        cancellation_reason = 'Customer initiated cancellation',
+                        refund_amount = ?,
+                        penalty_amount = ?,
+                        payment_status = CASE 
+                            WHEN ? > 0 THEN 'refund_pending'
+                            ELSE payment_status
+                        END
+                    WHERE id = ?
+                ");
+                $update_stmt->bind_param("idddi", 
+                    $user_id, 
+                    $final_refund, 
+                    $penalty_amount,
+                    $final_refund,
+                    $booking['id']
+                );
+            } else {
+                // Fallback if columns don't exist yet
+                $update_stmt = $conn->prepare("
+                    UPDATE bookings 
+                    SET status = 'cancelled',
+                        payment_status = CASE 
+                            WHEN ? > 0 THEN 'refund_pending'
+                            ELSE payment_status
+                        END
+                    WHERE id = ?
+                ");
+                $update_stmt->bind_param("di", 
+                    $final_refund,
+                    $booking['id']
+                );
+            }
+            
+            if (!$update_stmt->execute()) {
+                throw new Exception('Failed to update booking: ' . $update_stmt->error);
+            }
             
             // Create refund record
             $refund_reference = 'REF' . date('Ymd') . str_pad($booking['id'], 6, '0', STR_PAD_LEFT);
             
-            $refund_stmt = $conn->prepare("
-                INSERT INTO refunds (
-                    booking_id, booking_reference, customer_id, customer_name, customer_email,
-                    original_amount, check_in_date, cancellation_date, days_before_checkin,
-                    refund_percentage, refund_amount, processing_fee, processing_fee_percentage,
-                    final_refund, refund_status, refund_reference, admin_notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, 'Pending', ?, 'Customer initiated cancellation')
-            ");
-            
-            $customer_name = $booking['first_name'] . ' ' . $booking['last_name'];
-            
-            $refund_stmt->bind_param("isissdsiiddddds",
-                $booking['id'],
-                $booking['booking_reference'],
-                $user_id,
-                $customer_name,
-                $booking['email'],
-                $total_amount,
-                $booking['check_in_date'],
-                $days_before_checkin,
-                $refund_percentage,
-                $refund_amount,
-                $processing_fee,
-                5.00,
-                $final_refund,
-                $refund_reference
-            );
-            $refund_stmt->execute();
+            // Check if refunds table exists
+            $check_table = $conn->query("SHOW TABLES LIKE 'refunds'");
+            if ($check_table && $check_table->num_rows > 0) {
+                $refund_stmt = $conn->prepare("
+                    INSERT INTO refunds (
+                        booking_id, booking_reference, customer_id, customer_name, customer_email,
+                        original_amount, check_in_date, cancellation_date, days_before_checkin,
+                        refund_percentage, refund_amount, processing_fee, processing_fee_percentage,
+                        final_refund, refund_status, refund_reference, admin_notes
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, 'Pending', ?, 'Customer initiated cancellation')
+                ");
+                
+                $customer_name = $booking['first_name'] . ' ' . $booking['last_name'];
+                
+                $refund_stmt->bind_param("isissdsiiddddds",
+                    $booking['id'],
+                    $booking['booking_reference'],
+                    $user_id,
+                    $customer_name,
+                    $booking['email'],
+                    $total_amount,
+                    $booking['check_in_date'],
+                    $days_before_checkin,
+                    $refund_percentage,
+                    $refund_amount,
+                    $processing_fee,
+                    5.00,
+                    $final_refund,
+                    $refund_reference
+                );
+                
+                if (!$refund_stmt->execute()) {
+                    throw new Exception('Failed to create refund record: ' . $refund_stmt->error);
+                }
+            } else {
+                error_log("Warning: refunds table does not exist, skipping refund record creation");
+            }
             
             // Log activity
             log_user_activity(
