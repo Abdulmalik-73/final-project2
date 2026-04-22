@@ -4,11 +4,7 @@
  * Requires: User authentication
  */
 
-// Start session FIRST before anything else
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
-
+// Match login.php: let config.php set session save path before session starts
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 

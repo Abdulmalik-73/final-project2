@@ -2,18 +2,11 @@
 /**
  * Booking Confirmation & Feedback Page
  * Shown after successful Chapa payment (or any confirmed booking).
- * Replaces the old "Payment Submitted" page.
  */
 
-// Start session FIRST (same pattern as my-bookings.php) before config.php
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
-
+// Match login.php exactly: let config.php set session path BEFORE session starts
 require_once 'includes/config.php';
-require_once 'includes/functions.php';
-require_once 'includes/auth.php';
-require_once 'includes/language.php';
+// config.php already includes auth.php, functions.php, language.php
 
 // Must be logged in
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
