@@ -767,15 +767,6 @@ $bookings = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 document.getElementById('cancelErrorMessage').textContent = 'Network error. Please check your connection and try again.';
                 document.getElementById('cancelError').style.display = 'block';
             });
-        }firmCancelBtn').disabled = false;
-                    document.getElementById('confirmCancelBtn').innerHTML = '<i class="fas fa-check"></i> Confirm Cancellation';
-                }
-            })
-            .catch(error => {
-                alert('Failed to cancel booking. Please try again.');
-                document.getElementById('confirmCancelBtn').disabled = false;
-                document.getElementById('confirmCancelBtn').innerHTML = '<i class="fas fa-check"></i> Confirm Cancellation';
-            });
         }
         
         // Override formatCurrency function to ensure ETB display

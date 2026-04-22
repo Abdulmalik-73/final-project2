@@ -108,21 +108,37 @@ $query = "
     WHERE 1=1
 ";
 
+$params = [];
+$param_types = '';
+
 if ($status_filter !== 'all') {
-    $query .= " AND r.refund_status = '" . $conn->real_escape_string($status_filter) . "'";
+    $query .= " AND r.refund_status = ?";
+    $params[] = $status_filter;
+    $param_types .= 's';
 }
 
 if (!empty($search)) {
-    $search_term = $conn->real_escape_string($search);
-    $query .= " AND (r.booking_reference LIKE '%$search_term%' 
-                OR r.refund_reference LIKE '%$search_term%'
-                OR r.customer_name LIKE '%$search_term%'
-                OR r.customer_email LIKE '%$search_term%')";
+    $search_term = '%' . $search . '%';
+    $query .= " AND (r.booking_reference LIKE ? 
+                OR r.refund_reference LIKE ?
+                OR r.customer_name LIKE ?
+                OR r.customer_email LIKE ?)";
+    $params[] = $search_term;
+    $params[] = $search_term;
+    $params[] = $search_term;
+    $params[] = $search_term;
+    $param_types .= 'ssss';
 }
 
 $query .= " ORDER BY r.created_at DESC";
 
-$refunds = $conn->query($query)->fetch_all(MYSQLI_ASSOC);
+// Use prepared statement instead of direct query
+$stmt = $conn->prepare($query);
+if (!empty($params)) {
+    $stmt->bind_param($param_types, ...$params);
+}
+$stmt->execute();
+$refunds = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 // Get statistics
 $stats_query = "
