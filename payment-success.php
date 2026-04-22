@@ -1,5 +1,5 @@
 <?php
-session_start();
+// Let config.php handle session start with correct settings
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 require_once 'includes/auth.php';
