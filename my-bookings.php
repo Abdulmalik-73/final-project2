@@ -31,7 +31,7 @@ $query = "SELECT b.*,
           ref.refund_status,
           ref.final_refund as refund_final_amount,
           ref.refund_reference,
-          ref.processed_date as refund_processed_date
+          ref.processed_at as refund_processed_date
           FROM bookings b 
           LEFT JOIN rooms r ON b.room_id = r.id 
           LEFT JOIN refunds ref ON b.id = ref.booking_id
