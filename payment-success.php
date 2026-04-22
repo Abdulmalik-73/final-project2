@@ -4,7 +4,11 @@
  * Shown after successful Chapa payment (or any confirmed booking).
  */
 
-// Match login.php exactly: let config.php set session path BEFORE session starts
+// session_start() MUST come before config.php (same as booking.php)
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once 'includes/config.php';
 // config.php already includes auth.php, functions.php, language.php
 
