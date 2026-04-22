@@ -5,15 +5,22 @@
  * Replaces the old "Payment Submitted" page.
  */
 
-// Let config.php handle session start with correct settings
+// Start session FIRST (same pattern as my-bookings.php) before config.php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 require_once 'includes/auth.php';
 require_once 'includes/language.php';
 
 // Must be logged in
-if (!is_logged_in()) {
-    header('Location: login.php');
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+    $proto = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+           || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
+    $host  = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    header("Location: $proto://$host/login.php");
     exit();
 }
 
