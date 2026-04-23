@@ -4,38 +4,27 @@
  * Saves image as base64 to temp_id_uploads table, returns a 32-char token.
  */
 
-// Start session FIRST with same settings as the main app
-// This must match config.php session settings exactly
-if (session_status() === PHP_SESSION_NONE) {
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.use_only_cookies', 1);
-    ini_set('session.gc_maxlifetime', 86400);
-    ini_set('session.cookie_lifetime', 86400);
-    ini_set('session.cookie_samesite', 'Lax');
+// Buffer all output so config.php whitespace doesn't corrupt JSON
+ob_start();
 
-    $session_path = sys_get_temp_dir() . '/php_sessions';
-    if (!is_dir($session_path)) {
-        @mkdir($session_path, 0777, true);
-    }
-    ini_set('session.save_path', $session_path);
-
-    $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-             || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
-    ini_set('session.cookie_secure', $is_https ? 1 : 0);
-
-    session_start();
-}
-
-// Now load config (DB connection) — session already started so config won't restart it
+// Load config first — it handles session_start() with correct settings
 require_once '../includes/config.php';
 
-// Always return JSON
+// Discard any output from config (whitespace, BOM, maintenance HTML check)
+ob_clean();
+
+// Always return JSON for this endpoint
 header('Content-Type: application/json');
 
-// Auth check
+// Auth check — user must be logged in
 $user_id = (int)($_SESSION['user_id'] ?? 0);
 if ($user_id <= 0) {
-    echo json_encode(['success' => false, 'error' => 'Session expired. Please refresh the page and try again.']);
+    // Try alternative session key names
+    $user_id = (int)($_SESSION['id'] ?? 0);
+}
+if ($user_id <= 0) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Please refresh the page and try uploading again.']);
     exit;
 }
 
