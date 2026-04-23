@@ -1,7 +1,7 @@
 <?php
 /**
  * ID Image Upload API
- * Handles secure upload of customer ID images (National ID / Passport / Driving License)
+ * Stores image as base64 data URL in the database — survives server restarts/redeploys.
  * Accepts: JPG, JPEG, PNG — Max 2MB
  */
 
@@ -16,7 +16,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
 header('Content-Type: application/json');
 
-// Auth check
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'Unauthorized. Please login first.']);
     exit;
@@ -28,14 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    // ── Validate file was sent ────────────────────────────────────────────────
+    require_once '../includes/config.php';
+
     if (!isset($_FILES['id_image']) || $_FILES['id_image']['error'] === UPLOAD_ERR_NO_FILE) {
         throw new Exception('No file uploaded.');
     }
 
     $file = $_FILES['id_image'];
 
-    // ── Check for upload errors ───────────────────────────────────────────────
     if ($file['error'] !== UPLOAD_ERR_OK) {
         $upload_errors = [
             UPLOAD_ERR_INI_SIZE   => 'File exceeds server upload limit.',
@@ -48,17 +47,16 @@ try {
         throw new Exception($upload_errors[$file['error']] ?? 'Unknown upload error.');
     }
 
-    // ── Validate file size (max 2MB) ──────────────────────────────────────────
-    $max_size = 2 * 1024 * 1024; // 2MB in bytes
+    // Max 2MB
+    $max_size = 2 * 1024 * 1024;
     if ($file['size'] > $max_size) {
         throw new Exception('File too large. Maximum size is 2MB.');
     }
-
     if ($file['size'] === 0) {
         throw new Exception('Uploaded file is empty.');
     }
 
-    // ── Validate MIME type (server-side, not just extension) ──────────────────
+    // Validate MIME type
     $allowed_mime = ['image/jpeg', 'image/jpg', 'image/png'];
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $detected_mime = finfo_file($finfo, $file['tmp_name']);
@@ -68,57 +66,36 @@ try {
         throw new Exception('Invalid file format. Only JPG, JPEG, PNG allowed.');
     }
 
-    // ── Validate file extension ───────────────────────────────────────────────
-    $original_name = $file['name'];
-    $ext = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
-    $allowed_ext = ['jpg', 'jpeg', 'png'];
-
-    if (!in_array($ext, $allowed_ext)) {
-        throw new Exception('Invalid file format. Only JPG, JPEG, PNG allowed.');
-    }
-
-    // ── Double-check: verify it's actually an image ───────────────────────────
+    // Validate it's actually an image
     $image_info = @getimagesize($file['tmp_name']);
     if ($image_info === false) {
         throw new Exception('Uploaded file is not a valid image.');
     }
 
-    // ── Ensure upload directory exists ────────────────────────────────────────
-    $upload_dir = __DIR__ . '/../uploads/ids/';
-    if (!is_dir($upload_dir)) {
-        if (!mkdir($upload_dir, 0755, true)) {
-            throw new Exception('Failed to create upload directory.');
-        }
-    }
+    // Read raw bytes and encode as base64 data URL
+    $raw_data  = file_get_contents($file['tmp_name']);
+    $mime_type = $detected_mime === 'image/jpg' ? 'image/jpeg' : $detected_mime;
+    $base64    = 'data:' . $mime_type . ';base64,' . base64_encode($raw_data);
 
-    // ── Generate unique filename ──────────────────────────────────────────────
-    $user_id   = (int)$_SESSION['user_id'];
-    $timestamp = time();
-    $unique_id = uniqid('id_', true);
-    $new_filename = 'id_' . $user_id . '_' . $timestamp . '_' . $unique_id . '.' . $ext;
-    $destination = $upload_dir . $new_filename;
+    // Ensure id_image column exists and is large enough (MEDIUMTEXT = 16MB)
+    $conn->query("ALTER TABLE bookings MODIFY COLUMN id_image MEDIUMTEXT DEFAULT NULL");
 
-    // ── Move uploaded file ────────────────────────────────────────────────────
-    if (!move_uploaded_file($file['tmp_name'], $destination)) {
-        throw new Exception('Failed to save uploaded file. Please try again.');
-    }
+    // Store base64 in session for the booking form to use
+    $_SESSION['pending_id_image'] = $base64;
 
-    // ── Store relative path (for DB and display) ──────────────────────────────
-    $relative_path = 'uploads/ids/' . $new_filename;
-
-    // Store in session so booking form can use it on submit
-    $_SESSION['pending_id_image'] = $relative_path;
+    $file_size_kb = round($file['size'] / 1024, 1);
 
     echo json_encode([
-        'success'   => true,
-        'message'   => 'ID uploaded successfully.',
-        'file_path' => $relative_path,
-        'file_name' => $new_filename,
-        'file_size' => round($file['size'] / 1024, 1) . ' KB',
+        'success'        => true,
+        'message'        => 'ID uploaded successfully.',
+        'file_path'      => $base64,   // returned to JS, stored in hidden field
+        'file_name'      => $file['name'],
+        'file_size'      => $file_size_kb . ' KB',
+        'preview_base64' => $base64,   // JS uses this for thumbnail preview
     ]);
 
 } catch (Exception $e) {
-    error_log("ID Upload Error (user {$_SESSION['user_id']}): " . $e->getMessage());
+    error_log("ID Upload Error (user " . ($_SESSION['user_id'] ?? 'unknown') . "): " . $e->getMessage());
     echo json_encode([
         'success' => false,
         'error'   => $e->getMessage(),

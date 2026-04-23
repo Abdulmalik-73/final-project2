@@ -457,10 +457,14 @@ try {
 }
 
 // AUTO-FIX DATABASE: Add id_image column to bookings and food_orders tables
+// Use MEDIUMTEXT to store base64 data URL (survives server restarts)
 try {
     $check_id_img = $conn->query("SHOW COLUMNS FROM bookings LIKE 'id_image'");
     if ($check_id_img && $check_id_img->num_rows === 0) {
-        $conn->query("ALTER TABLE bookings ADD COLUMN id_image VARCHAR(255) DEFAULT NULL COMMENT 'Path to uploaded customer ID image'");
+        $conn->query("ALTER TABLE bookings ADD COLUMN id_image MEDIUMTEXT DEFAULT NULL COMMENT 'Base64 encoded customer ID image'");
+    } else {
+        // Upgrade VARCHAR to MEDIUMTEXT if needed
+        $conn->query("ALTER TABLE bookings MODIFY COLUMN id_image MEDIUMTEXT DEFAULT NULL");
     }
 } catch (Exception $e) {
     // Silently ignore
@@ -468,7 +472,7 @@ try {
 try {
     $check_fo_img = $conn->query("SHOW COLUMNS FROM food_orders LIKE 'id_image'");
     if ($check_fo_img && $check_fo_img->num_rows === 0) {
-        $conn->query("ALTER TABLE food_orders ADD COLUMN id_image VARCHAR(255) DEFAULT NULL COMMENT 'Path to uploaded customer ID image'");
+        $conn->query("ALTER TABLE food_orders ADD COLUMN id_image MEDIUMTEXT DEFAULT NULL COMMENT 'Base64 encoded customer ID image'");
     }
 } catch (Exception $e) {
     // Silently ignore

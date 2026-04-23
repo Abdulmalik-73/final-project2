@@ -466,8 +466,7 @@ if ($_POST && isset($_POST['action'])) {
                                             <td><span class="badge bg-primary"><?php echo $checkin['nights']; ?> nights</span></td>
                                             <td>
                                                 <?php if (!empty($checkin['id_image'])): 
-                                                    $thumb_filename = basename($checkin['id_image']);
-                                                    $thumb_url = '../api/serve_id_image.php?file=' . urlencode($thumb_filename);
+                                                    $thumb_url = '../api/serve_id_image.php?booking_id=' . (int)$checkin['id'];
                                                 ?>
                                                     <img src="<?php echo htmlspecialchars($thumb_url); ?>"
                                                          alt="Customer ID"
@@ -585,9 +584,8 @@ if ($_POST && isset($_POST['action'])) {
                                     <?php
                                     $id_bookings->data_seek(0);
                                     while ($ib = $id_bookings->fetch_assoc()):
-                                        // Build URL via secure image server endpoint
-                                        $filename = basename($ib['id_image']);
-                                        $img_url  = '../api/serve_id_image.php?file=' . urlencode($filename);
+                                        // Use secure DB-based image server with booking_id
+                                        $img_url = '../api/serve_id_image.php?booking_id=' . (int)$ib['id'];
                                         // Status badge
                                         $st = strtolower($ib['status']);
                                         $st_class = 'secondary';
@@ -753,8 +751,7 @@ if ($_POST && isset($_POST['action'])) {
                                                 // Show customer ID image if uploaded
                                                 $id_img_path = $booking_data['id_image'] ?? '';
                                                 if (!empty($id_img_path)):
-                                                    $id_filename = basename($id_img_path);
-                                                    $id_img_url  = '../api/serve_id_image.php?file=' . urlencode($id_filename);
+                                                    $id_img_url = '../api/serve_id_image.php?booking_id=' . (int)$booking_data['id'];
                                                 ?>
                                                 <div class="mb-3 p-3 bg-white rounded border">
                                                     <h6 class="text-success mb-2">

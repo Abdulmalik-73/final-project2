@@ -1,8 +1,7 @@
 <?php
 /**
- * Secure ID image server for receptionist panel
+ * Secure ID image server — reads base64 from database, outputs as image
  * Only accessible by receptionist/manager/admin roles
- * Serves the image directly from disk with correct headers
  */
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -11,42 +10,56 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once '../includes/config.php';
 
-// Auth: only staff roles
 $role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? '';
 if (!in_array($role, ['receptionist', 'manager', 'admin', 'super_admin'])) {
     http_response_code(403);
     exit('Access denied');
 }
 
-$file = $_GET['file'] ?? '';
-
-// Strict validation — only allow filenames from uploads/ids/
-if (empty($file) || !preg_match('/^id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $file)) {
+$booking_id = (int)($_GET['booking_id'] ?? 0);
+if ($booking_id <= 0) {
     http_response_code(400);
-    exit('Invalid file');
+    exit('Invalid booking ID');
 }
 
-$path = __DIR__ . '/../uploads/ids/' . $file;
+$stmt = $conn->prepare("SELECT id_image FROM bookings WHERE id = ?");
+$stmt->bind_param("i", $booking_id);
+$stmt->execute();
+$row = $stmt->get_result()->fetch_assoc();
 
-if (!file_exists($path) || !is_file($path)) {
+if (!$row || empty($row['id_image'])) {
     http_response_code(404);
-    exit('File not found');
+    exit('Image not found');
 }
 
-// Detect MIME type
-$finfo = finfo_open(FILEINFO_MIME_TYPE);
-$mime  = finfo_file($finfo, $path);
-finfo_close($finfo);
+$data = $row['id_image'];
 
-if (!in_array($mime, ['image/jpeg', 'image/png', 'image/jpg'])) {
-    http_response_code(415);
-    exit('Invalid file type');
+// Handle base64 data URL format: data:image/jpeg;base64,....
+if (strpos($data, 'data:') === 0) {
+    // Parse: data:image/jpeg;base64,<data>
+    if (preg_match('/^data:(image\/[a-z]+);base64,(.+)$/s', $data, $matches)) {
+        $mime    = $matches[1];
+        $imgdata = base64_decode($matches[2]);
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . strlen($imgdata));
+        header('Cache-Control: private, max-age=3600');
+        header('X-Content-Type-Options: nosniff');
+        echo $imgdata;
+        exit;
+    }
 }
 
-// Serve the image
-header('Content-Type: ' . $mime);
-header('Content-Length: ' . filesize($path));
-header('Cache-Control: private, max-age=3600');
-header('X-Content-Type-Options: nosniff');
-readfile($path);
-exit;
+// Legacy: file path stored (old uploads)
+$path = __DIR__ . '/../' . ltrim($data, '/');
+if (file_exists($path)) {
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime  = finfo_file($finfo, $path);
+    finfo_close($finfo);
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . filesize($path));
+    readfile($path);
+    exit;
+}
+
+http_response_code(404);
+exit('Image not available');
