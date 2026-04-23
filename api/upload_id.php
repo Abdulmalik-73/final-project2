@@ -2,18 +2,40 @@
 /**
  * ID Image Upload API
  * Saves image as base64 to temp_id_uploads table, returns a 32-char token.
- * Token stored in hidden form field — no huge base64 in POST.
  */
 
-// Load config first (handles session_start, DB connection)
+// Start session FIRST with same settings as the main app
+// This must match config.php session settings exactly
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.gc_maxlifetime', 86400);
+    ini_set('session.cookie_lifetime', 86400);
+    ini_set('session.cookie_samesite', 'Lax');
+
+    $session_path = sys_get_temp_dir() . '/php_sessions';
+    if (!is_dir($session_path)) {
+        @mkdir($session_path, 0777, true);
+    }
+    ini_set('session.save_path', $session_path);
+
+    $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+             || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+    ini_set('session.cookie_secure', $is_https ? 1 : 0);
+
+    session_start();
+}
+
+// Now load config (DB connection) — session already started so config won't restart it
 require_once '../includes/config.php';
 
-// Now set JSON header — config may have output nothing if DB is up
+// Always return JSON
 header('Content-Type: application/json');
 
 // Auth check
-if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'error' => 'Unauthorized. Please login first.']);
+$user_id = (int)($_SESSION['user_id'] ?? 0);
+if ($user_id <= 0) {
+    echo json_encode(['success' => false, 'error' => 'Session expired. Please refresh the page and try again.']);
     exit;
 }
 
@@ -36,7 +58,7 @@ try {
 
     if ($file['error'] !== UPLOAD_ERR_OK) {
         $msgs = [
-            UPLOAD_ERR_INI_SIZE   => 'File exceeds server limit (max 10MB).',
+            UPLOAD_ERR_INI_SIZE   => 'File exceeds server limit.',
             UPLOAD_ERR_FORM_SIZE  => 'File exceeds form limit.',
             UPLOAD_ERR_PARTIAL    => 'File only partially uploaded.',
             UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder.',
@@ -59,10 +81,9 @@ try {
     finfo_close($finfo);
 
     if (!in_array($mime, ['image/jpeg', 'image/jpg', 'image/png'])) {
-        throw new Exception('Invalid format. Only JPG, JPEG, PNG allowed. Detected: ' . $mime);
+        throw new Exception('Invalid format. Only JPG, JPEG, PNG allowed.');
     }
 
-    // Verify it's actually an image
     if (@getimagesize($file['tmp_name']) === false) {
         throw new Exception('File is not a valid image.');
     }
@@ -88,12 +109,12 @@ try {
 
     // Remove any previous upload for this user
     $del = $conn->prepare("DELETE FROM temp_id_uploads WHERE user_id = ?");
-    $del->bind_param("i", (int)$_SESSION['user_id']);
+    $del->bind_param("i", $user_id);
     $del->execute();
 
     // Save new upload
     $ins = $conn->prepare("INSERT INTO temp_id_uploads (token, user_id, image_data) VALUES (?, ?, ?)");
-    $ins->bind_param("sis", $token, $_SESSION['user_id'], $base64);
+    $ins->bind_param("sis", $token, $user_id, $base64);
     if (!$ins->execute()) {
         throw new Exception('Failed to save image: ' . $ins->error);
     }
@@ -110,6 +131,6 @@ try {
     ]);
 
 } catch (Exception $e) {
-    error_log("ID Upload Error (user=" . ($_SESSION['user_id'] ?? '?') . "): " . $e->getMessage());
+    error_log("ID Upload Error (user=$user_id): " . $e->getMessage());
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
