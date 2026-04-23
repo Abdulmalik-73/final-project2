@@ -510,6 +510,7 @@ $food_items = array_filter($food_items, function($category) {
                                         </div>
                                     </div>
                                     <input type="hidden" name="id_image_path" id="idImagePath" value="">
+                                    <input type="hidden" id="currentUserId" value="<?php echo (int)($_SESSION['user_id'] ?? 0); ?>">
                                 </div>
 
                                 <!-- ID Enlarge Modal -->
@@ -701,6 +702,7 @@ $food_items = array_filter($food_items, function($category) {
 
             const formData = new FormData();
             formData.append('id_image', file);
+            formData.append('uid', '<?php echo (int)($_SESSION["user_id"] ?? 0); ?>');
 
             fetch('api/upload_id.php', { method: 'POST', body: formData })
             .then(r => r.json())
@@ -845,122 +847,6 @@ $food_items = array_filter($food_items, function($category) {
             if (file) handleFile(file);
         });
 
-        document.getElementById('foodOrderForm').addEventListener('submit', function(e) {
-            if (!pathInput.value) {
-                e.preventDefault();
-                showError('Please upload your ID before placing the order.');
-                uploadBox.scrollIntoView({ behavior: 'smooth' });
-            }
-        });
-    })();
-    </script>
-</body>
-</html>
-
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            scanBtn.classList.remove('d-none');
-        }
-
-        function showError(msg) {
-            errorMsg.textContent = msg;
-            errorDiv.classList.remove('d-none');
-            setTimeout(() => errorDiv.classList.add('d-none'), 7000);
-        }
-
-        function setConfirmEnabled(enabled) {
-            if (!confirmBtn) return;
-            if (enabled) {
-                confirmBtn.disabled = false;
-                confirmBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> Place Order';
-            } else {
-                confirmBtn.disabled = true;
-                confirmBtn.innerHTML = '<i class="fas fa-lock me-2"></i> Upload ID to Place Order';
-            }
-        }
-
-        function handleFile(file) {
-            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-            if (!allowedTypes.includes(file.type)) {
-                showError('Invalid file format. Only JPG, JPEG, PNG allowed.');
-                return;
-            }
-            if (file.size > 2 * 1024 * 1024) {
-                showError('File too large. Maximum size is 2MB.');
-                return;
-            }
-            progressDiv.classList.remove('d-none');
-            errorDiv.classList.add('d-none');
-            previewArea.classList.add('d-none');
-
-            const formData = new FormData();
-            formData.append('id_image', file);
-
-            fetch('api/upload_id.php', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(data => {
-                progressDiv.classList.add('d-none');
-                if (data.success) {
-                    previewImg.src = data.preview || '';
-                    enlargeImg.src = data.preview || '';
-                    fileNameEl.textContent = (data.file_name || 'ID') + ' (' + data.file_size + ')';
-                    pathInput.value = data.file_path; // tiny token
-                    previewArea.classList.remove('d-none');
-                    setConfirmEnabled(true);
-                } else {
-                    showError(data.error || 'ID upload failed. Please try again.');
-                    setConfirmEnabled(false);
-                }
-            })
-            .catch(() => {
-                progressDiv.classList.add('d-none');
-                showError('ID upload failed. Please try again.');
-                setConfirmEnabled(false);
-            });
-        }
-
-        fileInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) handleFile(this.files[0]);
-        });
-
-        removeBtn.addEventListener('click', function() {
-            fileInput.value = '';
-            pathInput.value = '';
-            previewArea.classList.add('d-none');
-            previewImg.src = '';
-            enlargeImg.src = '';
-            setConfirmEnabled(false);
-        });
-
-        scanBtn.addEventListener('click', function() {
-            const camInput = document.createElement('input');
-            camInput.type = 'file';
-            camInput.accept = 'image/*';
-            camInput.capture = 'environment';
-            camInput.addEventListener('change', function() {
-                if (this.files && this.files[0]) handleFile(this.files[0]);
-            });
-            camInput.click();
-        });
-
-        // Drag & drop
-        uploadBox.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            this.style.borderColor = '#c0620a';
-            this.style.background = '#fff3e0';
-        });
-        uploadBox.addEventListener('dragleave', function() {
-            this.style.borderColor = '#f7931e';
-            this.style.background = '#fffdf5';
-        });
-        uploadBox.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.style.borderColor = '#f7931e';
-            this.style.background = '#fffdf5';
-            const file = e.dataTransfer.files[0];
-            if (file) handleFile(file);
-        });
-
-        // Prevent form submit without ID
         document.getElementById('foodOrderForm').addEventListener('submit', function(e) {
             if (!pathInput.value) {
                 e.preventDefault();
