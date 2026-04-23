@@ -356,8 +356,8 @@ if ($_POST && isset($_POST['action'])) {
             <a href="receptionist.php" class="nav-link">
                 <i class="fas fa-tachometer-alt me-2"></i> Dashboard Overview
             </a>
-            <a href="receptionist-checkin.php" class="nav-link">
-                <i class="fas fa-plus-circle me-2"></i> New Check-in
+            <a href="verify-id.php" class="nav-link">
+                <i class="fas fa-id-card me-2"></i> Verify ID
             </a>
             <a href="receptionist-checkout.php" class="nav-link active">
                 <i class="fas fa-minus-circle me-2"></i> Process Check-out

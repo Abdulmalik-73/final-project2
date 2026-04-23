@@ -524,8 +524,8 @@ $checkouts = $conn->query("
                         <a href="receptionist.php" class="list-group-item list-group-item-action active">
                             <i class="fas fa-tachometer-alt"></i> Dashboard Overview
                         </a>
-                        <a href="customer-checkin.php" class="list-group-item list-group-item-action">
-                            <i class="fas fa-user-plus"></i> Customer Check-In
+                        <a href="verify-id.php" class="list-group-item list-group-item-action">
+                            <i class="fas fa-id-card"></i> Verify ID
                         </a>
                         <a href="receptionist-checkout.php" class="list-group-item list-group-item-action">
                             <i class="fas fa-minus-circle"></i> Process Check-out
