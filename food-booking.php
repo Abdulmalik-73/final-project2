@@ -26,14 +26,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $reservation_time = sanitize_input($_POST['reservation_time'] ?? '');
     $guests = (int)($_POST['guests'] ?? 1);
     $special_requests = ''; // Removed - replaced by ID upload
-    $id_image = sanitize_input($_POST['id_image_path'] ?? '');
-    
+    $id_image = $_POST['id_image_path'] ?? ''; // base64 data URL — do NOT sanitize
+
     // Validate that we have a food item
+    $is_base64_food   = (strpos($id_image, 'data:image/') === 0);
+    $is_filepath_food = preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_image);
+
     if (empty($selected_item) || $selected_price <= 0) {
         $error = 'Please select a food item from the Services menu first.';
     } elseif (empty($id_image)) {
         $error = 'Please upload your ID before placing the order.';
-    } elseif (!preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_image)) {
+    } elseif (!$is_base64_food && !$is_filepath_food) {
         $error = 'Invalid ID image. Please re-upload your ID.';
     } else {
         // Create single item order

@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $check_out = sanitize_input($_POST['check_out']);
     $customers = (int)$_POST['customers'];
     $special_requests = ''; // Removed - replaced by ID upload
-    $id_image = sanitize_input($_POST['id_image_path'] ?? '');
+    $id_image = $_POST['id_image_path'] ?? ''; // base64 data URL — do NOT sanitize (would corrupt it)
 
     // Validate ID image was uploaded
     if (empty($id_image)) {
@@ -58,9 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         goto skip_booking;
     }
 
-    // Security: ensure path is within uploads/ids/ and is an image
-    if (!preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_image)) {
-        $error = 'Invalid ID image path. Please re-upload your ID.';
+    // Accept either base64 data URL OR legacy file path
+    $is_base64   = (strpos($id_image, 'data:image/') === 0);
+    $is_filepath = preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_image);
+
+    if (!$is_base64 && !$is_filepath) {
+        $error = 'Invalid ID image. Please re-upload your ID.';
         goto skip_booking;
     }
 
