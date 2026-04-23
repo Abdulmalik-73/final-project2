@@ -387,6 +387,77 @@ try {
     // Silently ignore
 }
 
+// AUTO-FIX DATABASE: Create cancellation_requests table if it doesn't exist
+try {
+    $conn->query("CREATE TABLE IF NOT EXISTS `cancellation_requests` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `booking_id` INT NOT NULL,
+        `user_id` INT NOT NULL,
+        `refund_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `refund_percentage` INT NOT NULL DEFAULT 0,
+        `processing_fee` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `final_refund` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `days_before_checkin` INT NOT NULL DEFAULT 0,
+        `status` ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
+        `manager_notes` TEXT DEFAULT NULL,
+        `processed_by` INT DEFAULT NULL,
+        `processed_at` DATETIME DEFAULT NULL,
+        `requested_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_booking_id` (`booking_id`),
+        INDEX `idx_user_id` (`user_id`),
+        INDEX `idx_status` (`status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+} catch (Exception $e) {
+    // Silently ignore
+}
+
+// AUTO-FIX DATABASE: Ensure bookings.status supports 'Pending Cancellation'
+try {
+    $conn->query("ALTER TABLE bookings MODIFY COLUMN status ENUM(
+        'pending','confirmed','verified','checked_in','checked_out',
+        'cancelled','Cancelled','Pending Cancellation','no_show'
+    ) DEFAULT 'pending'");
+} catch (Exception $e) {
+    // Silently ignore
+}
+
+// AUTO-FIX DATABASE: Ensure bookings.payment_status supports refund statuses
+try {
+    $conn->query("ALTER TABLE bookings MODIFY COLUMN payment_status ENUM(
+        'pending','paid','refunded','partial_refund','refund_pending'
+    ) DEFAULT 'pending'");
+} catch (Exception $e) {
+    // Silently ignore
+}
+
+// AUTO-FIX DATABASE: Add id_image column to bookings and food_orders tables
+try {
+    $check_id_img = $conn->query("SHOW COLUMNS FROM bookings LIKE 'id_image'");
+    if ($check_id_img && $check_id_img->num_rows === 0) {
+        $conn->query("ALTER TABLE bookings ADD COLUMN id_image VARCHAR(255) DEFAULT NULL COMMENT 'Path to uploaded customer ID image'");
+    }
+} catch (Exception $e) {
+    // Silently ignore
+}
+try {
+    $check_fo_img = $conn->query("SHOW COLUMNS FROM food_orders LIKE 'id_image'");
+    if ($check_fo_img && $check_fo_img->num_rows === 0) {
+        $conn->query("ALTER TABLE food_orders ADD COLUMN id_image VARCHAR(255) DEFAULT NULL COMMENT 'Path to uploaded customer ID image'");
+    }
+} catch (Exception $e) {
+    // Silently ignore
+}
+
+// AUTO-FIX: Ensure uploads/ids directory exists
+try {
+    $ids_upload_dir = __DIR__ . '/../uploads/ids';
+    if (!is_dir($ids_upload_dir)) {
+        @mkdir($ids_upload_dir, 0755, true);
+    }
+} catch (Exception $e) {
+    // Silently ignore
+}
+
 // AUTO-FIX DATABASE: Create room_locks table if it doesn't exist
 // This table is required for the concurrent booking protection (queue system).
 try {

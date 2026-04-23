@@ -3,17 +3,23 @@
 .env.local
 .env.production
 
-# Upload directories
+# Upload directories - keep folder structure but not user files
 uploads/profiles/*
 !uploads/profiles/.gitkeep
 uploads/payments/*
 !uploads/payments/.gitkeep
 uploads/documents/*
 !uploads/documents/.gitkeep
+uploads/payment_screenshots/*
+!uploads/payment_screenshots/.gitkeep
+uploads/ids/*
+!uploads/ids/.htaccess
+!uploads/ids/index.php
 
 # Log files
 *.log
-logs/
+logs/*
+!logs/.gitkeep
 error.log
 access.log
 

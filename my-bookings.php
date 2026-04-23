@@ -151,6 +151,9 @@ if (!empty($booking_ids)) {
                         $status_class = 'warning';
                     } elseif ($status === 'cancelled') {
                         $status_class = 'danger';
+                    } elseif ($status === 'Pending Cancellation') {
+                        $status_class = 'warning';
+                        $status_text  = 'Pending Cancellation';
                     }
 
                     // ── Card header icon + title ──────────────────────────────
@@ -169,7 +172,8 @@ if (!empty($booking_ids)) {
                     }
 
                     // ── Cancel eligibility ────────────────────────────────────
-                    $can_cancel = false;
+                    $can_cancel          = false;
+                    $cancellation_pending = ($status === 'Pending Cancellation');
                     if (in_array($status, ['pending', 'confirmed', 'verified'])) {
                         if ($btype === 'room' && !empty($booking['check_in_date'])) {
                             $check_in_dt  = new DateTime($booking['check_in_date']);
@@ -179,7 +183,6 @@ if (!empty($booking_ids)) {
                                 $can_cancel = true;
                             }
                         } elseif ($btype !== 'room') {
-                            // Services can be cancelled while still pending/confirmed
                             $can_cancel = true;
                         }
                     }
@@ -320,6 +323,15 @@ if (!empty($booking_ids)) {
                                 </div>
                             </div>
 
+                            <!-- Pending Cancellation notice -->
+                            <?php if ($booking['status'] === 'Pending Cancellation'): ?>
+                            <div class="alert alert-warning mb-3">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>Cancellation Requested</strong><br>
+                                <small>Your cancellation request has been submitted and is waiting for manager approval.</small>
+                            </div>
+                            <?php endif; ?>
+
                             <!-- Refund info (cancelled bookings) -->
                             <?php if ($booking['status'] === 'cancelled' && !empty($booking['refund_status'])): ?>
                             <div class="alert alert-info mb-3">
@@ -379,7 +391,11 @@ if (!empty($booking_ids)) {
                                 </button>
                                 <?php if ($btype === 'room' && $can_cancel): ?>
                                 <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking('<?php echo htmlspecialchars($booking['booking_reference']); ?>')">
-                                    <i class="fas fa-times"></i> Cancel
+                                    <i class="fas fa-times-circle"></i> Cancel Booking
+                                </button>
+                                <?php elseif ($btype === 'room' && $cancellation_pending): ?>
+                                <button class="btn btn-outline-warning btn-sm" disabled>
+                                    <i class="fas fa-clock"></i> Cancellation Requested
                                 </button>
                                 <?php endif; ?>
                             </div>
@@ -520,96 +536,107 @@ if (!empty($booking_ids)) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentBookingRef = '';
-        
+        let cancelModal = null;
+
         function cancelBooking(bookingRef) {
             currentBookingRef = bookingRef;
             document.getElementById('refundCalculation').style.display = 'none';
             document.getElementById('cancelError').style.display = 'none';
-            
-            // Calculate refund
+
+            const btn = document.getElementById('confirmCancelBtn');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Cancellation';
+
+            // Calculate refund first
             fetch('api/cancel_booking.php', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    booking_reference: bookingRef,
-                    action: 'calculate'
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ booking_reference: bookingRef, action: 'calculate' })
             })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById('totalAmount').textContent = 'ETB ' + data.data.total_amount;
+                    document.getElementById('totalAmount').textContent      = 'ETB ' + data.data.total_amount;
                     document.getElementById('refundPercentage').textContent = data.data.refund_percentage + '%';
-                    document.getElementById('refundAmount').textContent = 'ETB ' + data.data.refund_amount;
-                    document.getElementById('processingFee').textContent = 'ETB ' + data.data.processing_fee;
-                    document.getElementById('finalRefund').textContent = 'ETB ' + data.data.final_refund;
+                    document.getElementById('refundAmount').textContent     = 'ETB ' + data.data.refund_amount;
+                    document.getElementById('processingFee').textContent    = 'ETB ' + data.data.processing_fee;
+                    document.getElementById('finalRefund').textContent      = 'ETB ' + data.data.final_refund;
                     document.getElementById('refundCalculation').style.display = 'block';
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('cancelBookingModal'));
-                    modal.show();
+
+                    cancelModal = new bootstrap.Modal(document.getElementById('cancelBookingModal'));
+                    cancelModal.show();
                 } else {
                     alert('Error: ' + (data.error || 'Unable to calculate refund'));
                 }
             })
-            .catch(error => {
-                alert('Network error. Please try again.');
+            .catch(() => {
+                alert('Something went wrong. Please try again later.');
             });
         }
-        
+
         function confirmCancellation() {
             const btn = document.getElementById('confirmCancelBtn');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+
+            document.getElementById('cancelError').style.display = 'none';
+
             fetch('api/cancel_booking.php', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    booking_reference: currentBookingRef,
-                    action: 'confirm'
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ booking_reference: currentBookingRef, action: 'confirm' })
             })
             .then(response => {
-                // Check if response is ok
                 if (!response.ok) {
                     throw new Error('HTTP error! status: ' + response.status);
                 }
-                return response.text(); // Get as text first to see what we're getting
+                return response.text();
             })
             .then(text => {
-                console.log('Response:', text); // Debug log
+                let data;
                 try {
-                    const data = JSON.parse(text);
-                    if (data.success) {
-                        // Show detailed success message
-                        const message = data.message || 'Cancellation request submitted successfully!';
-                        alert(message);
-                        location.reload();
-                    } else {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Cancellation';
-                        document.getElementById('cancelErrorMessage').textContent = data.error || 'Cancellation failed';
-                        document.getElementById('cancelError').style.display = 'block';
-                    }
+                    data = JSON.parse(text);
                 } catch (e) {
-                    console.error('JSON parse error:', e);
-                    console.error('Response text:', text);
-                    throw new Error('Invalid response from server: ' + text.substring(0, 100));
+                    console.error('Response:', text);
+                    throw new Error('Invalid server response. Please try again.');
+                }
+
+                if (data.success) {
+                    // Close modal and show success message
+                    if (cancelModal) cancelModal.hide();
+                    btn.innerHTML = '<i class="fas fa-clock me-2"></i>Cancellation Requested';
+
+                    // Show a friendly alert then reload
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+                    alertDiv.style.zIndex = '9999';
+                    alertDiv.style.minWidth = '400px';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-clock me-2"></i>
+                        <strong>Waiting for manager approval</strong><br>
+                        Your cancellation request has been submitted and is waiting for manager approval.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alertDiv);
+
+                    setTimeout(() => location.reload(), 3000);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Cancellation';
+                    document.getElementById('cancelErrorMessage').textContent = data.error || 'Cancellation failed. Please try again.';
+                    document.getElementById('cancelError').style.display = 'block';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Cancellation';
-                document.getElementById('cancelErrorMessage').textContent = 'Error: ' + error.message;
+                document.getElementById('cancelErrorMessage').textContent = 'Something went wrong. Please try again later.';
                 document.getElementById('cancelError').style.display = 'block';
             });
         }
-        
+
+        // ── helper functions ──────────────────────────────────────────────────
         function viewBookingDetails(ref) {
             window.location.href = 'booking-details.php?ref=' + encodeURIComponent(ref);
         }

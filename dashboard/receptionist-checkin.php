@@ -600,6 +600,51 @@ if ($_POST && isset($_POST['action'])) {
                                                         <p class="mb-2"><strong>Booking Ref:</strong> <span class="badge bg-primary"><?php echo htmlspecialchars($booking_data['booking_reference'] ?? ''); ?></span></p>
                                                     </div>
                                                 </div>
+
+                                                <?php
+                                                // Show customer ID image if uploaded
+                                                $id_img_path = $booking_data['id_image'] ?? '';
+                                                if (!empty($id_img_path)):
+                                                    // Build safe URL — strip leading slash if any
+                                                    $id_img_url = '../' . ltrim($id_img_path, '/');
+                                                ?>
+                                                <div class="mb-3 p-3 bg-white rounded border">
+                                                    <h6 class="text-success mb-2">
+                                                        <i class="fas fa-id-card me-2"></i> Customer ID Document
+                                                        <span class="badge bg-success ms-2">Uploaded</span>
+                                                    </h6>
+                                                    <div class="d-flex align-items-start gap-3">
+                                                        <img src="<?php echo htmlspecialchars($id_img_url); ?>"
+                                                             alt="Customer ID"
+                                                             class="rounded border"
+                                                             style="width:140px; height:90px; object-fit:cover; cursor:pointer;"
+                                                             onclick="openIdModal('<?php echo htmlspecialchars($id_img_url); ?>')"
+                                                             title="Click to enlarge"
+                                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                                        <div style="display:none;" class="text-muted small">
+                                                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                                            Image not accessible. Path: <?php echo htmlspecialchars($id_img_path); ?>
+                                                        </div>
+                                                        <div>
+                                                            <p class="mb-1 small text-muted">
+                                                                <i class="fas fa-info-circle me-1"></i>
+                                                                ID submitted by customer during booking
+                                                            </p>
+                                                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                                                    onclick="openIdModal('<?php echo htmlspecialchars($id_img_url); ?>')">
+                                                                <i class="fas fa-search-plus me-1"></i> View Full Size
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <?php else: ?>
+                                                <div class="mb-3 p-3 bg-light rounded border border-warning">
+                                                    <h6 class="text-warning mb-1">
+                                                        <i class="fas fa-exclamation-triangle me-2"></i> No ID Image on File
+                                                    </h6>
+                                                    <small class="text-muted">Customer did not upload an ID during booking. Please verify ID manually.</small>
+                                                </div>
+                                                <?php endif; ?>
                                                 
                                                 <hr>
                                                 
@@ -948,5 +993,31 @@ if ($_POST && isset($_POST['action'])) {
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ID Image Enlarge Modal -->
+    <div id="idViewModal" onclick="this.style.display='none'"
+         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out;">
+        <div onclick="event.stopPropagation()" style="position:relative; max-width:90vw; max-height:90vh;">
+            <img id="idViewImg" src="" alt="Customer ID"
+                 style="max-width:90vw; max-height:85vh; border-radius:8px; box-shadow:0 4px 32px rgba(0,0,0,.6); display:block;">
+            <div style="text-align:center; margin-top:12px;">
+                <button onclick="document.getElementById('idViewModal').style.display='none'"
+                        class="btn btn-light btn-sm">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+                <a id="idViewDownload" href="#" download class="btn btn-outline-light btn-sm ms-2">
+                    <i class="fas fa-download me-1"></i> Download
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function openIdModal(src) {
+        document.getElementById('idViewImg').src = src;
+        document.getElementById('idViewDownload').href = src;
+        document.getElementById('idViewModal').style.display = 'flex';
+    }
+    </script>
 </body>
 </html>

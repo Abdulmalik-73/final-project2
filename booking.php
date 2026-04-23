@@ -49,8 +49,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $check_in = sanitize_input($_POST['check_in']);
     $check_out = sanitize_input($_POST['check_out']);
     $customers = (int)$_POST['customers'];
-    $special_requests = sanitize_input($_POST['special_requests']);
-    
+    $special_requests = ''; // Removed - replaced by ID upload
+    $id_image = sanitize_input($_POST['id_image_path'] ?? '');
+
+    // Validate ID image was uploaded
+    if (empty($id_image)) {
+        $error = 'Please upload your ID before confirming booking.';
+        goto skip_booking;
+    }
+
+    // Security: ensure path is within uploads/ids/ and is an image
+    if (!preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_image)) {
+        $error = 'Invalid ID image path. Please re-upload your ID.';
+        goto skip_booking;
+    }
+
     $room = get_room_by_id($room_id);
     
     if (!$room) {
@@ -67,7 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             'check_out' => $check_out,
             'customers' => $customers,
             'total_price' => $total_price,
-            'special_requests' => $special_requests
+            'special_requests' => $special_requests,
+            'id_image' => $id_image,
         ];
         
         error_log("Booking data being passed to create_booking: " . print_r($booking_data, true));
@@ -77,6 +91,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($result['success']) {
             // Debug: Log successful booking creation
             error_log("Booking created successfully with ID: " . $result['booking_id']);
+                
+                // Save ID image path to booking
+                if (!empty($id_image)) {
+                    $id_upd = $conn->prepare("UPDATE bookings SET id_image = ? WHERE id = ?");
+                    if ($id_upd) {
+                        $id_upd->bind_param("si", $id_image, $result['booking_id']);
+                        $id_upd->execute();
+                    }
+                    // Clear session pending ID
+                    unset($_SESSION['pending_id_image']);
+                }
                 
                 // Generate payment reference and set deadline
                 $payment_ref = 'HRH-' . str_pad($result['booking_id'], 4, '0', STR_PAD_LEFT) . '-' . strtoupper(substr(md5($result['booking_id'] . time()), 0, 6));
@@ -144,6 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
     }
+    skip_booking: // goto target for early exit on validation failure
 }
 
 $rooms = get_all_rooms();
@@ -594,10 +620,67 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
                                            min="1" max="10" value="1" required>
                                 </div>
                                 
+                                <!-- ID Upload Section (replaces Special Requests) -->
                                 <div class="mb-4">
-                                    <label class="form-label fw-bold"><?php echo __('booking.special_requests'); ?></label>
-                                    <textarea name="special_requests" class="form-control" rows="3" 
-                                              placeholder="<?php echo __('booking.special_requests'); ?>..."></textarea>
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-id-card text-primary me-1"></i>
+                                        Upload National ID / Passport / Driving License <span class="text-danger">*</span>
+                                    </label>
+                                    <div id="idUploadBox" class="border rounded p-3" style="background:#f8f9fa; border-style:dashed !important; border-color:#1e88e5 !important;">
+                                        <!-- Upload controls -->
+                                        <div id="idUploadControls">
+                                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                <label for="idFileInput" class="btn btn-outline-primary btn-sm mb-0" id="uploadIdBtn">
+                                                    <i class="fas fa-upload me-1"></i> Upload ID
+                                                </label>
+                                                <input type="file" id="idFileInput" accept=".jpg,.jpeg,.png" class="d-none">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="scanIdBtn">
+                                                    <i class="fas fa-camera me-1"></i> Scan ID (Use Camera)
+                                                </button>
+                                                <small class="text-muted">JPG, JPEG, PNG only &bull; Max 2MB</small>
+                                            </div>
+                                            <div id="idUploadProgress" class="mt-2 d-none">
+                                                <div class="progress" style="height:6px;">
+                                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width:100%"></div>
+                                                </div>
+                                                <small class="text-muted">Uploading...</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Preview area (hidden until upload) -->
+                                        <div id="idPreviewArea" class="mt-3 d-none">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <img id="idPreviewImg" src="" alt="ID Preview"
+                                                     class="rounded border"
+                                                     style="width:120px; height:80px; object-fit:cover; cursor:pointer;"
+                                                     onclick="document.getElementById('idEnlargeModal').style.display='flex'"
+                                                     title="Click to enlarge">
+                                                <div>
+                                                    <div class="text-success fw-bold mb-1">
+                                                        <i class="fas fa-check-circle me-1"></i> ID uploaded successfully
+                                                    </div>
+                                                    <div id="idFileName" class="text-muted small mb-2"></div>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm" id="removeIdBtn">
+                                                        <i class="fas fa-times me-1"></i> Remove / Cancel Upload
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Error message -->
+                                        <div id="idUploadError" class="mt-2 d-none">
+                                            <small class="text-danger"><i class="fas fa-exclamation-circle me-1"></i><span id="idUploadErrorMsg"></span></small>
+                                        </div>
+                                    </div>
+                                    <!-- Hidden field to carry path to PHP -->
+                                    <input type="hidden" name="id_image_path" id="idImagePath" value="">
+                                </div>
+
+                                <!-- ID Enlarge Modal (pure CSS/JS, no Bootstrap modal needed) -->
+                                <div id="idEnlargeModal" onclick="this.style.display='none'"
+                                     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out;">
+                                    <img id="idEnlargeImg" src="" alt="ID Full View"
+                                         style="max-width:90vw; max-height:90vh; border-radius:8px; box-shadow:0 4px 32px rgba(0,0,0,.5);">
                                 </div>
                                 
                                 <?php if (!is_logged_in()): ?>
@@ -621,8 +704,8 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
                                     <i class="fas fa-lock"></i> BOOKING DISABLED - Please Sign In or Create Account Above
                                 </button>
                                 <?php else: ?>
-                                <button type="submit" class="btn btn-gold btn-lg w-100">
-                                    <i class="fas fa-check-circle"></i> <?php echo __('booking.confirm_booking'); ?>
+                                <button type="submit" class="btn btn-gold btn-lg w-100" id="confirmBookingBtn" disabled>
+                                    <i class="fas fa-lock me-2"></i> Upload ID to Enable Booking
                                 </button>
                                 <?php endif; ?>
                             </form>
@@ -747,12 +830,149 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
             updateSummary();
             <?php endif; ?>
             
-            // Handle form submission
+            // Handle form submission — require ID upload
             $('#bookingForm').on('submit', function(e) {
+                const idPath = $('#idImagePath').val();
+                if (!idPath) {
+                    e.preventDefault();
+                    alert('Please upload your ID before confirming booking.');
+                    document.getElementById('idUploadBox').scrollIntoView({ behavior: 'smooth' });
+                    return false;
+                }
                 const submitBtn = $(this).find('button[type="submit"]');
                 submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> <?php echo __('booking_auth.processing'); ?>');
             });
         });
+    </script>
+
+    <!-- ID Upload Script -->
+    <script>
+    (function() {
+        const fileInput   = document.getElementById('idFileInput');
+        const previewArea = document.getElementById('idPreviewArea');
+        const previewImg  = document.getElementById('idPreviewImg');
+        const enlargeImg  = document.getElementById('idEnlargeImg');
+        const fileNameEl  = document.getElementById('idFileName');
+        const pathInput   = document.getElementById('idImagePath');
+        const confirmBtn  = document.getElementById('confirmBookingBtn');
+        const errorDiv    = document.getElementById('idUploadError');
+        const errorMsg    = document.getElementById('idUploadErrorMsg');
+        const progressDiv = document.getElementById('idUploadProgress');
+        const removeBtn   = document.getElementById('removeIdBtn');
+        const scanBtn     = document.getElementById('scanIdBtn');
+        const uploadBox   = document.getElementById('idUploadBox');
+
+        if (!fileInput) return; // not logged in — form not rendered
+
+        // Show camera button only if device supports it
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            scanBtn.classList.remove('d-none');
+        }
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorDiv.classList.remove('d-none');
+            setTimeout(() => errorDiv.classList.add('d-none'), 7000);
+        }
+
+        function setConfirmEnabled(enabled) {
+            if (!confirmBtn) return;
+            if (enabled) {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> Confirm Booking';
+            } else {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-lock me-2"></i> Upload ID to Enable Booking';
+            }
+        }
+
+        function handleFile(file) {
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                showError('Invalid file format. Only JPG, JPEG, PNG allowed.');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                showError('File too large. Maximum size is 2MB.');
+                return;
+            }
+
+            progressDiv.classList.remove('d-none');
+            errorDiv.classList.add('d-none');
+            previewArea.classList.add('d-none');
+
+            const formData = new FormData();
+            formData.append('id_image', file);
+
+            fetch('api/upload_id.php', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                progressDiv.classList.add('d-none');
+                if (data.success) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImg.src = e.target.result;
+                        enlargeImg.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                    fileNameEl.textContent = file.name + ' (' + data.file_size + ')';
+                    pathInput.value = data.file_path;
+                    previewArea.classList.remove('d-none');
+                    setConfirmEnabled(true);
+                } else {
+                    showError(data.error || 'ID upload failed. Please try again.');
+                    setConfirmEnabled(false);
+                }
+            })
+            .catch(() => {
+                progressDiv.classList.add('d-none');
+                showError('ID upload failed. Please try again.');
+                setConfirmEnabled(false);
+            });
+        }
+
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) handleFile(this.files[0]);
+        });
+
+        removeBtn.addEventListener('click', function() {
+            fileInput.value = '';
+            pathInput.value = '';
+            previewArea.classList.add('d-none');
+            previewImg.src = '';
+            enlargeImg.src = '';
+            setConfirmEnabled(false);
+        });
+
+        scanBtn.addEventListener('click', function() {
+            const camInput = document.createElement('input');
+            camInput.type = 'file';
+            camInput.accept = 'image/*';
+            camInput.capture = 'environment';
+            camInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) handleFile(this.files[0]);
+            });
+            camInput.click();
+        });
+
+        // Drag & drop
+        uploadBox.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#1565c0';
+            this.style.background = '#e3f2fd';
+        });
+        uploadBox.addEventListener('dragleave', function() {
+            this.style.borderColor = '#1e88e5';
+            this.style.background = '#f8f9fa';
+        });
+        uploadBox.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#1e88e5';
+            this.style.background = '#f8f9fa';
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+    })();
     </script>
 </body>
 </html>
