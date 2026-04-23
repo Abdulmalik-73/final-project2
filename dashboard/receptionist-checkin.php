@@ -18,11 +18,11 @@ if (isset($_GET['booking_ref']) && !empty($_GET['booking_ref'])) {
                      COALESCE(r.price, 0) as price,
                      CONCAT(u.first_name, ' ', u.last_name) as guest_name, u.email, u.phone,
                      DATEDIFF(b.check_out_date, b.check_in_date) as nights,
-                     b.payment_status, b.payment_method
+                     b.payment_status, b.payment_method, b.id_image
                      FROM bookings b
                      LEFT JOIN rooms r ON b.room_id = r.id
                      JOIN users u ON b.user_id = u.id
-                     WHERE b.booking_reference = ? AND b.status = 'pending' AND b.booking_type = 'room'";
+                     WHERE b.booking_reference = ? AND b.status IN ('pending','confirmed','verified') AND b.booking_type = 'room'";
     
     $stmt = $conn->prepare($search_query);
     $stmt->bind_param("s", $booking_ref);
@@ -44,7 +44,7 @@ $todays_checkins_query = "SELECT b.*,
                           COALESCE(r.price, 0) as price,
                           CONCAT(u.first_name, ' ', u.last_name) as guest_name, u.email, u.phone,
                           DATEDIFF(b.check_out_date, b.check_in_date) as nights,
-                          b.payment_status, b.verification_status
+                          b.payment_status, b.verification_status, b.id_image
                           FROM bookings b
                           LEFT JOIN rooms r ON b.room_id = r.id
                           JOIN users u ON b.user_id = u.id
@@ -87,11 +87,11 @@ if ($_POST && isset($_POST['action'])) {
                          COALESCE(r.price, 0) as price,
                          CONCAT(u.first_name, ' ', u.last_name) as guest_name, u.email, u.phone,
                          DATEDIFF(b.check_out_date, b.check_in_date) as nights,
-                         b.payment_status, b.payment_method
+                         b.payment_status, b.payment_method, b.id_image
                          FROM bookings b
                          LEFT JOIN rooms r ON b.room_id = r.id
                          JOIN users u ON b.user_id = u.id
-                         WHERE b.status = 'pending' AND b.booking_type = 'room'";
+                         WHERE b.status IN ('pending','confirmed','verified') AND b.booking_type = 'room'";
         
         if ($search_type == 'reference') {
             $search_query .= " AND b.booking_reference = '$search_value'";
@@ -429,6 +429,7 @@ if ($_POST && isset($_POST['action'])) {
                                             <th>Room</th>
                                             <th>Phone</th>
                                             <th>Nights</th>
+                                            <th>ID Document</th>
                                             <th>Status</th>
                                         </tr>
                                     </thead>
@@ -444,13 +445,28 @@ if ($_POST && isset($_POST['action'])) {
                                             <td><?php echo htmlspecialchars($checkin['phone'] ?? 'N/A'); ?></td>
                                             <td><span class="badge bg-primary"><?php echo $checkin['nights']; ?> nights</span></td>
                                             <td>
+                                                <?php if (!empty($checkin['id_image'])): ?>
+                                                    <img src="../<?php echo htmlspecialchars($checkin['id_image']); ?>"
+                                                         alt="Customer ID"
+                                                         style="width:60px; height:40px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid #dee2e6;"
+                                                         onclick="openIdModal('../<?php echo htmlspecialchars($checkin['id_image']); ?>')"
+                                                         title="Click to view full ID"
+                                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                                                    <span style="display:none;" class="badge bg-secondary">No preview</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Not uploaded
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
                                                 <?php if ($checkin['status'] == 'checked_in'): ?>
                                                     <span class="badge bg-success">
                                                         <i class="fas fa-check-circle me-1"></i> Checked In
                                                     </span>
                                                 <?php elseif ($checkin['verification_status'] == 'verified' || $checkin['payment_status'] == 'paid'): ?>
                                                     <span class="badge bg-info">
-                                                        <i class="fas fa-check me-1"></i> Checked In
+                                                        <i class="fas fa-check me-1"></i> Verified
                                                     </span>
                                                 <?php else: ?>
                                                     <span class="badge bg-warning">Pending</span>
