@@ -465,11 +465,14 @@ if ($_POST && isset($_POST['action'])) {
                                             <td><?php echo htmlspecialchars($checkin['phone'] ?? 'N/A'); ?></td>
                                             <td><span class="badge bg-primary"><?php echo $checkin['nights']; ?> nights</span></td>
                                             <td>
-                                                <?php if (!empty($checkin['id_image'])): ?>
-                                                    <img src="../<?php echo htmlspecialchars($checkin['id_image']); ?>"
+                                                <?php if (!empty($checkin['id_image'])): 
+                                                    $site_root = rtrim(defined('SITE_URL') ? SITE_URL : '', '/');
+                                                    $thumb_url = $site_root . '/' . ltrim($checkin['id_image'], '/');
+                                                ?>
+                                                    <img src="<?php echo htmlspecialchars($thumb_url); ?>"
                                                          alt="Customer ID"
                                                          style="width:60px; height:40px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid #dee2e6;"
-                                                         onclick="openIdModal('../<?php echo htmlspecialchars($checkin['id_image']); ?>')"
+                                                         onclick="openIdModal('<?php echo htmlspecialchars($thumb_url); ?>')"
                                                          title="Click to view full ID"
                                                          onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
                                                     <span style="display:none;" class="badge bg-secondary">No preview</span>
@@ -582,7 +585,9 @@ if ($_POST && isset($_POST['action'])) {
                                     <?php
                                     $id_bookings->data_seek(0);
                                     while ($ib = $id_bookings->fetch_assoc()):
-                                        $img_url = '../' . ltrim($ib['id_image'], '/');
+                                        // Build absolute URL from site root so it works from any subfolder
+                                        $site_root = rtrim(defined('SITE_URL') ? SITE_URL : '', '/');
+                                        $img_url = $site_root . '/' . ltrim($ib['id_image'], '/');
                                         // Status badge
                                         $st = strtolower($ib['status']);
                                         $st_class = 'secondary';
@@ -756,8 +761,9 @@ if ($_POST && isset($_POST['action'])) {
                                                 // Show customer ID image if uploaded
                                                 $id_img_path = $booking_data['id_image'] ?? '';
                                                 if (!empty($id_img_path)):
-                                                    // Build safe URL — strip leading slash if any
-                                                    $id_img_url = '../' . ltrim($id_img_path, '/');
+                                                    // Build absolute URL from site root
+                                                    $site_root = rtrim(defined('SITE_URL') ? SITE_URL : '', '/');
+                                                    $id_img_url = $site_root . '/' . ltrim($id_img_path, '/');
                                                 ?>
                                                 <div class="mb-3 p-3 bg-white rounded border">
                                                     <h6 class="text-success mb-2">
@@ -1145,42 +1151,121 @@ if ($_POST && isset($_POST['action'])) {
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- ID Image Enlarge Modal -->
-    <div id="idViewModal" onclick="this.style.display='none'"
-         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out;">
-        <div onclick="event.stopPropagation()" style="position:relative; max-width:90vw; max-height:90vh;">
-            <img id="idViewImg" src="" alt="Customer ID"
-                 style="max-width:90vw; max-height:75vh; border-radius:8px; box-shadow:0 4px 32px rgba(0,0,0,.6); display:block;">
-            <div id="idViewInfo" style="display:none; text-align:center; color:#fff; background:rgba(0,0,0,.6); padding:8px 16px; border-radius:0 0 8px 8px; font-size:.95rem;"></div>
-            <div style="text-align:center; margin-top:12px;">
-                <button onclick="document.getElementById('idViewModal').style.display='none'"
-                        class="btn btn-light btn-sm">
-                    <i class="fas fa-times me-1"></i> Close
-                </button>
-                <a id="idViewDownload" href="#" download class="btn btn-outline-light btn-sm ms-2">
-                    <i class="fas fa-download me-1"></i> Download
-                </a>
+    <!-- ID Image Full-Screen Viewer Modal (NO download — view only) -->
+    <div id="idViewModal"
+         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:9999;
+                align-items:center; justify-content:center; flex-direction:column;">
+
+        <!-- Header bar -->
+        <div style="width:100%; max-width:860px; display:flex; justify-content:space-between;
+                    align-items:center; padding:12px 16px; color:#fff;">
+            <div id="idViewInfo" style="font-size:1rem;">
+                <i class="fas fa-id-card me-2" style="color:#f7931e;"></i>
+                <span id="idViewGuestName" style="font-weight:600;"></span>
+                <span id="idViewRef" style="color:#aaa; margin-left:10px; font-size:.9rem;"></span>
             </div>
+            <button onclick="closeIdModal()"
+                    style="background:rgba(255,255,255,.15); border:none; color:#fff;
+                           width:36px; height:36px; border-radius:50%; font-size:18px;
+                           cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                &times;
+            </button>
+        </div>
+
+        <!-- Image container -->
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;
+                    padding:0 16px; max-width:860px; width:100%;">
+            <div style="position:relative; background:#111; border-radius:10px;
+                        overflow:hidden; box-shadow:0 8px 40px rgba(0,0,0,.7);
+                        max-width:100%; max-height:75vh; display:flex;
+                        align-items:center; justify-content:center;">
+                <img id="idViewImg" src="" alt="Customer ID Document"
+                     style="max-width:100%; max-height:72vh; display:block;
+                            object-fit:contain; border-radius:10px;">
+                <!-- Loading spinner shown while image loads -->
+                <div id="idViewSpinner"
+                     style="position:absolute; inset:0; display:flex; align-items:center;
+                            justify-content:center; background:#111; border-radius:10px;">
+                    <div style="text-align:center; color:#aaa;">
+                        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>
+                        <small>Loading ID image...</small>
+                    </div>
+                </div>
+                <!-- Error state -->
+                <div id="idViewError"
+                     style="display:none; position:absolute; inset:0; align-items:center;
+                            justify-content:center; background:#1a1a2e; border-radius:10px;
+                            flex-direction:column; color:#fff; text-align:center; padding:30px;">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3" style="color:#f7931e;"></i>
+                    <h5>Image Not Available</h5>
+                    <p class="text-muted small mb-0">The ID image could not be loaded.<br>
+                    The file may have been uploaded on a different server instance.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding:14px 16px; color:#aaa; font-size:.8rem; text-align:center;">
+            <i class="fas fa-shield-alt me-1" style="color:#f7931e;"></i>
+            Confidential — For identity verification only. Do not share or distribute.
+            &nbsp;&nbsp;
+            <button onclick="closeIdModal()" class="btn btn-outline-light btn-sm ms-3">
+                <i class="fas fa-times me-1"></i> Close
+            </button>
         </div>
     </div>
 
     <script>
     function openIdModal(src, guestName, bookingRef) {
-        document.getElementById('idViewImg').src = src;
-        document.getElementById('idViewDownload').href = src;
-        // Show guest info in modal if provided
-        const infoEl = document.getElementById('idViewInfo');
-        if (infoEl) {
-            if (guestName || bookingRef) {
-                infoEl.style.display = 'block';
-                infoEl.innerHTML = (guestName ? '<strong>' + guestName + '</strong>' : '') +
-                                   (bookingRef ? ' &nbsp;|&nbsp; Ref: <strong>' + bookingRef + '</strong>' : '');
-            } else {
-                infoEl.style.display = 'none';
-            }
-        }
-        document.getElementById('idViewModal').style.display = 'flex';
+        const modal    = document.getElementById('idViewModal');
+        const img      = document.getElementById('idViewImg');
+        const spinner  = document.getElementById('idViewSpinner');
+        const errDiv   = document.getElementById('idViewError');
+        const nameEl   = document.getElementById('idViewGuestName');
+        const refEl    = document.getElementById('idViewRef');
+
+        // Reset state
+        img.style.display = 'none';
+        spinner.style.display = 'flex';
+        errDiv.style.display  = 'none';
+
+        // Set guest info
+        nameEl.textContent = guestName || 'Customer ID';
+        refEl.textContent  = bookingRef ? ('Ref: ' + bookingRef) : '';
+
+        // Load image
+        img.onload = function() {
+            spinner.style.display = 'none';
+            img.style.display = 'block';
+        };
+        img.onerror = function() {
+            spinner.style.display = 'none';
+            errDiv.style.display  = 'flex';
+        };
+        img.src = src;
+
+        // Show modal
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
     }
+
+    function closeIdModal() {
+        const modal = document.getElementById('idViewModal');
+        const img   = document.getElementById('idViewImg');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        img.src = ''; // stop loading
+    }
+
+    // Close on backdrop click
+    document.getElementById('idViewModal').addEventListener('click', function(e) {
+        if (e.target === this) closeIdModal();
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeIdModal();
+    });
     </script>
 </body>
 </html>
