@@ -156,6 +156,18 @@ require_once __DIR__ . '/../config/database.php';
 if (!isset($conn) || $conn === null) {
     // Only show error page for web requests, not CLI
     if (php_sapi_name() !== 'cli') {
+        // For API/AJAX requests return JSON error, not HTML
+        $is_api = (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false)
+               || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+               || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
+        if ($is_api) {
+            http_response_code(503);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Database temporarily unavailable. Please try again.']);
+            exit;
+        }
+
         http_response_code(503);
         echo '<!DOCTYPE html><html><head><meta charset="UTF-8">
         <title>Harar Ras Hotel - Maintenance</title>
