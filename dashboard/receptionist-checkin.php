@@ -36,7 +36,7 @@ if (isset($_GET['booking_ref']) && !empty($_GET['booking_ref'])) {
     }
 }
 
-// Get today's check-ins
+// Get today's check-ins — show ALL pending room bookings for today regardless of verification
 $today = date('Y-m-d');
 $todays_checkins_query = "SELECT b.*, 
                           COALESCE(r.name, 'Food Order') as room_name, 
@@ -49,10 +49,9 @@ $todays_checkins_query = "SELECT b.*,
                           LEFT JOIN rooms r ON b.room_id = r.id
                           JOIN users u ON b.user_id = u.id
                           WHERE DATE(b.check_in_date) = '$today' 
-                          AND b.status = 'pending' 
-                          AND b.verification_status = 'verified'
+                          AND b.status IN ('pending','confirmed','verified')
                           AND b.booking_type = 'room'
-                          ORDER BY b.check_in_date ASC";
+                          ORDER BY b.created_at DESC";
 
 $todays_checkins = $conn->query($todays_checkins_query);
 
@@ -74,6 +73,27 @@ $staying_query = "SELECT b.*,
                   ORDER BY b.check_out_date ASC";
 
 $staying_guests = $conn->query($staying_query);
+
+// ── NEW: Get ALL bookings that have an ID image uploaded ──────────────────────
+// Show regardless of verification status so receptionist can identify the person
+$id_bookings_query = "SELECT b.id, b.booking_reference, b.check_in_date, b.check_out_date,
+                       b.total_price, b.status, b.payment_status, b.verification_status,
+                       b.id_image, b.created_at,
+                       COALESCE(r.name, 'N/A') as room_name,
+                       COALESCE(r.room_number, 'N/A') as room_number,
+                       CONCAT(u.first_name, ' ', u.last_name) as guest_name,
+                       u.email, u.phone
+                       FROM bookings b
+                       LEFT JOIN rooms r ON b.room_id = r.id
+                       JOIN users u ON b.user_id = u.id
+                       WHERE b.id_image IS NOT NULL
+                         AND b.id_image != ''
+                         AND b.booking_type = 'room'
+                         AND b.status NOT IN ('checked_out','cancelled')
+                       ORDER BY b.created_at DESC
+                       LIMIT 50";
+$id_bookings = $conn->query($id_bookings_query);
+$id_bookings_count = $id_bookings ? $id_bookings->num_rows : 0;
 
 // Handle check-in form submission
 if ($_POST && isset($_POST['action'])) {
@@ -529,6 +549,121 @@ if ($_POST && isset($_POST['action'])) {
                             </div>
                         </div>
                     </div>
+
+                    <!-- ══ ID-VERIFIED BOOKINGS SECTION ══════════════════════════════════ -->
+                    <?php if ($id_bookings_count > 0): ?>
+                    <div class="card mt-4 border-0 shadow-sm">
+                        <div class="card-header text-white d-flex justify-content-between align-items-center"
+                             style="background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);">
+                            <h5 class="mb-0">
+                                <i class="fas fa-id-card me-2"></i>
+                                Customers with Uploaded ID
+                                <span class="badge bg-white text-primary ms-2"><?php echo $id_bookings_count; ?></span>
+                            </h5>
+                            <small class="opacity-75">Verify identity before issuing room key</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width:110px;">ID Document</th>
+                                            <th>Customer Name</th>
+                                            <th>Booking Ref</th>
+                                            <th>Room</th>
+                                            <th>Check-in</th>
+                                            <th>Check-out</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php
+                                    $id_bookings->data_seek(0);
+                                    while ($ib = $id_bookings->fetch_assoc()):
+                                        $img_url = '../' . ltrim($ib['id_image'], '/');
+                                        // Status badge
+                                        $st = strtolower($ib['status']);
+                                        $st_class = 'secondary';
+                                        $st_label = ucfirst(str_replace('_',' ',$ib['status']));
+                                        if ($st === 'pending')   { $st_class = 'warning';  $st_label = 'Pending'; }
+                                        if ($st === 'confirmed') { $st_class = 'success';  }
+                                        if ($st === 'verified')  { $st_class = 'info';     }
+                                        if ($st === 'checked_in'){ $st_class = 'primary';  $st_label = 'Checked In'; }
+                                        // Payment badge
+                                        $pay = strtolower($ib['payment_status'] ?? 'pending');
+                                        $pay_class = ($pay === 'paid') ? 'success' : (($pay === 'refund_pending') ? 'warning' : 'secondary');
+                                    ?>
+                                    <tr>
+                                        <!-- ID Thumbnail -->
+                                        <td>
+                                            <div style="position:relative; display:inline-block;">
+                                                <img src="<?php echo htmlspecialchars($img_url); ?>"
+                                                     alt="ID of <?php echo htmlspecialchars($ib['guest_name']); ?>"
+                                                     style="width:90px; height:60px; object-fit:cover; border-radius:6px; border:2px solid #1e88e5; cursor:pointer; display:block;"
+                                                     onclick="openIdModal('<?php echo htmlspecialchars($img_url); ?>','<?php echo htmlspecialchars($ib['guest_name']); ?>','<?php echo htmlspecialchars($ib['booking_reference']); ?>')"
+                                                     title="Click to view full ID"
+                                                     onerror="this.parentElement.innerHTML='<span class=\'badge bg-danger\'>Image error</span>';">
+                                                <span style="position:absolute; bottom:2px; right:2px; background:rgba(30,136,229,.85); color:#fff; font-size:9px; padding:1px 5px; border-radius:3px;">
+                                                    <i class="fas fa-search-plus"></i>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <!-- Customer -->
+                                        <td>
+                                            <div class="fw-bold"><?php echo htmlspecialchars($ib['guest_name']); ?></div>
+                                            <small class="text-muted"><?php echo htmlspecialchars($ib['email']); ?></small><br>
+                                            <small class="text-muted"><?php echo htmlspecialchars($ib['phone'] ?? ''); ?></small>
+                                        </td>
+                                        <td><span class="badge bg-primary"><?php echo htmlspecialchars($ib['booking_reference']); ?></span></td>
+                                        <td>
+                                            <div><?php echo htmlspecialchars($ib['room_name']); ?></div>
+                                            <small class="text-muted">Room <?php echo htmlspecialchars($ib['room_number']); ?></small>
+                                        </td>
+                                        <td><?php echo date('M j, Y', strtotime($ib['check_in_date'])); ?></td>
+                                        <td><?php echo date('M j, Y', strtotime($ib['check_out_date'])); ?></td>
+                                        <td><strong>ETB <?php echo number_format($ib['total_price'], 2); ?></strong></td>
+                                        <td>
+                                            <span class="badge bg-<?php echo $st_class; ?>"><?php echo $st_label; ?></span><br>
+                                            <span class="badge bg-<?php echo $pay_class; ?> mt-1"><?php echo ucfirst($pay); ?></span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary mb-1"
+                                                    onclick="openIdModal('<?php echo htmlspecialchars($img_url); ?>','<?php echo htmlspecialchars($ib['guest_name']); ?>','<?php echo htmlspecialchars($ib['booking_reference']); ?>')">
+                                                <i class="fas fa-id-card me-1"></i>View ID
+                                            </button>
+                                            <form method="POST" class="d-inline">
+                                                <input type="hidden" name="action" value="search_booking">
+                                                <input type="hidden" name="search_type" value="reference">
+                                                <input type="hidden" name="search_value" value="<?php echo htmlspecialchars($ib['booking_reference']); ?>">
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-sign-in-alt me-1"></i>Check-in
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <?php endwhile; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <div class="card mt-4 border-0 shadow-sm">
+                        <div class="card-header text-white"
+                             style="background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);">
+                            <h5 class="mb-0">
+                                <i class="fas fa-id-card me-2"></i> Customers with Uploaded ID
+                            </h5>
+                        </div>
+                        <div class="card-body text-center py-4 text-muted">
+                            <i class="fas fa-id-card fa-3x mb-3 opacity-25"></i>
+                            <p class="mb-0">No customers have uploaded their ID yet.<br>
+                            <small>IDs appear here as soon as a customer uploads during booking.</small></p>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     
                     <script>
                         document.getElementById('searchType').addEventListener('change', function() {
@@ -1015,7 +1150,8 @@ if ($_POST && isset($_POST['action'])) {
          style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out;">
         <div onclick="event.stopPropagation()" style="position:relative; max-width:90vw; max-height:90vh;">
             <img id="idViewImg" src="" alt="Customer ID"
-                 style="max-width:90vw; max-height:85vh; border-radius:8px; box-shadow:0 4px 32px rgba(0,0,0,.6); display:block;">
+                 style="max-width:90vw; max-height:75vh; border-radius:8px; box-shadow:0 4px 32px rgba(0,0,0,.6); display:block;">
+            <div id="idViewInfo" style="display:none; text-align:center; color:#fff; background:rgba(0,0,0,.6); padding:8px 16px; border-radius:0 0 8px 8px; font-size:.95rem;"></div>
             <div style="text-align:center; margin-top:12px;">
                 <button onclick="document.getElementById('idViewModal').style.display='none'"
                         class="btn btn-light btn-sm">
@@ -1029,9 +1165,20 @@ if ($_POST && isset($_POST['action'])) {
     </div>
 
     <script>
-    function openIdModal(src) {
+    function openIdModal(src, guestName, bookingRef) {
         document.getElementById('idViewImg').src = src;
         document.getElementById('idViewDownload').href = src;
+        // Show guest info in modal if provided
+        const infoEl = document.getElementById('idViewInfo');
+        if (infoEl) {
+            if (guestName || bookingRef) {
+                infoEl.style.display = 'block';
+                infoEl.innerHTML = (guestName ? '<strong>' + guestName + '</strong>' : '') +
+                                   (bookingRef ? ' &nbsp;|&nbsp; Ref: <strong>' + bookingRef + '</strong>' : '');
+            } else {
+                infoEl.style.display = 'none';
+            }
+        }
         document.getElementById('idViewModal').style.display = 'flex';
     }
     </script>
