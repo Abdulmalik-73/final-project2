@@ -139,7 +139,7 @@ $type_config = [
         'icon'       => 'fa-spa',
         'title'      => 'Spa & Wellness Confirmed!',
         'subtitle'   => 'Your spa session has been booked successfully',
-        'ref_label'  => 'Spa Service Reference',
+        'ref_label'  => 'Service Reference',
         'next_steps' => [
             'A confirmation email has been sent to your inbox.',
             'Please arrive 10 minutes before your scheduled time.',
@@ -151,7 +151,7 @@ $type_config = [
         'icon'       => 'fa-tshirt',
         'title'      => 'Laundry Service Confirmed!',
         'subtitle'   => 'Your laundry service has been booked successfully',
-        'ref_label'  => 'Laundry Service Reference',
+        'ref_label'  => 'Service Reference',
         'next_steps' => [
             'A confirmation email has been sent to your inbox.',
             'Our team will collect your items at the scheduled time.',
