@@ -4,12 +4,12 @@ require_once 'includes/functions.php';
 require_once 'includes/language.php';
 
 // Get rooms for gallery - limit to available unique images (22 room images)
-$rooms_query = "SELECT id, name, room_number FROM rooms WHERE status = 'active' ORDER BY RAND() LIMIT 22";
-$rooms_result = $conn->query($rooms_query);
-
-// Get food items for gallery - limit to available unique images (24 food images)
-$foods_query = "SELECT id, name, image FROM services WHERE category = 'restaurant' AND status = 'active' ORDER BY RAND() LIMIT 24";
-$foods_result = $conn->query($foods_query);
+$rooms_result = null;
+$foods_result = null;
+if ($conn) {
+    $rooms_result = $conn->query("SELECT id, name, room_number FROM rooms WHERE status = 'active' ORDER BY RAND() LIMIT 22");
+    $foods_result = $conn->query("SELECT id, name, image FROM services WHERE category = 'restaurant' AND status = 'active' ORDER BY RAND() LIMIT 24");
+}
 
 // Room images array - Using your actual images
 $room_images = [
@@ -416,8 +416,10 @@ $food_images = [
             <div class="rooms-image-grid">
                 <?php
                 // Display 40 images total: 39 rooms + 1 food image
-                $all_rooms_query = "SELECT id, room_number, image FROM rooms ORDER BY CAST(room_number AS UNSIGNED) LIMIT 39";
-                $all_rooms_result = $conn->query($all_rooms_query);
+                $all_rooms_result = null;
+                if ($conn) {
+                    $all_rooms_result = $conn->query("SELECT id, room_number, image FROM rooms ORDER BY CAST(room_number AS UNSIGNED) LIMIT 39");
+                }
                 
                 // Images array with 39 room images + 1 food image = 40 total
                 $default_images = [
@@ -469,7 +471,7 @@ $food_images = [
                 $displayed = 0;
                 
                 // Display 39 rooms
-                while ($room = $all_rooms_result->fetch_assoc()):
+                while ($all_rooms_result && $room = $all_rooms_result->fetch_assoc()):
                     if ($displayed >= 39) break;
                     
                     $room_image = !empty($room['image']) ? $room['image'] : ($default_images[$index] ?? 'assets/images/rooms/deluxe/room.jpg');
