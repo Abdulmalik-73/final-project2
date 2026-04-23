@@ -302,10 +302,17 @@ $without_count = $total_count - $with_id_count;
                                         <!-- Action -->
                                         <td>
                                             <?php if ($has_id): ?>
-                                            <button class="btn btn-sm btn-primary"
-                                                    onclick="openIdModal('<?php echo htmlspecialchars($img_url); ?>','<?php echo htmlspecialchars($b['guest_name']); ?>','<?php echo htmlspecialchars($b['booking_reference']); ?>')">
-                                                <i class="fas fa-id-card me-1"></i>View ID
-                                            </button>
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                <button class="btn btn-sm btn-primary"
+                                                        onclick="openIdModal('<?php echo htmlspecialchars($img_url); ?>','<?php echo htmlspecialchars($b['guest_name']); ?>','<?php echo htmlspecialchars($b['booking_reference']); ?>',<?php echo (int)$b['id']; ?>)">
+                                                    <i class="fas fa-id-card me-1"></i>View ID
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        onclick="deleteId(<?php echo (int)$b['id']; ?>,'<?php echo htmlspecialchars($b['booking_reference']); ?>')"
+                                                        title="Delete ID image">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
                                             <?php else: ?>
                                             <span class="text-muted small">No ID on file</span>
                                             <?php endif; ?>
@@ -381,16 +388,23 @@ $without_count = $total_count - $with_id_count;
             <button onclick="closeIdModal()" class="btn btn-outline-light btn-sm ms-3">
                 <i class="fas fa-times me-1"></i> Close
             </button>
+            <button id="modalDeleteBtn" onclick="deleteIdFromModal()" class="btn btn-outline-danger btn-sm ms-2">
+                <i class="fas fa-trash me-1"></i> Delete ID
+            </button>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    function openIdModal(src, guestName, bookingRef) {
+    let currentBookingId = 0;
+
+    function openIdModal(src, guestName, bookingRef, bookingId) {
         const modal   = document.getElementById('idViewModal');
         const img     = document.getElementById('idViewImg');
         const spinner = document.getElementById('idViewSpinner');
         const errDiv  = document.getElementById('idViewError');
+
+        currentBookingId = bookingId || 0;
 
         document.getElementById('idViewGuestName').textContent = guestName || 'Customer ID';
         document.getElementById('idViewRef').textContent = bookingRef ? ('Ref: ' + bookingRef) : '';
@@ -420,6 +434,35 @@ $without_count = $total_count - $with_id_count;
         document.getElementById('idViewModal').style.display = 'none';
         document.getElementById('idViewImg').src = '';
         document.body.style.overflow = '';
+        currentBookingId = 0;
+    }
+
+    function deleteIdFromModal() {
+        if (currentBookingId > 0) {
+            deleteId(currentBookingId, '');
+        }
+    }
+
+    function deleteId(bookingId, bookingRef) {
+        const label = bookingRef ? ' for booking ' + bookingRef : '';
+        if (!confirm('Delete the ID image' + label + '?\n\nThe customer will need to re-upload their ID before booking again.')) return;
+
+        fetch('../api/delete_id_image.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ booking_id: bookingId })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                closeIdModal();
+                // Reload page to refresh the table
+                location.reload();
+            } else {
+                alert('Failed to delete: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(() => alert('Network error. Please try again.'));
     }
 
     document.getElementById('idViewModal').addEventListener('click', function(e) {
