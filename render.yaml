@@ -3,6 +3,7 @@ services:
     name: harar-ras-hotel-booking
     runtime: docker
     dockerfilePath: ./Dockerfile
+    healthCheckPath: /health.php
     envVars:
       - key: DB_HOST
         sync: false

@@ -149,8 +149,36 @@ $error_level = defined('ERROR_REPORTING') ? parseErrorReporting(ERROR_REPORTING)
 error_reporting($error_level);
 ini_set('display_errors', defined('DISPLAY_ERRORS') ? DISPLAY_ERRORS : 0);
 
-// Include database connection
+// Include database connection — graceful, never dies
 require_once __DIR__ . '/../config/database.php';
+
+// If DB is down, show a friendly maintenance page instead of crashing
+if (!isset($conn) || $conn === null) {
+    // Only show error page for web requests, not CLI
+    if (php_sapi_name() !== 'cli') {
+        http_response_code(503);
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>Harar Ras Hotel - Maintenance</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <style>
+            body{font-family:Arial,sans-serif;background:#1a1a2e;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
+            .box{text-align:center;padding:40px;max-width:500px;}
+            .icon{font-size:64px;margin-bottom:20px;}
+            h1{color:#f7931e;margin-bottom:10px;}
+            p{color:#ccc;line-height:1.6;}
+            .btn{display:inline-block;margin-top:20px;padding:12px 28px;background:#f7931e;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;}
+        </style></head>
+        <body><div class="box">
+            <div class="icon">🏨</div>
+            <h1>Harar Ras Hotel</h1>
+            <h2>Temporarily Unavailable</h2>
+            <p>We are performing maintenance on our booking system.<br>
+            Please try again in a few minutes.</p>
+            <a href="/" class="btn">Try Again</a>
+        </div></body></html>';
+        exit;
+    }
+}
 
 // Include authentication functions
 require_once __DIR__ . '/auth.php';
