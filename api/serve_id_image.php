@@ -53,6 +53,19 @@ if (empty($data)) {
     $data = trim($row2['image_data'] ?? '');
 }
 
+// If data is a token (32 hex chars), look it up in temp_id_uploads
+if (empty($data) || (strlen($data) === 32 && ctype_xdigit($data))) {
+    $token = $data ?: '';
+    if (!empty($token)) {
+        $stmt3 = $conn->prepare("SELECT image_data FROM temp_id_uploads WHERE token = ? LIMIT 1");
+        $stmt3->bind_param("s", $token);
+        $stmt3->execute();
+        $row3 = $stmt3->get_result()->fetch_assoc();
+        $stmt3->close();
+        $data = trim($row3['image_data'] ?? '');
+    }
+}
+
 if (empty($data)) {
     http_response_code(404);
     header('Content-Type: text/plain');
