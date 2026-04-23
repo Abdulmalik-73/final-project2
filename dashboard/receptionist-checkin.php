@@ -466,8 +466,8 @@ if ($_POST && isset($_POST['action'])) {
                                             <td><span class="badge bg-primary"><?php echo $checkin['nights']; ?> nights</span></td>
                                             <td>
                                                 <?php if (!empty($checkin['id_image'])): 
-                                                    $site_root = rtrim(defined('SITE_URL') ? SITE_URL : '', '/');
-                                                    $thumb_url = $site_root . '/' . ltrim($checkin['id_image'], '/');
+                                                    $thumb_filename = basename($checkin['id_image']);
+                                                    $thumb_url = '../api/serve_id_image.php?file=' . urlencode($thumb_filename);
                                                 ?>
                                                     <img src="<?php echo htmlspecialchars($thumb_url); ?>"
                                                          alt="Customer ID"
@@ -585,9 +585,9 @@ if ($_POST && isset($_POST['action'])) {
                                     <?php
                                     $id_bookings->data_seek(0);
                                     while ($ib = $id_bookings->fetch_assoc()):
-                                        // Build absolute URL from site root so it works from any subfolder
-                                        $site_root = rtrim(defined('SITE_URL') ? SITE_URL : '', '/');
-                                        $img_url = $site_root . '/' . ltrim($ib['id_image'], '/');
+                                        // Build URL via secure image server endpoint
+                                        $filename = basename($ib['id_image']);
+                                        $img_url  = '../api/serve_id_image.php?file=' . urlencode($filename);
                                         // Status badge
                                         $st = strtolower($ib['status']);
                                         $st_class = 'secondary';
@@ -634,18 +634,10 @@ if ($_POST && isset($_POST['action'])) {
                                             <span class="badge bg-<?php echo $pay_class; ?> mt-1"><?php echo ucfirst($pay); ?></span>
                                         </td>
                                         <td>
-                                            <button class="btn btn-sm btn-outline-primary mb-1"
+                                            <button class="btn btn-sm btn-outline-primary"
                                                     onclick="openIdModal('<?php echo htmlspecialchars($img_url); ?>','<?php echo htmlspecialchars($ib['guest_name']); ?>','<?php echo htmlspecialchars($ib['booking_reference']); ?>')">
                                                 <i class="fas fa-id-card me-1"></i>View ID
                                             </button>
-                                            <form method="POST" class="d-inline">
-                                                <input type="hidden" name="action" value="search_booking">
-                                                <input type="hidden" name="search_type" value="reference">
-                                                <input type="hidden" name="search_value" value="<?php echo htmlspecialchars($ib['booking_reference']); ?>">
-                                                <button type="submit" class="btn btn-sm btn-success">
-                                                    <i class="fas fa-sign-in-alt me-1"></i>Check-in
-                                                </button>
-                                            </form>
                                         </td>
                                     </tr>
                                     <?php endwhile; ?>
@@ -761,9 +753,8 @@ if ($_POST && isset($_POST['action'])) {
                                                 // Show customer ID image if uploaded
                                                 $id_img_path = $booking_data['id_image'] ?? '';
                                                 if (!empty($id_img_path)):
-                                                    // Build absolute URL from site root
-                                                    $site_root = rtrim(defined('SITE_URL') ? SITE_URL : '', '/');
-                                                    $id_img_url = $site_root . '/' . ltrim($id_img_path, '/');
+                                                    $id_filename = basename($id_img_path);
+                                                    $id_img_url  = '../api/serve_id_image.php?file=' . urlencode($id_filename);
                                                 ?>
                                                 <div class="mb-3 p-3 bg-white rounded border">
                                                     <h6 class="text-success mb-2">
@@ -1217,52 +1208,50 @@ if ($_POST && isset($_POST['action'])) {
 
     <script>
     function openIdModal(src, guestName, bookingRef) {
-        const modal    = document.getElementById('idViewModal');
-        const img      = document.getElementById('idViewImg');
-        const spinner  = document.getElementById('idViewSpinner');
-        const errDiv   = document.getElementById('idViewError');
-        const nameEl   = document.getElementById('idViewGuestName');
-        const refEl    = document.getElementById('idViewRef');
-
-        // Reset state
-        img.style.display = 'none';
-        spinner.style.display = 'flex';
-        errDiv.style.display  = 'none';
+        const modal   = document.getElementById('idViewModal');
+        const img     = document.getElementById('idViewImg');
+        const spinner = document.getElementById('idViewSpinner');
+        const errDiv  = document.getElementById('idViewError');
+        const nameEl  = document.getElementById('idViewGuestName');
+        const refEl   = document.getElementById('idViewRef');
 
         // Set guest info
         nameEl.textContent = guestName || 'Customer ID';
         refEl.textContent  = bookingRef ? ('Ref: ' + bookingRef) : '';
 
-        // Load image
-        img.onload = function() {
+        // Reset: hide image, show spinner, hide error
+        img.style.display    = 'none';
+        spinner.style.display = 'flex';
+        errDiv.style.display  = 'none';
+        img.src = '';
+
+        // Show modal first so user sees spinner immediately
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        // Then load image
+        const tempImg = new Image();
+        tempImg.onload = function() {
+            img.src = src;
             spinner.style.display = 'none';
             img.style.display = 'block';
         };
-        img.onerror = function() {
+        tempImg.onerror = function() {
             spinner.style.display = 'none';
             errDiv.style.display  = 'flex';
         };
-        img.src = src;
-
-        // Show modal
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+        tempImg.src = src;
     }
 
     function closeIdModal() {
-        const modal = document.getElementById('idViewModal');
-        const img   = document.getElementById('idViewImg');
-        modal.style.display = 'none';
+        document.getElementById('idViewModal').style.display = 'none';
+        document.getElementById('idViewImg').src = '';
         document.body.style.overflow = '';
-        img.src = ''; // stop loading
     }
 
-    // Close on backdrop click
     document.getElementById('idViewModal').addEventListener('click', function(e) {
         if (e.target === this) closeIdModal();
     });
-
-    // Close on Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeIdModal();
     });
