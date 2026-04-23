@@ -21,6 +21,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS `cancellation_requests` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `booking_id` INT NOT NULL,
     `user_id` INT NOT NULL,
+    `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `refund_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `refund_percentage` INT NOT NULL DEFAULT 0,
     `processing_fee` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
@@ -36,11 +37,13 @@ $conn->query("CREATE TABLE IF NOT EXISTS `cancellation_requests` (
     INDEX `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-// Ensure bookings status enum supports 'Pending Cancellation' and 'Cancelled'
-$conn->query("ALTER TABLE bookings MODIFY COLUMN status ENUM(
-    'pending','confirmed','verified','checked_in','checked_out',
-    'cancelled','Cancelled','Pending Cancellation','no_show'
-) DEFAULT 'pending'");
+// Add total_amount column if missing (migration from older schema)
+$chk_col = $conn->query("SHOW COLUMNS FROM cancellation_requests LIKE 'total_amount'");
+if ($chk_col && $chk_col->num_rows === 0) {
+    $conn->query("ALTER TABLE cancellation_requests ADD COLUMN total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER user_id");
+}
+
+// bookings.status is VARCHAR(30) — do NOT try to convert back to ENUM
 
 // ── Handle Approve / Reject ───────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_refund'])) {
@@ -398,7 +401,12 @@ $stats = $stats_res ? $stats_res->fetch_assoc() : [];
             <?php if (empty($requests)): ?>
             <div class="text-center py-5">
                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                <p class="text-muted mb-0">No cancellation requests found</p>
+                <p class="text-muted mb-1">No cancellation requests found</p>
+                <?php if ($status_filter === 'Pending'): ?>
+                <small class="text-muted">When customers submit cancellation requests, they will appear here.</small>
+                <?php else: ?>
+                <small class="text-muted">Try selecting "All" from the status filter to see all requests.</small>
+                <?php endif; ?>
             </div>
             <?php else: ?>
             <div class="table-responsive">

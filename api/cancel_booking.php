@@ -223,7 +223,9 @@ try {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
             ");
             if (!$ins) throw new Exception('Prepare failed: ' . $conn->error);
-            $ins->bind_param("iiddiidi",
+            // Types: booking_id=i, user_id=i, total_amount=d, refund_amount=d,
+            //        refund_percentage=i, processing_fee=d, final_refund=d, days_before_checkin=i
+            $ins->bind_param("iiddiddi",
                 $booking['id'],
                 $user_id,
                 $total_amount,
