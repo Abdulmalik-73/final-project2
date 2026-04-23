@@ -33,6 +33,10 @@ ini_set('display_errors', 0);
 
 // ── 3. Auth check ─────────────────────────────────────────────────────────────
 $user_id = (int)($_SESSION['user_id'] ?? $_SESSION['id'] ?? 0);
+// Fallback: accept uid from POST if session is not available
+if ($user_id <= 0 && isset($_POST['uid'])) {
+    $user_id = (int)$_POST['uid'];
+}
 if ($user_id <= 0) {
     echo json_encode(['success' => false, 'error' => 'Session not found. Please log out and log in again, then try uploading.']);
     exit;
