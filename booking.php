@@ -845,6 +845,46 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
         });
     </script>
 
+    <!-- Camera Modal for Scan ID -->
+    <div id="cameraModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:10000; align-items:center; justify-content:center; flex-direction:column;">
+        <div style="background:#1a1a2e; border-radius:12px; padding:20px; max-width:520px; width:95%; box-shadow:0 8px 40px rgba(0,0,0,.6);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h5 style="color:#fff; margin:0;"><i class="fas fa-camera me-2" style="color:#f7931e;"></i>Scan ID with Camera</h5>
+                <button id="closeCameraBtn" style="background:none; border:none; color:#aaa; font-size:22px; cursor:pointer; line-height:1;">&times;</button>
+            </div>
+            <!-- Live video feed -->
+            <div style="position:relative; background:#000; border-radius:8px; overflow:hidden; margin-bottom:14px;">
+                <video id="cameraVideo" autoplay playsinline muted style="width:100%; max-height:320px; display:block; object-fit:cover;"></video>
+                <!-- Overlay guide frame -->
+                <div style="position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+                    <div style="width:80%; height:55%; border:2px dashed rgba(247,147,30,.8); border-radius:8px; box-shadow:0 0 0 9999px rgba(0,0,0,.35);"></div>
+                </div>
+                <div style="position:absolute; bottom:8px; left:0; right:0; text-align:center;">
+                    <small style="color:rgba(255,255,255,.8); background:rgba(0,0,0,.5); padding:3px 10px; border-radius:20px;">Position your ID inside the frame</small>
+                </div>
+            </div>
+            <!-- Canvas (hidden, used for capture) -->
+            <canvas id="cameraCanvas" style="display:none;"></canvas>
+            <!-- Camera selector (shown if multiple cameras) -->
+            <div id="cameraSelectorWrap" style="display:none; margin-bottom:12px;">
+                <select id="cameraSelector" class="form-select form-select-sm">
+                    <option value="">Select camera...</option>
+                </select>
+            </div>
+            <!-- Error message inside modal -->
+            <div id="cameraError" style="display:none; color:#ff6b6b; font-size:.875rem; margin-bottom:10px; text-align:center;"></div>
+            <!-- Action buttons -->
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button id="captureBtn" class="btn btn-warning btn-lg px-4" style="font-weight:600;">
+                    <i class="fas fa-circle me-2"></i>Capture Photo
+                </button>
+                <button id="switchCameraBtn" class="btn btn-outline-light btn-sm d-none" title="Switch camera">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ID Upload Script -->
     <script>
     (function() {
@@ -862,9 +902,24 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
         const scanBtn     = document.getElementById('scanIdBtn');
         const uploadBox   = document.getElementById('idUploadBox');
 
-        if (!fileInput) return; // not logged in — form not rendered
+        // Camera modal elements
+        const cameraModal    = document.getElementById('cameraModal');
+        const cameraVideo    = document.getElementById('cameraVideo');
+        const cameraCanvas   = document.getElementById('cameraCanvas');
+        const captureBtn     = document.getElementById('captureBtn');
+        const closeCameraBtn = document.getElementById('closeCameraBtn');
+        const switchCameraBtn= document.getElementById('switchCameraBtn');
+        const cameraSelector = document.getElementById('cameraSelector');
+        const cameraSelectorWrap = document.getElementById('cameraSelectorWrap');
+        const cameraError    = document.getElementById('cameraError');
 
-        // Show camera button only if device supports it
+        if (!fileInput) return; // not logged in
+
+        let cameraStream = null;
+        let availableCameras = [];
+        let currentCameraIndex = 0;
+
+        // Show camera button only if getUserMedia is supported
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             scanBtn.classList.remove('d-none');
         }
@@ -896,7 +951,6 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
                 showError('File too large. Maximum size is 2MB.');
                 return;
             }
-
             progressDiv.classList.remove('d-none');
             errorDiv.classList.add('d-none');
             previewArea.classList.add('d-none');
@@ -915,7 +969,7 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
                         enlargeImg.src = e.target.result;
                     };
                     reader.readAsDataURL(file);
-                    fileNameEl.textContent = file.name + ' (' + data.file_size + ')';
+                    fileNameEl.textContent = 'Camera capture (' + data.file_size + ')';
                     pathInput.value = data.file_path;
                     previewArea.classList.remove('d-none');
                     setConfirmEnabled(true);
@@ -931,10 +985,12 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
             });
         }
 
+        // ── File input (Upload button) ────────────────────────────────────────
         fileInput.addEventListener('change', function() {
             if (this.files && this.files[0]) handleFile(this.files[0]);
         });
 
+        // ── Remove button ─────────────────────────────────────────────────────
         removeBtn.addEventListener('click', function() {
             fileInput.value = '';
             pathInput.value = '';
@@ -944,18 +1000,112 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
             setConfirmEnabled(false);
         });
 
-        scanBtn.addEventListener('click', function() {
-            const camInput = document.createElement('input');
-            camInput.type = 'file';
-            camInput.accept = 'image/*';
-            camInput.capture = 'environment';
-            camInput.addEventListener('change', function() {
-                if (this.files && this.files[0]) handleFile(this.files[0]);
-            });
-            camInput.click();
+        // ── Camera: start stream ──────────────────────────────────────────────
+        async function startCamera(deviceId) {
+            stopCamera();
+            cameraError.style.display = 'none';
+            try {
+                const constraints = {
+                    video: deviceId
+                        ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+                        : { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                };
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraVideo.srcObject = cameraStream;
+                await cameraVideo.play();
+            } catch (err) {
+                let msg = 'Camera access denied.';
+                if (err.name === 'NotAllowedError')  msg = 'Camera permission denied. Please allow camera access in your browser settings.';
+                if (err.name === 'NotFoundError')    msg = 'No camera found on this device.';
+                if (err.name === 'NotReadableError') msg = 'Camera is in use by another application.';
+                cameraError.textContent = msg;
+                cameraError.style.display = 'block';
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+                cameraStream = null;
+            }
+            cameraVideo.srcObject = null;
+        }
+
+        async function openCameraModal() {
+            cameraModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            // Enumerate cameras
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                availableCameras = devices.filter(d => d.kind === 'videoinput');
+                if (availableCameras.length > 1) {
+                    switchCameraBtn.classList.remove('d-none');
+                    cameraSelectorWrap.style.display = 'block';
+                    cameraSelector.innerHTML = availableCameras.map((d, i) =>
+                        `<option value="${d.deviceId}">${d.label || 'Camera ' + (i+1)}</option>`
+                    ).join('');
+                }
+            } catch(e) {}
+
+            await startCamera(availableCameras[currentCameraIndex]?.deviceId || null);
+        }
+
+        function closeCameraModal() {
+            stopCamera();
+            cameraModal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // ── Scan ID button → open camera modal ───────────────────────────────
+        scanBtn.addEventListener('click', openCameraModal);
+        closeCameraBtn.addEventListener('click', closeCameraModal);
+
+        // Close on backdrop click
+        cameraModal.addEventListener('click', function(e) {
+            if (e.target === cameraModal) closeCameraModal();
         });
 
-        // Drag & drop
+        // Switch camera
+        switchCameraBtn.addEventListener('click', async function() {
+            currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+            await startCamera(availableCameras[currentCameraIndex].deviceId);
+        });
+
+        // Camera selector dropdown
+        cameraSelector.addEventListener('change', async function() {
+            if (this.value) await startCamera(this.value);
+        });
+
+        // ── Capture photo ─────────────────────────────────────────────────────
+        captureBtn.addEventListener('click', function() {
+            if (!cameraStream) return;
+
+            const video = cameraVideo;
+            cameraCanvas.width  = video.videoWidth  || 1280;
+            cameraCanvas.height = video.videoHeight || 720;
+            const ctx = cameraCanvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+            // Flash effect
+            captureBtn.innerHTML = '<i class="fas fa-check me-2"></i>Captured!';
+            captureBtn.classList.replace('btn-warning', 'btn-success');
+            setTimeout(() => {
+                captureBtn.innerHTML = '<i class="fas fa-circle me-2"></i>Capture Photo';
+                captureBtn.classList.replace('btn-success', 'btn-warning');
+            }, 1500);
+
+            // Convert canvas to Blob and upload
+            cameraCanvas.toBlob(function(blob) {
+                if (!blob) { showError('Failed to capture image. Please try again.'); return; }
+                const file = new File([blob], 'camera_capture_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+                closeCameraModal();
+                handleFile(file);
+            }, 'image/jpeg', 0.92);
+        });
+
+        // ── Drag & drop ───────────────────────────────────────────────────────
         uploadBox.addEventListener('dragover', function(e) {
             e.preventDefault();
             this.style.borderColor = '#1565c0';

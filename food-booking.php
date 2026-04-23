@@ -579,6 +579,40 @@ $food_items = array_filter($food_items, function($category) {
         });
     </script>
 
+    <!-- Camera Modal for Scan ID -->
+    <div id="cameraModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:10000; align-items:center; justify-content:center; flex-direction:column;">
+        <div style="background:#1a1a2e; border-radius:12px; padding:20px; max-width:520px; width:95%; box-shadow:0 8px 40px rgba(0,0,0,.6);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h5 style="color:#fff; margin:0;"><i class="fas fa-camera me-2" style="color:#f7931e;"></i>Scan ID with Camera</h5>
+                <button id="closeCameraBtn" style="background:none; border:none; color:#aaa; font-size:22px; cursor:pointer; line-height:1;">&times;</button>
+            </div>
+            <div style="position:relative; background:#000; border-radius:8px; overflow:hidden; margin-bottom:14px;">
+                <video id="cameraVideo" autoplay playsinline muted style="width:100%; max-height:320px; display:block; object-fit:cover;"></video>
+                <div style="position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+                    <div style="width:80%; height:55%; border:2px dashed rgba(247,147,30,.8); border-radius:8px; box-shadow:0 0 0 9999px rgba(0,0,0,.35);"></div>
+                </div>
+                <div style="position:absolute; bottom:8px; left:0; right:0; text-align:center;">
+                    <small style="color:rgba(255,255,255,.8); background:rgba(0,0,0,.5); padding:3px 10px; border-radius:20px;">Position your ID inside the frame</small>
+                </div>
+            </div>
+            <canvas id="cameraCanvas" style="display:none;"></canvas>
+            <div id="cameraSelectorWrap" style="display:none; margin-bottom:12px;">
+                <select id="cameraSelector" class="form-select form-select-sm">
+                    <option value="">Select camera...</option>
+                </select>
+            </div>
+            <div id="cameraError" style="display:none; color:#ff6b6b; font-size:.875rem; margin-bottom:10px; text-align:center;"></div>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button id="captureBtn" class="btn btn-warning btn-lg px-4" style="font-weight:600;">
+                    <i class="fas fa-circle me-2"></i>Capture Photo
+                </button>
+                <button id="switchCameraBtn" class="btn btn-outline-light btn-sm d-none" title="Switch camera">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ID Upload Script -->
     <script>
     (function() {
@@ -595,6 +629,217 @@ $food_items = array_filter($food_items, function($category) {
         const removeBtn   = document.getElementById('removeIdBtn');
         const scanBtn     = document.getElementById('scanIdBtn');
         const uploadBox   = document.getElementById('idUploadBox');
+
+        const cameraModal    = document.getElementById('cameraModal');
+        const cameraVideo    = document.getElementById('cameraVideo');
+        const cameraCanvas   = document.getElementById('cameraCanvas');
+        const captureBtn     = document.getElementById('captureBtn');
+        const closeCameraBtn = document.getElementById('closeCameraBtn');
+        const switchCameraBtn= document.getElementById('switchCameraBtn');
+        const cameraSelector = document.getElementById('cameraSelector');
+        const cameraSelectorWrap = document.getElementById('cameraSelectorWrap');
+        const cameraError    = document.getElementById('cameraError');
+
+        let cameraStream = null;
+        let availableCameras = [];
+        let currentCameraIndex = 0;
+
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            scanBtn.classList.remove('d-none');
+        }
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorDiv.classList.remove('d-none');
+            setTimeout(() => errorDiv.classList.add('d-none'), 7000);
+        }
+
+        function setConfirmEnabled(enabled) {
+            if (!confirmBtn) return;
+            if (enabled) {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i> Place Order';
+            } else {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-lock me-2"></i> Upload ID to Place Order';
+            }
+        }
+
+        function handleFile(file) {
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                showError('Invalid file format. Only JPG, JPEG, PNG allowed.');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                showError('File too large. Maximum size is 2MB.');
+                return;
+            }
+            progressDiv.classList.remove('d-none');
+            errorDiv.classList.add('d-none');
+            previewArea.classList.add('d-none');
+
+            const formData = new FormData();
+            formData.append('id_image', file);
+
+            fetch('api/upload_id.php', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                progressDiv.classList.add('d-none');
+                if (data.success) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImg.src = e.target.result;
+                        enlargeImg.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                    fileNameEl.textContent = 'Camera capture (' + data.file_size + ')';
+                    pathInput.value = data.file_path;
+                    previewArea.classList.remove('d-none');
+                    setConfirmEnabled(true);
+                } else {
+                    showError(data.error || 'ID upload failed. Please try again.');
+                    setConfirmEnabled(false);
+                }
+            })
+            .catch(() => {
+                progressDiv.classList.add('d-none');
+                showError('ID upload failed. Please try again.');
+                setConfirmEnabled(false);
+            });
+        }
+
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) handleFile(this.files[0]);
+        });
+
+        removeBtn.addEventListener('click', function() {
+            fileInput.value = '';
+            pathInput.value = '';
+            previewArea.classList.add('d-none');
+            previewImg.src = '';
+            enlargeImg.src = '';
+            setConfirmEnabled(false);
+        });
+
+        async function startCamera(deviceId) {
+            stopCamera();
+            cameraError.style.display = 'none';
+            try {
+                const constraints = {
+                    video: deviceId
+                        ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+                        : { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                };
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraVideo.srcObject = cameraStream;
+                await cameraVideo.play();
+            } catch (err) {
+                let msg = 'Camera access denied.';
+                if (err.name === 'NotAllowedError')  msg = 'Camera permission denied. Please allow camera access in your browser settings.';
+                if (err.name === 'NotFoundError')    msg = 'No camera found on this device.';
+                if (err.name === 'NotReadableError') msg = 'Camera is in use by another application.';
+                cameraError.textContent = msg;
+                cameraError.style.display = 'block';
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(t => t.stop());
+                cameraStream = null;
+            }
+            cameraVideo.srcObject = null;
+        }
+
+        async function openCameraModal() {
+            cameraModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                availableCameras = devices.filter(d => d.kind === 'videoinput');
+                if (availableCameras.length > 1) {
+                    switchCameraBtn.classList.remove('d-none');
+                    cameraSelectorWrap.style.display = 'block';
+                    cameraSelector.innerHTML = availableCameras.map((d, i) =>
+                        `<option value="${d.deviceId}">${d.label || 'Camera ' + (i+1)}</option>`
+                    ).join('');
+                }
+            } catch(e) {}
+            await startCamera(availableCameras[currentCameraIndex]?.deviceId || null);
+        }
+
+        function closeCameraModal() {
+            stopCamera();
+            cameraModal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        scanBtn.addEventListener('click', openCameraModal);
+        closeCameraBtn.addEventListener('click', closeCameraModal);
+        cameraModal.addEventListener('click', function(e) {
+            if (e.target === cameraModal) closeCameraModal();
+        });
+
+        switchCameraBtn.addEventListener('click', async function() {
+            currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+            await startCamera(availableCameras[currentCameraIndex].deviceId);
+        });
+
+        cameraSelector.addEventListener('change', async function() {
+            if (this.value) await startCamera(this.value);
+        });
+
+        captureBtn.addEventListener('click', function() {
+            if (!cameraStream) return;
+            cameraCanvas.width  = cameraVideo.videoWidth  || 1280;
+            cameraCanvas.height = cameraVideo.videoHeight || 720;
+            cameraCanvas.getContext('2d').drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+            captureBtn.innerHTML = '<i class="fas fa-check me-2"></i>Captured!';
+            captureBtn.classList.replace('btn-warning', 'btn-success');
+            setTimeout(() => {
+                captureBtn.innerHTML = '<i class="fas fa-circle me-2"></i>Capture Photo';
+                captureBtn.classList.replace('btn-success', 'btn-warning');
+            }, 1500);
+
+            cameraCanvas.toBlob(function(blob) {
+                if (!blob) { showError('Failed to capture image. Please try again.'); return; }
+                const file = new File([blob], 'camera_capture_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+                closeCameraModal();
+                handleFile(file);
+            }, 'image/jpeg', 0.92);
+        });
+
+        uploadBox.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#c0620a';
+            this.style.background = '#fff3e0';
+        });
+        uploadBox.addEventListener('dragleave', function() {
+            this.style.borderColor = '#f7931e';
+            this.style.background = '#fffdf5';
+        });
+        uploadBox.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.borderColor = '#f7931e';
+            this.style.background = '#fffdf5';
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        document.getElementById('foodOrderForm').addEventListener('submit', function(e) {
+            if (!pathInput.value) {
+                e.preventDefault();
+                showError('Please upload your ID before placing the order.');
+                uploadBox.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
 
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             scanBtn.classList.remove('d-none');
