@@ -157,23 +157,14 @@ try {
     //   7+  days → 95%
     //   3-6 days → 75%
     //   1-2 days → 50%
-    //   0   days (same day) → 25%
-    //
-    // EXCEPTION: if the booking was CREATED today (same day as check-in),
-    // treat as 95% — customer just booked and is immediately cancelling.
-    $booking_created = new DateTime($booking['created_at']);
-    $booking_created->setTime(0, 0, 0);
-    $booked_today = ($booking_created == $today);
-
+    //   0   days (same day as check-in) → 25%
+    //   Past check-in → 0%
     if ($days_before_checkin >= 7) {
         $refund_percentage = 95;
     } elseif ($days_before_checkin >= 3) {
         $refund_percentage = 75;
     } elseif ($days_before_checkin >= 1) {
         $refund_percentage = 50;
-    } elseif ($days_before_checkin === 0 && $booked_today) {
-        // Booked today, cancelling same day → full refund (just booked)
-        $refund_percentage = 95;
     } elseif ($days_before_checkin === 0) {
         $refund_percentage = 25;
     } else {

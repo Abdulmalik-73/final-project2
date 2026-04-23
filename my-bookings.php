@@ -439,55 +439,72 @@ if (!empty($booking_ids)) {
                                 <div class="col-md-6">
                                     <div class="d-flex align-items-center p-3 bg-white rounded shadow-sm">
                                         <div class="flex-shrink-0">
-                                            <div class="badge bg-success rounded-circle p-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                            <div class="badge bg-success rounded-circle p-3" style="width:50px;height:50px;display:flex;align-items:center;justify-content:center;">
                                                 <span class="fs-6 fw-bold">95%</span>
                                             </div>
                                         </div>
                                         <div class="flex-grow-1 ms-3">
-                                            <div class="fw-bold text-dark">7+ days before arrival</div>
-                                            <small class="text-muted">Full refund minus 5% fee</small>
+                                            <div class="fw-bold text-dark">7+ days before check-in</div>
+                                            <small class="text-muted">95% refund minus 5% processing fee</small>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="d-flex align-items-center p-3 bg-white rounded shadow-sm">
                                         <div class="flex-shrink-0">
-                                            <div class="badge bg-info rounded-circle p-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                            <div class="badge bg-info rounded-circle p-3" style="width:50px;height:50px;display:flex;align-items:center;justify-content:center;">
                                                 <span class="fs-6 fw-bold">75%</span>
                                             </div>
                                         </div>
                                         <div class="flex-grow-1 ms-3">
-                                            <div class="fw-bold text-dark">3-6 days before arrival</div>
-                                            <small class="text-muted">75% refund minus 5% fee</small>
+                                            <div class="fw-bold text-dark">3–6 days before check-in</div>
+                                            <small class="text-muted">75% refund minus 5% processing fee</small>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="d-flex align-items-center p-3 bg-white rounded shadow-sm">
                                         <div class="flex-shrink-0">
-                                            <div class="badge bg-warning rounded-circle p-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                            <div class="badge bg-warning rounded-circle p-3" style="width:50px;height:50px;display:flex;align-items:center;justify-content:center;">
                                                 <span class="fs-6 fw-bold">50%</span>
                                             </div>
                                         </div>
                                         <div class="flex-grow-1 ms-3">
-                                            <div class="fw-bold text-dark">1-2 days before arrival</div>
-                                            <small class="text-muted">50% refund minus 5% fee</small>
+                                            <div class="fw-bold text-dark">1–2 days before check-in</div>
+                                            <small class="text-muted">50% refund minus 5% processing fee</small>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="d-flex align-items-center p-3 bg-white rounded shadow-sm">
                                         <div class="flex-shrink-0">
-                                            <div class="badge bg-danger rounded-circle p-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                            <div class="badge bg-danger rounded-circle p-3" style="width:50px;height:50px;display:flex;align-items:center;justify-content:center;">
                                                 <span class="fs-6 fw-bold">25%</span>
                                             </div>
                                         </div>
                                         <div class="flex-grow-1 ms-3">
                                             <div class="fw-bold text-dark">Same day cancellation</div>
-                                            <small class="text-muted">25% refund minus 5% fee</small>
+                                            <small class="text-muted">25% refund minus 5% processing fee</small>
                                         </div>
                                     </div>
                                 </div>
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center p-3 bg-white rounded shadow-sm">
+                                        <div class="flex-shrink-0">
+                                            <div class="badge bg-dark rounded-circle p-3" style="width:50px;height:50px;display:flex;align-items:center;justify-content:center;">
+                                                <span class="fs-6 fw-bold">0%</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <div class="fw-bold text-dark">Past check-in date</div>
+                                            <small class="text-muted">No refund available after check-in date has passed</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning mt-3 mb-0 py-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Important:</strong> All refunds are subject to a 5% processing fee deducted from the refund amount. Refunds processed within 5–7 business days after manager approval.
                             </div>
                         </div>
                     </div>
