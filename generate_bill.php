@@ -24,9 +24,10 @@ if ($search_value) {
                    CONCAT(u.first_name, ' ', u.last_name) as guest_name, u.email, u.phone,
                    DATEDIFF(b.check_out_date, b.check_in_date) as nights
                    FROM bookings b
-                   JOIN rooms r ON b.room_id = r.id
+                   LEFT JOIN rooms r ON b.room_id = r.id
                    JOIN users u ON b.user_id = u.id
-                   WHERE b.status IN ('checked_in', 'checked_out')";
+                   WHERE b.status IN ('checked_in', 'checked_out', 'confirmed', 'verified', 'pending')
+                   AND b.booking_type = 'room'";
     
     if ($search_type == 'booking_ref') {
         $query = $base_query . " AND b.booking_reference = ?";
@@ -49,9 +50,9 @@ if ($search_value) {
     
     while ($row = $result->fetch_assoc()) {
         // Calculate bill details for each booking
-        $room_charges = $row['price'] * $row['nights'];
-        $service_charges = $room_charges * 0.10; // 10% service charge
-        $tax_amount = $room_charges * 0.15; // 15% VAT
+        $room_charges = ($row['price'] ?? 0) * max(1, (int)$row['nights']);
+        $service_charges = $room_charges * 0.10;
+        $tax_amount = $room_charges * 0.15;
         
         $row['room_charges'] = $room_charges;
         $row['service_charges'] = $service_charges;
@@ -75,9 +76,10 @@ if (isset($_POST['select_booking'])) {
               CONCAT(u.first_name, ' ', u.last_name) as guest_name, u.email, u.phone,
               DATEDIFF(b.check_out_date, b.check_in_date) as nights
               FROM bookings b
-              JOIN rooms r ON b.room_id = r.id
+              LEFT JOIN rooms r ON b.room_id = r.id
               JOIN users u ON b.user_id = u.id
-              WHERE b.id = ? AND b.status IN ('checked_in', 'checked_out')";
+              WHERE b.id = ? AND b.status IN ('checked_in', 'checked_out', 'confirmed', 'verified', 'pending')
+              AND b.booking_type = 'room'";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $selected_booking_id);
     $stmt->execute();
@@ -87,9 +89,9 @@ if (isset($_POST['select_booking'])) {
         $booking_data = $result->fetch_assoc();
         
         // Calculate bill details
-        $room_charges = $booking_data['price'] * $booking_data['nights'];
-        $service_charges = $room_charges * 0.10; // 10% service charge
-        $tax_amount = $room_charges * 0.15; // 15% VAT
+        $room_charges = ($booking_data['price'] ?? 0) * max(1, (int)$booking_data['nights']);
+        $service_charges = $room_charges * 0.10;
+        $tax_amount = $room_charges * 0.15;
         
         $booking_data['room_charges'] = $room_charges;
         $booking_data['service_charges'] = $service_charges;
@@ -109,9 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['generate_bill'])) {
               CONCAT(u.first_name, ' ', u.last_name) as guest_name, u.email, u.phone,
               DATEDIFF(b.check_out_date, b.check_in_date) as nights
               FROM bookings b
-              JOIN rooms r ON b.room_id = r.id
+              LEFT JOIN rooms r ON b.room_id = r.id
               JOIN users u ON b.user_id = u.id
-              WHERE b.id = ? AND b.status IN ('checked_in', 'checked_out')";
+              WHERE b.id = ? AND b.status IN ('checked_in', 'checked_out', 'confirmed', 'verified', 'pending')
+              AND b.booking_type = 'room'";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $selected_booking_id);
     $stmt->execute();
@@ -121,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['generate_bill'])) {
         $selected_booking = $result->fetch_assoc();
         
         // Recalculate totals
-        $room_charges = $selected_booking['price'] * $selected_booking['nights'];
+        $room_charges = ($selected_booking['price'] ?? 0) * max(1, (int)$selected_booking['nights']);
         $service_charges = ($room_charges * 0.10) + $additional_charges;
         $tax_amount = $room_charges * 0.15;
         $total_amount = $room_charges + $service_charges + $tax_amount - $discount_amount;

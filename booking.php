@@ -49,22 +49,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $check_in = sanitize_input($_POST['check_in']);
     $check_out = sanitize_input($_POST['check_out']);
     $customers = (int)$_POST['customers'];
-    $special_requests = ''; // Removed - replaced by ID upload
-    $id_image = $_POST['id_image_path'] ?? ''; // base64 data URL — do NOT sanitize (would corrupt it)
+    $special_requests = '';
+    $id_token = trim($_POST['id_image_path'] ?? ''); // token (32-char hex) from temp_id_uploads
 
-    // Validate ID image was uploaded
-    if (empty($id_image)) {
+    // Validate something was submitted
+    if (empty($id_token)) {
         $error = 'Please upload your ID before confirming booking.';
         goto skip_booking;
     }
 
-    // Accept either base64 data URL OR legacy file path
-    $is_base64   = (strpos($id_image, 'data:image/') === 0);
-    $is_filepath = preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_image);
+    // Resolve: token → base64, or accept legacy base64/filepath directly
+    $is_token    = preg_match('/^[a-f0-9]{32}$/', $id_token);
+    $is_base64   = (strpos($id_token, 'data:image/') === 0);
+    $is_filepath = preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_token);
 
-    if (!$is_base64 && !$is_filepath) {
+    if (!$is_token && !$is_base64 && !$is_filepath) {
         $error = 'Invalid ID image. Please re-upload your ID.';
         goto skip_booking;
+    }
+
+    $id_image = $id_token; // default for base64/filepath
+    if ($is_token) {
+        $uid_tmp  = (int)$_SESSION['user_id'];
+        $tok_stmt = $conn->prepare("SELECT image_data FROM temp_id_uploads WHERE token = ? AND user_id = ?");
+        if ($tok_stmt) {
+            $tok_stmt->bind_param("si", $id_token, $uid_tmp);
+            $tok_stmt->execute();
+            $tok_row = $tok_stmt->get_result()->fetch_assoc();
+            if ($tok_row && !empty($tok_row['image_data'])) {
+                $id_image = $tok_row['image_data']; // actual base64
+            } else {
+                $error = 'ID upload session expired. Please re-upload your ID.';
+                goto skip_booking;
+            }
+        }
     }
 
     $room = get_room_by_id($room_id);
@@ -966,14 +984,11 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
             .then(data => {
                 progressDiv.classList.add('d-none');
                 if (data.success) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        previewImg.src = e.target.result;
-                        enlargeImg.src = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                    fileNameEl.textContent = 'Camera capture (' + data.file_size + ')';
-                    pathInput.value = data.file_path;
+                    // Use server-returned preview for thumbnail (avoids re-reading large file)
+                    previewImg.src = data.preview || '';
+                    enlargeImg.src = data.preview || '';
+                    fileNameEl.textContent = (data.file_name || 'ID') + ' (' + data.file_size + ')';
+                    pathInput.value = data.file_path;  // tiny 32-char token
                     previewArea.classList.remove('d-none');
                     setConfirmEnabled(true);
                 } else {

@@ -488,6 +488,21 @@ try {
     // Silently ignore
 }
 
+// AUTO-FIX DATABASE: Create temp_id_uploads table for ID image token storage
+try {
+    $conn->query("CREATE TABLE IF NOT EXISTS `temp_id_uploads` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `token` VARCHAR(64) NOT NULL UNIQUE,
+        `user_id` INT NOT NULL,
+        `image_data` MEDIUMTEXT NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_token` (`token`),
+        INDEX `idx_user` (`user_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+} catch (Exception $e) {
+    // Silently ignore
+}
+
 // AUTO-FIX DATABASE: Create room_locks table if it doesn't exist
 // This table is required for the concurrent booking protection (queue system).
 try {

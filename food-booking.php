@@ -26,19 +26,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $reservation_time = sanitize_input($_POST['reservation_time'] ?? '');
     $guests = (int)($_POST['guests'] ?? 1);
     $special_requests = ''; // Removed - replaced by ID upload
-    $id_image = $_POST['id_image_path'] ?? ''; // base64 data URL — do NOT sanitize
-
-    // Validate that we have a food item
-    $is_base64_food   = (strpos($id_image, 'data:image/') === 0);
-    $is_filepath_food = preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_image);
+    $id_image_raw = trim($_POST['id_image_path'] ?? '');
+    $is_token_food    = preg_match('/^[a-f0-9]{32}$/', $id_image_raw);
+    $is_base64_food   = (strpos($id_image_raw, 'data:image/') === 0);
+    $is_filepath_food = preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_image_raw);
 
     if (empty($selected_item) || $selected_price <= 0) {
         $error = 'Please select a food item from the Services menu first.';
-    } elseif (empty($id_image)) {
+    } elseif (empty($id_image_raw)) {
         $error = 'Please upload your ID before placing the order.';
-    } elseif (!$is_base64_food && !$is_filepath_food) {
+    } elseif (!$is_token_food && !$is_base64_food && !$is_filepath_food) {
         $error = 'Invalid ID image. Please re-upload your ID.';
     } else {
+        // Resolve token to base64
+        $id_image = $id_image_raw;
+        if ($is_token_food) {
+            $uid_f = (int)$_SESSION['user_id'];
+            $ts = $conn->prepare("SELECT image_data FROM temp_id_uploads WHERE token = ? AND user_id = ?");
+            if ($ts) {
+                $ts->bind_param("si", $id_image_raw, $uid_f);
+                $ts->execute();
+                $tr = $ts->get_result()->fetch_assoc();
+                if ($tr && !empty($tr['image_data'])) {
+                    $id_image = $tr['image_data'];
+                } else {
+                    $error = 'ID upload session expired. Please re-upload your ID.';
+                    goto food_skip;
+                }
+            }
+        }
         // Create single item order
         $order_items = [[
             'item' => $selected_item,
@@ -166,6 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
     }
+    food_skip: // goto target for early exit
 }
 
 // Get available food items from database
@@ -690,14 +707,10 @@ $food_items = array_filter($food_items, function($category) {
             .then(data => {
                 progressDiv.classList.add('d-none');
                 if (data.success) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        previewImg.src = e.target.result;
-                        enlargeImg.src = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                    fileNameEl.textContent = 'Camera capture (' + data.file_size + ')';
-                    pathInput.value = data.file_path;
+                    previewImg.src = data.preview || '';
+                    enlargeImg.src = data.preview || '';
+                    fileNameEl.textContent = (data.file_name || 'ID') + ' (' + data.file_size + ')';
+                    pathInput.value = data.file_path; // tiny token
                     previewArea.classList.remove('d-none');
                     setConfirmEnabled(true);
                 } else {
@@ -887,14 +900,10 @@ $food_items = array_filter($food_items, function($category) {
             .then(data => {
                 progressDiv.classList.add('d-none');
                 if (data.success) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        previewImg.src = e.target.result;
-                        enlargeImg.src = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                    fileNameEl.textContent = file.name + ' (' + data.file_size + ')';
-                    pathInput.value = data.file_path;
+                    previewImg.src = data.preview || '';
+                    enlargeImg.src = data.preview || '';
+                    fileNameEl.textContent = (data.file_name || 'ID') + ' (' + data.file_size + ')';
+                    pathInput.value = data.file_path; // tiny token
                     previewArea.classList.remove('d-none');
                     setConfirmEnabled(true);
                 } else {

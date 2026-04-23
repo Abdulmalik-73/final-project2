@@ -1,8 +1,9 @@
 <?php
 /**
  * ID Image Upload API
- * Stores image as base64 data URL in the database — survives server restarts/redeploys.
- * Accepts: JPG, JPEG, PNG — Max 2MB
+ * Saves image as base64 directly to a temp table, returns a token.
+ * The token is stored in the hidden field (tiny string, not the huge base64).
+ * On booking confirm, the token is used to link the image to the booking.
  */
 
 error_reporting(E_ALL);
@@ -36,68 +37,77 @@ try {
     $file = $_FILES['id_image'];
 
     if ($file['error'] !== UPLOAD_ERR_OK) {
-        $upload_errors = [
-            UPLOAD_ERR_INI_SIZE   => 'File exceeds server upload limit.',
-            UPLOAD_ERR_FORM_SIZE  => 'File exceeds form upload limit.',
-            UPLOAD_ERR_PARTIAL    => 'File was only partially uploaded.',
+        $msgs = [
+            UPLOAD_ERR_INI_SIZE   => 'File exceeds server limit.',
+            UPLOAD_ERR_FORM_SIZE  => 'File exceeds form limit.',
+            UPLOAD_ERR_PARTIAL    => 'File only partially uploaded.',
             UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder.',
-            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
-            UPLOAD_ERR_EXTENSION  => 'Upload blocked by server extension.',
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write file.',
+            UPLOAD_ERR_EXTENSION  => 'Upload blocked by extension.',
         ];
-        throw new Exception($upload_errors[$file['error']] ?? 'Unknown upload error.');
+        throw new Exception($msgs[$file['error']] ?? 'Upload error.');
     }
 
-    // Max 2MB
-    $max_size = 2 * 1024 * 1024;
-    if ($file['size'] > $max_size) {
-        throw new Exception('File too large. Maximum size is 2MB.');
-    }
-    if ($file['size'] === 0) {
-        throw new Exception('Uploaded file is empty.');
-    }
+    if ($file['size'] > 2 * 1024 * 1024) throw new Exception('File too large. Maximum 2MB.');
+    if ($file['size'] === 0)              throw new Exception('Uploaded file is empty.');
 
-    // Validate MIME type
-    $allowed_mime = ['image/jpeg', 'image/jpg', 'image/png'];
+    // Validate MIME
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $detected_mime = finfo_file($finfo, $file['tmp_name']);
+    $mime  = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
-
-    if (!in_array($detected_mime, $allowed_mime)) {
-        throw new Exception('Invalid file format. Only JPG, JPEG, PNG allowed.');
+    if (!in_array($mime, ['image/jpeg', 'image/jpg', 'image/png'])) {
+        throw new Exception('Invalid format. Only JPG, JPEG, PNG allowed.');
     }
 
     // Validate it's actually an image
-    $image_info = @getimagesize($file['tmp_name']);
-    if ($image_info === false) {
-        throw new Exception('Uploaded file is not a valid image.');
+    if (@getimagesize($file['tmp_name']) === false) {
+        throw new Exception('File is not a valid image.');
     }
 
-    // Read raw bytes and encode as base64 data URL
-    $raw_data  = file_get_contents($file['tmp_name']);
-    $mime_type = $detected_mime === 'image/jpg' ? 'image/jpeg' : $detected_mime;
-    $base64    = 'data:' . $mime_type . ';base64,' . base64_encode($raw_data);
+    // Encode as base64 data URL
+    $raw      = file_get_contents($file['tmp_name']);
+    $mime_out = ($mime === 'image/jpg') ? 'image/jpeg' : $mime;
+    $base64   = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
 
-    // Ensure id_image column exists and is large enough (MEDIUMTEXT = 16MB)
-    $conn->query("ALTER TABLE bookings MODIFY COLUMN id_image MEDIUMTEXT DEFAULT NULL");
+    // Ensure temp_id_uploads table exists
+    $conn->query("CREATE TABLE IF NOT EXISTS `temp_id_uploads` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `token` VARCHAR(64) NOT NULL UNIQUE,
+        `user_id` INT NOT NULL,
+        `image_data` MEDIUMTEXT NOT NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX `idx_token` (`token`),
+        INDEX `idx_user` (`user_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    // Store base64 in session for the booking form to use
-    $_SESSION['pending_id_image'] = $base64;
+    // Generate unique token
+    $token = bin2hex(random_bytes(16)); // 32-char hex string
 
-    $file_size_kb = round($file['size'] / 1024, 1);
+    // Delete any previous pending upload for this user
+    $del = $conn->prepare("DELETE FROM temp_id_uploads WHERE user_id = ?");
+    $del->bind_param("i", (int)$_SESSION['user_id']);
+    $del->execute();
+
+    // Insert new upload
+    $ins = $conn->prepare("INSERT INTO temp_id_uploads (token, user_id, image_data) VALUES (?, ?, ?)");
+    $ins->bind_param("sis", $token, $_SESSION['user_id'], $base64);
+    if (!$ins->execute()) {
+        throw new Exception('Failed to save image: ' . $ins->error);
+    }
+
+    // Also store token in session as backup
+    $_SESSION['pending_id_token'] = $token;
 
     echo json_encode([
-        'success'        => true,
-        'message'        => 'ID uploaded successfully.',
-        'file_path'      => $base64,   // returned to JS, stored in hidden field
-        'file_name'      => $file['name'],
-        'file_size'      => $file_size_kb . ' KB',
-        'preview_base64' => $base64,   // JS uses this for thumbnail preview
+        'success'   => true,
+        'message'   => 'ID uploaded successfully.',
+        'file_path' => $token,          // ← tiny token, not base64
+        'file_name' => $file['name'],
+        'file_size' => round($file['size'] / 1024, 1) . ' KB',
+        'preview'   => $base64,         // ← base64 only for JS preview (not stored in form)
     ]);
 
 } catch (Exception $e) {
-    error_log("ID Upload Error (user " . ($_SESSION['user_id'] ?? 'unknown') . "): " . $e->getMessage());
-    echo json_encode([
-        'success' => false,
-        'error'   => $e->getMessage(),
-    ]);
+    error_log("ID Upload Error (user " . ($_SESSION['user_id'] ?? '?') . "): " . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
