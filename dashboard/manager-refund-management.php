@@ -146,11 +146,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['process_refund'])) {
                 $upd_req->bind_param("sii", $manager_notes, $manager_id, $request_id);
                 if (!$upd_req->execute()) throw new Exception('Failed to update request: ' . $upd_req->error);
 
-                // Restore booking to confirmed (it was set to Pending Cancellation)
+                // Restore booking to confirmed (it was set to pending_cancellation)
                 $upd_bk = $conn->prepare("
                     UPDATE bookings
                     SET status = 'confirmed'
-                    WHERE id = ? AND status IN ('Pending Cancellation', 'pending')
+                    WHERE id = ? AND status IN ('pending_cancellation', 'Pending Cancellation', 'pending')
                 ");
                 $upd_bk->bind_param("i", $req['booking_id']);
                 $upd_bk->execute();

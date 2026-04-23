@@ -439,12 +439,10 @@ try {
     // Silently ignore
 }
 
-// AUTO-FIX DATABASE: Ensure bookings.status supports 'Pending Cancellation'
+// AUTO-FIX DATABASE: Ensure bookings.status is VARCHAR (not ENUM) to avoid truncation
+// This allows any status value including 'pending_cancellation'
 try {
-    $conn->query("ALTER TABLE bookings MODIFY COLUMN status ENUM(
-        'pending','confirmed','verified','checked_in','checked_out',
-        'cancelled','Cancelled','Pending Cancellation','no_show'
-    ) DEFAULT 'pending'");
+    $conn->query("ALTER TABLE bookings MODIFY COLUMN status VARCHAR(30) NOT NULL DEFAULT 'pending'");
 } catch (Exception $e) {
     // Silently ignore
 }

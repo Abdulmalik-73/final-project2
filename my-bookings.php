@@ -151,7 +151,7 @@ if (!empty($booking_ids)) {
                         $status_class = 'warning';
                     } elseif ($status === 'cancelled') {
                         $status_class = 'danger';
-                    } elseif ($status === 'Pending Cancellation') {
+                    } elseif ($status === 'pending_cancellation' || $status === 'Pending Cancellation') {
                         $status_class = 'warning';
                         $status_text  = 'Pending Cancellation';
                     }
@@ -173,7 +173,7 @@ if (!empty($booking_ids)) {
 
                     // ── Cancel eligibility ────────────────────────────────────
                     $can_cancel          = false;
-                    $cancellation_pending = ($status === 'Pending Cancellation');
+                    $cancellation_pending = ($status === 'pending_cancellation' || $status === 'Pending Cancellation');
                     if (in_array($status, ['pending', 'confirmed', 'verified'])) {
                         if ($btype === 'room' && !empty($booking['check_in_date'])) {
                             $check_in_dt  = new DateTime($booking['check_in_date']);
@@ -324,7 +324,7 @@ if (!empty($booking_ids)) {
                             </div>
 
                             <!-- Pending Cancellation notice -->
-                            <?php if ($booking['status'] === 'Pending Cancellation'): ?>
+                            <?php if ($booking['status'] === 'pending_cancellation' || $booking['status'] === 'Pending Cancellation'): ?>
                             <div class="alert alert-warning mb-3">
                                 <i class="fas fa-clock me-2"></i>
                                 <strong>Cancellation Requested</strong><br>
