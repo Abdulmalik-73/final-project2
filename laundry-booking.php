@@ -150,14 +150,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_service'])) {
 <body>
     <?php include 'includes/navbar.php'; ?>
     
-    <div class="container py-5">
+    <div class="container py-3">
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="card shadow">
                     <div class="card-header bg-warning text-dark">
-                        <h4 class="mb-0"><i class="fas fa-spa"></i> <i class="fas fa-tshirt"></i> Book Spa & Laundry Service</h4>
+                        <h4 class="mb-0"><i class="fas fa-spa"></i> <i class="fas fa-tshirt"></i> Spa & Laundry Service</h4>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-3">
                         <?php if ($error): ?>
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
@@ -171,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_service'])) {
                         <?php endif; ?>
                         
                         <form method="POST" action="">
-                            <div class="mb-4">
+                            <div class="mb-2">
                                 <label class="form-label fw-bold">Select Service *</label>
                                 <?php if (empty($all_services)): ?>
                                 <div class="alert alert-warning">
@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_service'])) {
                                 </div>
                                 <?php else: ?>
                                 <?php foreach ($all_services as $service): ?>
-                                <div class="form-check mb-3 p-3 border rounded">
+                                <div class="form-check mb-2 p-2 border rounded">
                                     <input class="form-check-input" type="radio" name="service_id" id="service<?php echo $service['id']; ?>" value="<?php echo $service['id']; ?>" required>
                                     <label class="form-check-label w-100" for="service<?php echo $service['id']; ?>">
                                         <div class="d-flex justify-content-between align-items-center">
@@ -205,37 +205,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_service'])) {
                                 <?php endif; ?>
                             </div>
                             
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label class="form-label fw-bold"><?php echo __('confirmation.quantity'); ?> *</label>
-                                <input type="number" name="quantity" class="form-control" min="1" value="1" required>
+                                <input type="number" name="quantity" class="form-control form-control-sm" min="1" value="1" required>
                                 <small class="text-muted">Number of sessions/loads/items</small>
                             </div>
                             
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-6 mb-2">
                                     <label class="form-label fw-bold"><?php echo __('confirmation.service_date'); ?> *</label>
-                                    <input type="date" name="pickup_date" class="form-control" min="<?php echo date('Y-m-d'); ?>" required>
+                                    <input type="date" name="pickup_date" class="form-control form-control-sm" min="<?php echo date('Y-m-d'); ?>" required>
                                 </div>
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-6 mb-2">
                                     <label class="form-label fw-bold"><?php echo __('confirmation.service_time'); ?> *</label>
-                                    <input type="time" name="pickup_time" class="form-control" required>
+                                    <input type="time" name="pickup_time" class="form-control form-control-sm" required>
                                 </div>
                             </div>
                             
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label class="form-label fw-bold"><?php echo __('booking.special_requests'); ?> (Optional)</label>
-                                <textarea name="special_requests" class="form-control" rows="3" placeholder="Any special care instructions, preferences, etc..."></textarea>
-                            </div>
-                            
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i> <strong>Note:</strong> After booking, you'll be redirected to upload payment proof. Your payment screenshot will be uploaded successfully. Please wait while we verify your payment. Once it is confirmed, we will send a verification message to your email address.
+                                <textarea name="special_requests" class="form-control form-control-sm" rows="2" placeholder="Any special care instructions, preferences, etc..."></textarea>
                             </div>
                             
                             <div class="d-grid gap-2">
                                 <button type="submit" name="book_service" class="btn btn-warning btn-lg">
-                                    <i class="fas fa-calendar-check"></i> <?php echo __('booking_auth.confirm_booking'); ?>
+                                    <i class="fas fa-arrow-right"></i> Continue
                                 </button>
-                                <a href="services.php#laundry" class="btn btn-outline-secondary">
+                                <a href="services.php#laundry" class="btn btn-outline-secondary btn-sm">
                                     <i class="fas fa-arrow-left"></i> <?php echo __('food.back_to_services'); ?>
                                 </a>
                             </div>
