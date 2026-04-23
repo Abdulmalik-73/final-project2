@@ -695,6 +695,7 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
                                     </div>
                                     <!-- Hidden field to carry path to PHP -->
                                     <input type="hidden" name="id_image_path" id="idImagePath" value="">
+                                    <input type="hidden" id="currentUserId" value="<?php echo (int)($_SESSION['user_id'] ?? 0); ?>">
                                 </div>
 
                                 <!-- ID Enlarge Modal (pure CSS/JS, no Bootstrap modal needed) -->
@@ -978,8 +979,9 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
 
             const formData = new FormData();
             formData.append('id_image', file);
+            formData.append('uid', document.getElementById('currentUserId')?.value || '0');
 
-            fetch('api/upload_id.php', { method: 'POST', body: formData })
+            fetch('api/upload_id.php', { method: 'POST', body: formData, credentials: 'include' })
             .then(r => r.json())
             .then(data => {
                 progressDiv.classList.add('d-none');

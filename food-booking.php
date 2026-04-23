@@ -704,7 +704,7 @@ $food_items = array_filter($food_items, function($category) {
             formData.append('id_image', file);
             formData.append('uid', '<?php echo (int)($_SESSION["user_id"] ?? 0); ?>');
 
-            fetch('api/upload_id.php', { method: 'POST', body: formData })
+            fetch('api/upload_id.php', { method: 'POST', body: formData, credentials: 'include' })
             .then(r => r.json())
             .then(data => {
                 progressDiv.classList.add('d-none');
