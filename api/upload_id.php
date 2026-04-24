@@ -1,10 +1,10 @@
 <?php
 /**
- * ID Image Upload API — standalone, no config.php dependency
- * Saves image as base64 to temp_id_uploads table, returns a 32-char token.
+ * ID Image Upload API
+ * Saves image files to /uploads/ids/ directory and stores filename in database
  */
 
-// ── 1. Start session using same settings as config.php ───────────────────────
+// ── 1. Start session ──────────────────────────────────────────────────────────
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
@@ -12,7 +12,6 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_lifetime', 86400);
     ini_set('session.cookie_samesite', 'Lax');
 
-    // Use same save path as config.php
     $session_path = sys_get_temp_dir() . '/php_sessions';
     if (!is_dir($session_path)) {
         @mkdir($session_path, 0777, true);
@@ -33,7 +32,6 @@ ini_set('display_errors', 0);
 
 // ── 3. Auth check ─────────────────────────────────────────────────────────────
 $user_id = (int)($_SESSION['user_id'] ?? $_SESSION['id'] ?? 0);
-// Fallback: accept uid from POST/GET if session is not available
 if ($user_id <= 0) {
     $user_id = (int)($_POST['uid'] ?? $_GET['uid'] ?? 0);
 }
@@ -47,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// ── 4. Connect to DB directly (no config.php) ─────────────────────────────────
+// ── 4. Connect to DB ──────────────────────────────────────────────────────────
 $env_file = __DIR__ . '/../.env';
 if (file_exists($env_file)) {
     foreach (file($env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -57,7 +55,6 @@ if (file_exists($env_file)) {
         if (!defined($k)) define($k, $v);
     }
 }
-// Also read from system env (Render sets these)
 foreach (['DB_HOST','DB_PORT','DB_USER','DB_PASS','DB_NAME'] as $k) {
     $v = getenv($k);
     if ($v !== false && !defined($k)) define($k, $v);
@@ -78,7 +75,16 @@ if ($conn->connect_error) {
 }
 $conn->set_charset('utf8mb4');
 
-// ── 5. Validate uploaded file ─────────────────────────────────────────────────
+// ── 5. Create uploads directory ───────────────────────────────────────────────
+$uploads_dir = __DIR__ . '/../uploads/ids';
+if (!is_dir($uploads_dir)) {
+    if (!@mkdir($uploads_dir, 0755, true)) {
+        echo json_encode(['success' => false, 'error' => 'Failed to create upload directory.']);
+        exit;
+    }
+}
+
+// ── 6. Validate uploaded file ─────────────────────────────────────────────────
 try {
     if (!isset($_FILES['id_image']) || $_FILES['id_image']['error'] === UPLOAD_ERR_NO_FILE) {
         throw new Exception('No file uploaded.');
@@ -113,47 +119,40 @@ try {
         throw new Exception('File is not a valid image.');
     }
 
-    // ── 6. Encode as base64 ───────────────────────────────────────────────────
-    $raw      = file_get_contents($file['tmp_name']);
-    $mime_out = ($mime === 'image/jpg') ? 'image/jpeg' : $mime;
-    $base64   = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
+    // ── 7. Generate unique filename ───────────────────────────────────────────
+    $ext = ($mime === 'image/png') ? 'png' : 'jpg';
+    $filename = 'id_' . $user_id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+    $filepath = $uploads_dir . '/' . $filename;
 
-    // ── 7. Ensure temp table exists ───────────────────────────────────────────
-    $conn->query("CREATE TABLE IF NOT EXISTS `temp_id_uploads` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `token` VARCHAR(64) NOT NULL UNIQUE,
-        `user_id` INT NOT NULL,
-        `image_data` MEDIUMTEXT NOT NULL,
-        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX `idx_token` (`token`),
-        INDEX `idx_user` (`user_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-    // ── 8. Save token + image ─────────────────────────────────────────────────
-    $token = bin2hex(random_bytes(16));
-
-    $del = $conn->prepare("DELETE FROM temp_id_uploads WHERE user_id = ?");
-    $del->bind_param("i", $user_id);
-    $del->execute();
-
-    $ins = $conn->prepare("INSERT INTO temp_id_uploads (token, user_id, image_data) VALUES (?, ?, ?)");
-    $ins->bind_param("sis", $token, $user_id, $base64);
-    if (!$ins->execute()) {
-        throw new Exception('Failed to save image: ' . $ins->error);
+    // ── 8. Move uploaded file ─────────────────────────────────────────────────
+    if (!move_uploaded_file($file['tmp_name'], $filepath)) {
+        throw new Exception('Failed to save file to disk.');
     }
 
-    $_SESSION['pending_id_token'] = $token;
+    // ── 9. Create base64 preview for immediate display ────────────────────────
+    $raw      = file_get_contents($filepath);
+    $mime_out = ($mime === 'image/jpg' || $mime === 'image/jpeg') ? 'image/jpeg' : 'image/png';
+    $preview  = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
+
+    // ── 10. Store filename in database ────────────────────────────────────────
+    $stmt = $conn->prepare("UPDATE bookings SET id_image = ? WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param("si", $filename, $user_id);
+        $stmt->execute();
+        $stmt->close();
+    }
 
     echo json_encode([
         'success'   => true,
         'message'   => 'ID uploaded successfully.',
-        'file_path' => $token,
+        'file_path' => $filename,
         'file_name' => $file['name'],
         'file_size' => round($file['size'] / 1024, 1) . ' KB',
-        'preview'   => $base64,
+        'preview'   => $preview,
     ]);
 
 } catch (Exception $e) {
     error_log("ID Upload Error (user=$user_id): " . $e->getMessage());
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
+
