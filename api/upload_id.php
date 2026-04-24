@@ -146,7 +146,7 @@ try {
     echo json_encode([
         'success'   => true,
         'message'   => 'ID uploaded successfully.',
-        'file_path' => 'base64',
+        'file_path' => $base64,  // Return the actual base64 data
         'file_name' => $file['name'],
         'file_size' => round($file['size'] / 1024, 1) . ' KB',
         'preview'   => $base64,
