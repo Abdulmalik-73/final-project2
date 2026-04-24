@@ -250,6 +250,15 @@ function prevent_cache() {
 }
 
 /**
+ * Prevent caching function
+ */
+function prevent_cache() {
+    header("Cache-Control: no-cache, no-store, must-revalidate");
+    header("Pragma: no-cache");
+    header("Expires: 0");
+}
+
+/**
  * Secure logout function
  */
 function secure_logout($redirect_to = 'login.php') {
@@ -268,7 +277,7 @@ function secure_logout($redirect_to = 'login.php') {
     session_destroy();
     
     // Redirect to login
-    header("Location: $redirect_to");
+    header("Location: $redirect_to?logout=success");
     exit();
 }
 
