@@ -377,7 +377,11 @@ if ($booking_id) {
 
                 <div>
                     <div class="label">
-                        <?php echo $is_food ? 'Order Reference' : 'Booking Reference'; ?>
+                        <?php
+                        if ($is_food)    echo 'Service Reference';
+                        elseif ($is_spa || $is_laundry) echo 'Service Reference';
+                        else             echo 'Booking Reference';
+                        ?>
                     </div>
                     <div class="value"><?php echo htmlspecialchars($booking['booking_reference']); ?></div>
                 </div>

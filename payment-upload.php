@@ -219,9 +219,9 @@ $already_submitted = ($booking['verification_status'] === 'pending_verification'
     // Labels and icons per type
     $type_config = [
         'room'            => ['icon'=>'fa-bed',        'color'=>'bg-primary',  'label'=>__('booking.booking_summary'),     'ref_label'=>__('my_bookings.booking_reference')],
-        'food_order'      => ['icon'=>'fa-utensils',   'color'=>'bg-warning',  'label'=>__('my_bookings.title'),       'ref_label'=>__('my_bookings.booking_reference')],
-        'spa_service'     => ['icon'=>'fa-spa',        'color'=>'bg-info',     'label'=>'Spa & Wellness',   'ref_label'=>__('my_bookings.booking_reference')],
-        'laundry_service' => ['icon'=>'fa-tshirt',     'color'=>'bg-secondary','label'=>'Laundry Service',  'ref_label'=>__('my_bookings.booking_reference')],
+        'food_order'      => ['icon'=>'fa-utensils',   'color'=>'bg-warning',  'label'=>'Your Food Order',       'ref_label'=>'Service Reference'],
+        'spa_service'     => ['icon'=>'fa-spa',        'color'=>'bg-info',     'label'=>'Spa & Wellness',   'ref_label'=>'Service Reference'],
+        'laundry_service' => ['icon'=>'fa-tshirt',     'color'=>'bg-secondary','label'=>'Laundry Service',  'ref_label'=>'Service Reference'],
     ];
     $tc = $type_config[$booking_type] ?? $type_config['room'];
     ?>
