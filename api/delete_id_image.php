@@ -1,7 +1,7 @@
 <?php
 /**
  * Delete ID image from a booking
- * Deletes file from /uploads/ids/ and clears bookings.id_image
+ * Clears bookings.id_image (base64 data)
  * Only accessible by receptionist/manager/admin
  */
 
@@ -23,7 +23,6 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/config.php';
 header('Content-Type: application/json');
 
-// Auth: staff only
 $role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? '';
 if (!in_array($role, ['receptionist', 'manager', 'admin', 'super_admin'])) {
     echo json_encode(['success' => false, 'error' => 'Access denied.']);
@@ -43,24 +42,6 @@ if ($booking_id <= 0) {
     exit;
 }
 
-// Get filename before deleting
-$stmt = $conn->prepare("SELECT id_image FROM bookings WHERE id = ? LIMIT 1");
-$stmt->bind_param("i", $booking_id);
-$stmt->execute();
-$row = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-
-$filename = trim($row['id_image'] ?? '');
-
-// Delete file from disk if it exists
-if (!empty($filename) && preg_match('/^id_\d+_\d+_[a-f0-9]+\.(jpg|png)$/i', $filename)) {
-    $filepath = __DIR__ . '/../uploads/ids/' . $filename;
-    if (is_file($filepath)) {
-        @unlink($filepath);
-    }
-}
-
-// Clear from database
 $stmt = $conn->prepare("UPDATE bookings SET id_image = NULL WHERE id = ?");
 $stmt->bind_param("i", $booking_id);
 
@@ -70,4 +51,5 @@ if ($stmt->execute()) {
 } else {
     echo json_encode(['success' => false, 'error' => 'Failed to delete: ' . $stmt->error]);
 }
+
 

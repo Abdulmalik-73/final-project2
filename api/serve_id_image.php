@@ -1,7 +1,7 @@
 <?php
 /**
  * Secure ID image server
- * Serves image files from /uploads/ids/ directory
+ * Serves base64 images stored in database
  * Only accessible by receptionist/manager/admin/super_admin
  */
 ob_start();
@@ -29,64 +29,48 @@ if ($booking_id <= 0) {
     exit;
 }
 
-// Get filename from bookings table
+// Get base64 image from bookings table
 $stmt = $conn->prepare("SELECT id_image FROM bookings WHERE id = ? LIMIT 1");
 $stmt->bind_param("i", $booking_id);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-$filename = trim($row['id_image'] ?? '');
+$data = trim($row['id_image'] ?? '');
 
-if (empty($filename)) {
+if (empty($data)) {
     http_response_code(404);
     header('Content-Type: text/plain');
     echo 'No ID image on file for this booking';
     exit;
 }
 
-// Validate filename format (prevent directory traversal)
-if (!preg_match('/^id_\d+_\d+_[a-f0-9]+\.(jpg|png)$/i', $filename)) {
-    http_response_code(400);
-    header('Content-Type: text/plain');
-    echo 'Invalid filename format';
-    exit;
+// If data is base64 data URL, extract and serve it
+if (strpos($data, 'data:') === 0) {
+    if (preg_match('/^data:(image\/(jpeg|png|jpg));base64,(.+)$/s', $data, $m)) {
+        $mime    = ($m[2] === 'jpg') ? 'image/jpeg' : 'image/' . $m[2];
+        $imgdata = base64_decode($m[3], true);
+
+        if ($imgdata === false || strlen($imgdata) === 0) {
+            http_response_code(500);
+            header('Content-Type: text/plain');
+            echo 'Failed to decode image';
+            exit;
+        }
+
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . strlen($imgdata));
+        header('Cache-Control: private, max-age=3600');
+        header('X-Content-Type-Options: nosniff');
+        ob_end_clean();
+        echo $imgdata;
+        exit;
+    }
 }
 
-// Build safe file path
-$filepath = realpath(__DIR__ . '/../uploads/ids/' . $filename);
-$allowed_dir = realpath(__DIR__ . '/../uploads/ids');
-
-// Security check: ensure file is in the allowed directory
-if (!$filepath || !$allowed_dir || strpos($filepath, $allowed_dir) !== 0) {
-    http_response_code(403);
-    header('Content-Type: text/plain');
-    echo 'Access denied';
-    exit;
-}
-
-// Check if file exists
-if (!is_file($filepath)) {
-    http_response_code(404);
-    header('Content-Type: text/plain');
-    echo 'Image file not found on server';
-    exit;
-}
-
-// Serve the file
-$finfo = finfo_open(FILEINFO_MIME_TYPE);
-$mime  = finfo_file($finfo, $filepath);
-finfo_close($finfo);
-
-if (!in_array($mime, ['image/jpeg', 'image/png'])) {
-    $mime = 'image/jpeg'; // default
-}
-
-header('Content-Type: ' . $mime);
-header('Content-Length: ' . filesize($filepath));
-header('Cache-Control: private, max-age=3600');
-header('X-Content-Type-Options: nosniff');
-ob_end_clean();
-readfile($filepath);
+http_response_code(404);
+header('Content-Type: text/plain');
+echo 'Image not available';
 exit;
+
 
