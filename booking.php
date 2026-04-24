@@ -342,16 +342,14 @@ $rooms = get_all_rooms();
                                 </div>
 
                                 <div class="mb-4">
-                                    <label class="form-label fw-bold">Number of Customers *</label>
-                                    <select name="customers" class="form-select form-select-lg" required id="customersSelect">
-                                        <option value="">Select number of customers...</option>
-                                        <option value="1">1 Customer</option>
-                                        <option value="2">2 Customers</option>
-                                        <option value="3">3 Customers</option>
-                                        <option value="4">4 Customers</option>
-                                        <option value="5">5 Customers</option>
-                                        <option value="6">6 Customers</option>
-                                    </select>
+                                    <label class="form-label fw-bold">Number of Customers</label>
+                                    <div class="form-control form-control-lg bg-light" id="customersDisplay">
+                                        Select a room to see capacity
+                                    </div>
+                                    <input type="hidden" name="customers" id="customersInput" value="">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> Number of customers is automatically set based on room capacity
+                                    </small>
                                 </div>
 
                                 <!-- ID Upload Section -->
@@ -369,7 +367,6 @@ $rooms = get_all_rooms();
                                                     <i class="fas fa-camera"></i> Scan ID (Use Camera)
                                                 </button>
                                                 <input type="file" id="idFileInput" accept="image/*" style="display: none;">
-                                                <input type="file" id="idCameraInput" accept="image/*" capture="environment" style="display: none;">
                                             </div>
                                             <div class="col-md-6 text-end">
                                                 <small class="text-muted">JPG, JPEG, PNG only • Max 2MB</small>
@@ -472,53 +469,63 @@ $rooms = get_all_rooms();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // Simple booking calculation
+        // Update booking summary and customer count when room changes
         function updateBookingSummary() {
             const roomSelect = document.getElementById('roomSelect');
             const checkIn = document.getElementById('checkInDate');
             const checkOut = document.getElementById('checkOutDate');
-            const customers = document.getElementById('customersSelect');
+            const customersDisplay = document.getElementById('customersDisplay');
+            const customersInput = document.getElementById('customersInput');
             const summaryDiv = document.getElementById('bookingSummary');
             
-            if (roomSelect.value && checkIn.value && checkOut.value && customers.value) {
+            if (roomSelect.value) {
                 const selectedOption = roomSelect.options[roomSelect.selectedIndex];
                 const price = parseFloat(selectedOption.dataset.price);
                 const capacity = parseInt(selectedOption.dataset.capacity);
                 
-                const checkInDate = new Date(checkIn.value);
-                const checkOutDate = new Date(checkOut.value);
-                const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+                // Auto-set customer count based on room capacity
+                customersDisplay.textContent = `${capacity} Customer${capacity > 1 ? 's' : ''} (Room Capacity)`;
+                customersInput.value = capacity;
                 
-                if (nights > 0) {
-                    const totalPrice = price * nights;
+                if (checkIn.value && checkOut.value) {
+                    const checkInDate = new Date(checkIn.value);
+                    const checkOutDate = new Date(checkOut.value);
+                    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
                     
-                    summaryDiv.innerHTML = `
-                        <div class="mb-2">
-                            <strong>Room:</strong> ${selectedOption.text.split(' - ETB')[0]}
-                        </div>
-                        <div class="mb-2">
-                            <strong>Dates:</strong> ${checkIn.value} to ${checkOut.value}
-                        </div>
-                        <div class="mb-2">
-                            <strong>Nights:</strong> ${nights}
-                        </div>
-                        <div class="mb-2">
-                            <strong>Customers:</strong> ${customers.value}
-                        </div>
-                        <hr>
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between">
-                                <span>ETB ${price.toFixed(2)} × ${nights} nights</span>
-                                <span>ETB ${totalPrice.toFixed(2)}</span>
+                    if (nights > 0) {
+                        const totalPrice = price * nights;
+                        
+                        summaryDiv.innerHTML = `
+                            <div class="mb-2">
+                                <strong>Room:</strong> ${selectedOption.text.split(' - ETB')[0]}
                             </div>
-                        </div>
-                        <hr>
-                        <div class="d-flex justify-content-between">
-                            <strong>Total:</strong>
-                            <strong class="text-primary fs-4">ETB ${totalPrice.toFixed(2)}</strong>
-                        </div>
-                    `;
+                            <div class="mb-2">
+                                <strong>Dates:</strong> ${checkIn.value} to ${checkOut.value}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Nights:</strong> ${nights}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Customers:</strong> ${capacity}
+                            </div>
+                            <hr>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <span>ETB ${price.toFixed(2)} × ${nights} nights</span>
+                                    <span>ETB ${totalPrice.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <strong>Total:</strong>
+                                <strong class="text-primary fs-4">ETB ${totalPrice.toFixed(2)}</strong>
+                            </div>
+                        `;
+                    }
                 }
+            } else {
+                customersDisplay.textContent = 'Select a room to see capacity';
+                customersInput.value = '';
             }
         }
         
@@ -526,7 +533,6 @@ $rooms = get_all_rooms();
         document.getElementById('roomSelect').addEventListener('change', updateBookingSummary);
         document.getElementById('checkInDate').addEventListener('change', updateBookingSummary);
         document.getElementById('checkOutDate').addEventListener('change', updateBookingSummary);
-        document.getElementById('customersSelect').addEventListener('change', updateBookingSummary);
         
         // Update check-out minimum date when check-in changes
         document.getElementById('checkInDate').addEventListener('change', function() {
@@ -540,7 +546,6 @@ $rooms = get_all_rooms();
             const uploadBtn   = document.getElementById('uploadIdBtn');
             const scanBtn     = document.getElementById('scanIdBtn');
             const fileInput   = document.getElementById('idFileInput');
-            const cameraInput = document.getElementById('idCameraInput');
             const progressDiv = document.getElementById('idUploadProgress');
             const errorDiv    = document.getElementById('idUploadError');
             const previewArea = document.getElementById('idPreviewArea');
@@ -620,22 +625,108 @@ $rooms = get_all_rooms();
                 });
             }
 
+            // Camera capture function using getUserMedia API
+            function startCameraCapture() {
+                // Check if browser supports camera access
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    showError('Camera access is not supported in this browser. Please use the Upload button instead.');
+                    return;
+                }
+
+                // Create camera modal
+                const cameraModal = document.createElement('div');
+                cameraModal.className = 'modal fade';
+                cameraModal.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-camera"></i> Scan ID Document
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <video id="cameraVideo" width="100%" height="300" autoplay style="border: 2px solid #ddd; border-radius: 8px;"></video>
+                                <canvas id="cameraCanvas" style="display: none;"></canvas>
+                                <div class="mt-3">
+                                    <button type="button" class="btn btn-primary btn-lg" id="captureBtn">
+                                        <i class="fas fa-camera"></i> Capture Photo
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-lg ms-2" data-bs-dismiss="modal">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(cameraModal);
+                const modal = new bootstrap.Modal(cameraModal);
+                
+                const video = cameraModal.querySelector('#cameraVideo');
+                const canvas = cameraModal.querySelector('#cameraCanvas');
+                const captureBtn = cameraModal.querySelector('#captureBtn');
+                let stream = null;
+
+                // Start camera
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment', // Use back camera if available
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    video.srcObject = stream;
+                    modal.show();
+                })
+                .catch(function(err) {
+                    console.error('Camera access error:', err);
+                    showError('Unable to access camera. Please check permissions and try again, or use the Upload button instead.');
+                    document.body.removeChild(cameraModal);
+                });
+
+                // Capture photo
+                captureBtn.addEventListener('click', function() {
+                    const context = canvas.getContext('2d');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    context.drawImage(video, 0, 0);
+                    
+                    // Convert to blob
+                    canvas.toBlob(function(blob) {
+                        if (blob) {
+                            // Create a file from the blob
+                            const file = new File([blob], 'scanned_id.jpg', { type: 'image/jpeg' });
+                            handleFile(file);
+                        }
+                        modal.hide();
+                    }, 'image/jpeg', 0.8);
+                });
+
+                // Clean up when modal is closed
+                cameraModal.addEventListener('hidden.bs.modal', function() {
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+                    document.body.removeChild(cameraModal);
+                });
+            }
+
             // ── File input (Upload button) ────────────────────────────────────────
             uploadBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', function() {
                 if (this.files && this.files[0]) handleFile(this.files[0]);
             });
 
-            // ── Camera input (Scan button) ────────────────────────────────────────
-            scanBtn.addEventListener('click', () => cameraInput.click());
-            cameraInput.addEventListener('change', function() {
-                if (this.files && this.files[0]) handleFile(this.files[0]);
-            });
+            // ── Camera capture (Scan button) ──────────────────────────────────────
+            scanBtn.addEventListener('click', startCameraCapture);
 
             // ── Remove button ─────────────────────────────────────────────────────
             removeBtn.addEventListener('click', function() {
                 fileInput.value = '';
-                cameraInput.value = '';
                 pathInput.value = '';
                 previewArea.classList.add('d-none');
                 previewImg.src = '';
