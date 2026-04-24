@@ -251,7 +251,7 @@ $without_count = $total_count - $with_id_count;
                                         $pay = strtolower($b['payment_status'] ?? 'pending');
                                         $pay_class = ($pay === 'paid') ? 'success' : 'secondary';
                                     ?>
-                                    <tr class="<?php echo $has_id ? '' : 'table-warning'; ?>">
+                                    <tr class="<?php echo $has_id ? '' : 'table-warning'; ?>" data-booking-id="<?php echo (int)$b['id']; ?>">
                                         <!-- ID Thumbnail -->
                                         <td style="width:100px;">
                                             <?php if ($has_id): ?>
@@ -314,7 +314,11 @@ $without_count = $total_count - $with_id_count;
                                                 </button>
                                             </div>
                                             <?php else: ?>
-                                            <span class="text-muted small">No ID on file</span>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    onclick="deleteBooking(<?php echo (int)$b['id']; ?>,'<?php echo htmlspecialchars($b['booking_reference']); ?>')"
+                                                    title="Delete this booking (no ID uploaded)">
+                                                <i class="fas fa-trash me-1"></i>Delete
+                                            </button>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -483,10 +487,35 @@ $without_count = $total_count - $with_id_count;
         .then(data => {
             if (data.success) {
                 closeIdModal();
-                // Reload page to refresh the table
                 location.reload();
             } else {
                 alert('Failed to delete: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(() => alert('Network error. Please try again.'));
+    }
+
+    function deleteBooking(bookingId, bookingRef) {
+        if (!confirm('Delete booking ' + bookingRef + '?\n\nThis booking has no ID uploaded. This action cannot be undone.')) return;
+
+        fetch('../api/receptionist_delete_booking.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ booking_id: bookingId })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const row = document.querySelector('tr[data-booking-id="' + bookingId + '"]');
+                if (row) {
+                    row.style.transition = 'opacity 0.3s';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert('Failed to delete booking: ' + (data.error || data.message || 'Unknown error'));
             }
         })
         .catch(() => alert('Network error. Please try again.'));
