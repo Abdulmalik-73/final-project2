@@ -27,18 +27,7 @@ if (ini_get("session.use_cookies")) {
 // Destroy session
 session_destroy();
 
-// Force redirect with JavaScript backup
+// Try header redirect first
+header('Location: login.php?logout=success');
+exit();
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Logging out...</title>
-    <meta http-equiv="refresh" content="0;url=login.php?logout=success">
-</head>
-<body>
-    <script>
-        window.location.replace('login.php?logout=success');
-    </script>
-    <p>Logging out... <a href="login.php?logout=success">Click here if not redirected</a></p>
-</body>
-</html>
