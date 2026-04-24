@@ -6,8 +6,10 @@ $redirect = isset($_GET['redirect']) ? $_GET['redirect'] : '';
 $room_id = isset($_GET['room']) ? (int)$_GET['room'] : null;
 $tx_ref = isset($_GET['tx_ref']) ? $_GET['tx_ref'] : '';
 
-// Redirect if already logged in
-if (is_logged_in()) {
+// Redirect if already logged in — but NOT if we just logged out
+$coming_from_logout = isset($_GET['logout']);
+
+if (!$coming_from_logout && is_logged_in()) {
     if ($redirect == 'booking') {
         $redirect_url = 'booking.php' . ($room_id ? '?room=' . $room_id : '');
         header("Location: $redirect_url");
