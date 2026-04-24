@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// Load database configuration from environment variables
 $env_file = __DIR__ . '/../.env';
 if (file_exists($env_file)) {
     foreach (file($env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -51,19 +52,16 @@ if (file_exists($env_file)) {
         if (!defined($k)) define($k, $v);
     }
 }
-foreach (['DB_HOST','DB_PORT','DB_USER','DB_PASS','DB_NAME'] as $k) {
-    $v = getenv($k);
-    if ($v !== false && !defined($k)) define($k, $v);
-}
+
+// Get database credentials from environment variables (Render uses these)
+$db_host = getenv('DB_HOST') ?: (defined('DB_HOST') ? DB_HOST : 'localhost');
+$db_user = getenv('DB_USER') ?: (defined('DB_USER') ? DB_USER : 'root');
+$db_pass = getenv('DB_PASS') ?: (defined('DB_PASS') ? DB_PASS : '');
+$db_name = getenv('DB_NAME') ?: (defined('DB_NAME') ? DB_NAME : '');
+$db_port = getenv('DB_PORT') ?: (defined('DB_PORT') ? DB_PORT : '3306');
 
 mysqli_report(MYSQLI_REPORT_OFF);
-$conn = @new mysqli(
-    defined('DB_HOST') ? DB_HOST : 'localhost',
-    defined('DB_USER') ? DB_USER : 'root',
-    defined('DB_PASS') ? DB_PASS : '',
-    defined('DB_NAME') ? DB_NAME : '',
-    defined('DB_PORT') ? (int)DB_PORT : 3306
-);
+$conn = @new mysqli($db_host, $db_user, $db_pass, $db_name, (int)$db_port);
 
 if ($conn->connect_error) {
     echo json_encode(['success' => false, 'error' => 'Database unavailable.']);
