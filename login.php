@@ -71,12 +71,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 // Verify password using professional method (supports bcrypt, MD5, and plain text)
                 if (verify_user_password($password, $user['password'])) {
+                    // Regenerate session ID for security after successful login
+                    session_regenerate_id(true);
+                    
                     // Set session variables
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['role'] = $user['role'];
                     $_SESSION['user_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
                     $_SESSION['user_email'] = $user['email'];
                     $_SESSION['user_role'] = $user['role'];
+                    $_SESSION['last_regeneration'] = time(); // Track regeneration time
                     
                     // Update last login timestamp
                     $update_query = "UPDATE users SET last_login = NOW() WHERE id = ?";

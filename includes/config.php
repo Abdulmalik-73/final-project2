@@ -77,7 +77,7 @@ if (session_status() == PHP_SESSION_NONE) {
     ini_set('session.cookie_lifetime', 86400); // 24 hours
     ini_set('session.cookie_samesite', 'Lax');
     ini_set('session.gc_probability', 1);
-    ini_set('session.gc_divisor', 100);
+    ini_set('session.gc_divisor', 1000); // Less aggressive garbage collection
     
     // Ensure session save path is writable
     $session_path = sys_get_temp_dir() . '/php_sessions';
@@ -96,13 +96,8 @@ if (session_status() == PHP_SESSION_NONE) {
     
     session_start();
     
-    // Regenerate session ID periodically for security
-    if (!isset($_SESSION['last_regeneration'])) {
-        $_SESSION['last_regeneration'] = time();
-    } elseif (time() - $_SESSION['last_regeneration'] > 300) { // 5 minutes
-        session_regenerate_id(true);
-        $_SESSION['last_regeneration'] = time();
-    }
+    // Less aggressive session regeneration - only on login, not on every request
+    // This prevents session loss during normal browsing
 }
 // Timezone Configuration
 date_default_timezone_set(defined('TIMEZONE') ? TIMEZONE : 'Africa/Addis_Ababa');

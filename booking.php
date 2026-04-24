@@ -44,6 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     if (!is_logged_in()) {
         error_log("User not logged in, storing booking data and redirecting");
+        error_log("Booking: User not logged in. Session data: " . json_encode([
+            'session_id' => session_id(),
+            'user_id' => $_SESSION['user_id'] ?? 'not set',
+            'session_status' => session_status(),
+            'session_vars' => array_keys($_SESSION)
+        ]));
         $_SESSION['booking_data'] = $_POST;
         header('Location: login.php');
         exit();

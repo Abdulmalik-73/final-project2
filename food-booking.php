@@ -8,6 +8,14 @@ require_once 'includes/functions.php';
 
 // Redirect if not logged in
 if (!is_logged_in()) {
+    // Debug logging
+    error_log("Food booking: User not logged in. Session data: " . json_encode([
+        'session_id' => session_id(),
+        'user_id' => $_SESSION['user_id'] ?? 'not set',
+        'session_status' => session_status(),
+        'session_vars' => array_keys($_SESSION)
+    ]));
+    
     $_SESSION['redirect_after_login'] = 'food-booking.php';
     header('Location: login.php?redirect=food-booking');
     exit();
