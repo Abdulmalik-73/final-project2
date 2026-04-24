@@ -110,7 +110,22 @@ try {
     $base64   = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
 
     // Store image temporarily for this user (will be moved to booking when created)
-    // First, clean up any old temporary uploads for this user and system-wide old entries
+    // First, ensure temp_id_uploads table exists
+    $create_table_sql = "
+        CREATE TABLE IF NOT EXISTS temp_id_uploads (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            token VARCHAR(32) NOT NULL UNIQUE,
+            image_data MEDIUMTEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_id (user_id),
+            INDEX idx_token (token),
+            INDEX idx_created_at (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ";
+    $conn->query($create_table_sql);
+    
+    // Clean up any old temporary uploads for this user and system-wide old entries
     $cleanup_stmt = $conn->prepare("DELETE FROM temp_id_uploads WHERE user_id = ? OR created_at < DATE_SUB(NOW(), INTERVAL 1 HOUR)");
     if ($cleanup_stmt) {
         $cleanup_stmt->bind_param("i", $user_id);

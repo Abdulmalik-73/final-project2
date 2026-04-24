@@ -70,11 +70,14 @@ if (!defined('TIMEZONE'))        define('TIMEZONE', 'Africa/Addis_Ababa');
 
 // Session Configuration and Start
 if (session_status() == PHP_SESSION_NONE) {
+    // Enhanced session configuration for better stability
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
-    ini_set('session.gc_maxlifetime', 86400);
-    ini_set('session.cookie_lifetime', 86400);
+    ini_set('session.gc_maxlifetime', 86400); // 24 hours
+    ini_set('session.cookie_lifetime', 86400); // 24 hours
     ini_set('session.cookie_samesite', 'Lax');
+    ini_set('session.gc_probability', 1);
+    ini_set('session.gc_divisor', 100);
     
     // Ensure session save path is writable
     $session_path = sys_get_temp_dir() . '/php_sessions';
@@ -88,7 +91,18 @@ if (session_status() == PHP_SESSION_NONE) {
              || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
     ini_set('session.cookie_secure', $is_https ? 1 : 0);
 
+    // Set session name to avoid conflicts
+    session_name('HARAR_RAS_SESSION');
+    
     session_start();
+    
+    // Regenerate session ID periodically for security
+    if (!isset($_SESSION['last_regeneration'])) {
+        $_SESSION['last_regeneration'] = time();
+    } elseif (time() - $_SESSION['last_regeneration'] > 300) { // 5 minutes
+        session_regenerate_id(true);
+        $_SESSION['last_regeneration'] = time();
+    }
 }
 // Timezone Configuration
 date_default_timezone_set(defined('TIMEZONE') ? TIMEZONE : 'Africa/Addis_Ababa');

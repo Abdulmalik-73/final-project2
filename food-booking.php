@@ -1,4 +1,8 @@
-<?php session_start();
+<?php 
+// Start session only if not already started
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
@@ -36,7 +40,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (empty($id_image_raw)) {
         $error = 'Please upload your ID before placing the order.';
     } elseif (!$is_token_food && !$is_base64_food && !$is_filepath_food) {
-        $error = 'Invalid ID image. Please re-upload your ID.';
+        // Debug information for troubleshooting
+        $debug_info = [
+            'id_image_raw_length' => strlen($id_image_raw),
+            'id_image_raw_start' => substr($id_image_raw, 0, 50),
+            'is_token_food' => $is_token_food,
+            'is_base64_food' => $is_base64_food,
+            'is_filepath_food' => $is_filepath_food,
+            'user_id' => $_SESSION['user_id'] ?? 'not set'
+        ];
+        error_log("Food booking ID validation failed: " . json_encode($debug_info));
+        $error = 'Invalid ID image. Please re-upload your ID. (Debug: ' . substr($id_image_raw, 0, 20) . '...)';
     } else {
         // Resolve token to base64
         $id_image = $id_image_raw;
@@ -47,12 +61,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $ts->bind_param("si", $id_image_raw, $uid_f);
                 $ts->execute();
                 $tr = $ts->get_result()->fetch_assoc();
+                $ts->close();
                 if ($tr && !empty($tr['image_data'])) {
                     $id_image = $tr['image_data'];
                 } else {
-                    $error = 'ID upload session expired. Please re-upload your ID.';
+                    // Check if table exists
+                    $table_check = $conn->query("SHOW TABLES LIKE 'temp_id_uploads'");
+                    if ($table_check->num_rows == 0) {
+                        $error = 'System error: Temporary storage not available. Please contact support.';
+                    } else {
+                        $error = 'ID upload session expired. Please re-upload your ID.';
+                    }
                     goto food_skip;
                 }
+            } else {
+                $error = 'Database error: ' . $conn->error;
+                goto food_skip;
             }
         }
         // Create single item order

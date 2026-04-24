@@ -1,4 +1,8 @@
-<?php session_start();
+<?php 
+// Start session only if not already started
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 require_once 'includes/RoomLockManager.php';
@@ -64,7 +68,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $is_filepath = preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_token);
 
     if (!$is_token && !$is_base64 && !$is_filepath) {
-        $error = 'Invalid ID image. Please re-upload your ID.';
+        // Debug information for troubleshooting
+        $debug_info = [
+            'id_token_length' => strlen($id_token),
+            'id_token_start' => substr($id_token, 0, 50),
+            'is_token' => $is_token,
+            'is_base64' => $is_base64,
+            'is_filepath' => $is_filepath,
+            'user_id' => $_SESSION['user_id'] ?? 'not set'
+        ];
+        error_log("Room booking ID validation failed: " . json_encode($debug_info));
+        $error = 'Invalid ID image. Please re-upload your ID. (Debug: ' . substr($id_token, 0, 20) . '...)';
         goto skip_booking;
     }
 
@@ -80,11 +94,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if ($tok_row && !empty($tok_row['image_data'])) {
                 $id_image = $tok_row['image_data']; // actual base64
             } else {
-                $error = 'ID upload session expired. Please re-upload your ID.';
+                // Check if table exists
+                $table_check = $conn->query("SHOW TABLES LIKE 'temp_id_uploads'");
+                if ($table_check->num_rows == 0) {
+                    $error = 'System error: Temporary storage not available. Please contact support.';
+                } else {
+                    $error = 'ID upload session expired. Please re-upload your ID.';
+                }
                 goto skip_booking;
             }
         } else {
-            $error = 'Database error. Please try again.';
+            $error = 'Database error: ' . $conn->error;
             goto skip_booking;
         }
     }
