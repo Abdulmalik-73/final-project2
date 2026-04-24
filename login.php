@@ -41,6 +41,24 @@ $success = '';
 // Check for logout success
 if (isset($_GET['logout']) && $_GET['logout'] == 'success') {
     $success = 'You have been successfully logged out. Thank you for using our system!';
+} elseif (isset($_GET['logout']) && $_GET['logout'] == 'forced') {
+    $reason = $_GET['reason'] ?? 'security';
+    switch ($reason) {
+        case 'session_expired':
+            $error = 'Your session has expired. Please log in again.';
+            break;
+        case 'account_inactive':
+            $error = 'Your account is no longer active. Please contact administrator.';
+            break;
+        case 'role_changed':
+            $error = 'Your account permissions have changed. Please log in again.';
+            break;
+        case 'timeout':
+            $error = 'You have been logged out due to inactivity.';
+            break;
+        default:
+            $error = 'You have been logged out for security reasons. Please log in again.';
+    }
 }
 
 // Check for password reset success
