@@ -10,10 +10,10 @@ echo "Starting migration: id_image columns...\n\n";
 
 $steps = [
     "Add id_image to bookings table" =>
-        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS id_image VARCHAR(255) DEFAULT NULL COMMENT 'Path to uploaded customer ID image'",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS id_image MEDIUMTEXT DEFAULT NULL COMMENT 'Base64 encoded customer ID image'",
 
     "Add id_image to food_orders table" =>
-        "ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS id_image VARCHAR(255) DEFAULT NULL COMMENT 'Path to uploaded customer ID image'",
+        "ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS id_image MEDIUMTEXT DEFAULT NULL COMMENT 'Base64 encoded customer ID image'",
 
     "Add index on bookings.id_image" =>
         "ALTER TABLE bookings ADD INDEX IF NOT EXISTS idx_id_image (id_image(50))",
