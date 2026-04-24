@@ -38,6 +38,11 @@ if (is_logged_in()) {
 $error = '';
 $success = '';
 
+// Check for logout success
+if (isset($_GET['logout']) && $_GET['logout'] == 'success') {
+    $success = 'You have been successfully logged out. Thank you for using our system!';
+}
+
 // Check for password reset success
 if (isset($_GET['reset']) && $_GET['reset'] == 'success') {
     $success = 'Password reset successful! You can now login with your new password.';
