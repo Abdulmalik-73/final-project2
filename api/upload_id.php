@@ -109,8 +109,8 @@ try {
     $mime_out = ($mime === 'image/jpg' || $mime === 'image/jpeg') ? 'image/jpeg' : 'image/png';
     $base64   = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
 
-    // Save base64 directly to bookings table
-    $stmt = $conn->prepare("UPDATE bookings SET id_image = ? WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
+    // Save base64 directly to bookings table (most recent booking for this user)
+    $stmt = $conn->prepare("UPDATE bookings SET id_image = ? WHERE user_id = ? AND booking_type IN ('room', 'food_order', 'spa_service', 'laundry_service') ORDER BY created_at DESC LIMIT 1");
     if (!$stmt) {
         throw new Exception('Database error: ' . $conn->error);
     }

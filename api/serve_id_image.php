@@ -54,7 +54,7 @@ if (strpos($data, 'data:') === 0) {
         if ($imgdata === false || strlen($imgdata) === 0) {
             http_response_code(500);
             header('Content-Type: text/plain');
-            echo 'Failed to decode image';
+            echo 'Failed to decode image data';
             exit;
         }
 
@@ -65,12 +65,17 @@ if (strpos($data, 'data:') === 0) {
         ob_end_clean();
         echo $imgdata;
         exit;
+    } else {
+        http_response_code(400);
+        header('Content-Type: text/plain');
+        echo 'Invalid base64 format';
+        exit;
     }
 }
 
 http_response_code(404);
 header('Content-Type: text/plain');
-echo 'Image not available';
+echo 'Image data not in expected format';
 exit;
 
 
