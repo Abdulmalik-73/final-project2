@@ -113,9 +113,10 @@ $rooms_result = $conn->query($rooms_query);
                 <span class="navbar-text me-3">
                     <i class="fas fa-user-tie"></i> Welcome, <?php echo htmlspecialchars($_SESSION['user_name']); ?> (Receptionist)
                 </span>
-                <button class="btn btn-outline-light btn-sm" onclick="confirmLogout()" id="logoutBtn">
+                <a href="../logout.php" class="btn btn-outline-light btn-sm" 
+                   onclick="return confirm('Are you sure you want to logout?')">
                     <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
+                </a>
             </div>
         </div>
     </nav>
@@ -421,16 +422,6 @@ $rooms_result = $conn->query($rooms_query);
         document.querySelector('input[name="check_in_date"]').addEventListener('change', calculateNights);
         document.querySelector('input[name="check_out_date"]').addEventListener('change', calculateNights);
         document.querySelector('input[name="rate_per_night"]').addEventListener('input', calculateTotal);
-
-        // Logout function
-        function confirmLogout() {
-            if (confirm('Are you sure you want to logout?')) {
-                const logoutBtn = document.getElementById('logoutBtn');
-                logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging out...';
-                logoutBtn.disabled = true;
-                window.location.href = '../logout.php';
-            }
-        }
     </script>
 </body>
 </html>

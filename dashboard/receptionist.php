@@ -4,47 +4,8 @@ error_reporting(0);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
-// Start session with secure settings
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Prevent caching to avoid back-button access after logout
-header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
-header("Cache-Control: post-check=0, pre-check=0", false);
-header("Pragma: no-cache");
-header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
-
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
-
-// Enhanced session validation
-if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id']) || 
-    !isset($_SESSION['role']) || $_SESSION['role'] !== 'receptionist') {
-    
-    // Clear any existing session data
-    $_SESSION = array();
-    session_destroy();
-    
-    // Redirect to login
-    header('Location: ../login.php?error=session_expired');
-    exit();
-}
-
-// Additional security: Check if session is still valid
-$user_id = (int)$_SESSION['user_id'];
-$check_user = $conn->prepare("SELECT id, role, status FROM users WHERE id = ? AND role = 'receptionist' AND status = 'active'");
-$check_user->bind_param("i", $user_id);
-$check_user->execute();
-$user_result = $check_user->get_result();
-
-if ($user_result->num_rows === 0) {
-    // User no longer exists or is not active - force logout
-    $_SESSION = array();
-    session_destroy();
-    header('Location: ../login.php?error=account_inactive');
-    exit();
-}
 
 require_auth_role('receptionist', '../login.php');
 
