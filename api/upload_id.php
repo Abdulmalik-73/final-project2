@@ -104,12 +104,27 @@ try {
         throw new Exception('File is not a valid image.');
     }
 
-    // Read file and encode as base64
-    $raw      = file_get_contents($file['tmp_name']);
-    $mime_out = ($mime === 'image/jpg' || $mime === 'image/jpeg') ? 'image/jpeg' : 'image/png';
-    $base64   = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
+    // Create uploads/ids directory if it doesn't exist
+    $upload_dir = __DIR__ . '/../uploads/ids/';
+    if (!is_dir($upload_dir)) {
+        if (!mkdir($upload_dir, 0755, true)) {
+            throw new Exception('Failed to create upload directory.');
+        }
+    }
 
-    // Store image temporarily for this user (will be moved to booking when created)
+    // Generate unique filename
+    $extension = ($mime === 'image/jpg' || $mime === 'image/jpeg') ? 'jpg' : 'png';
+    $timestamp = time();
+    $random = bin2hex(random_bytes(4)); // 8 characters
+    $filename = "id_{$user_id}_{$timestamp}_{$random}.{$extension}";
+    $filepath = $upload_dir . $filename;
+
+    // Move uploaded file to permanent location
+    if (!move_uploaded_file($file['tmp_name'], $filepath)) {
+        throw new Exception('Failed to save uploaded file.');
+    }
+
+    // Store file path temporarily for this user (will be moved to booking when created)
     // First, ensure temp_id_uploads table exists
     $create_table_sql = "
         CREATE TABLE IF NOT EXISTS temp_id_uploads (
@@ -136,21 +151,30 @@ try {
     // Generate a unique token for this upload
     $token = bin2hex(random_bytes(16)); // 32-character hex string
 
-    // Store the image temporarily
+    // Store the file path temporarily (not base64)
     $temp_stmt = $conn->prepare("INSERT INTO temp_id_uploads (user_id, token, image_data, created_at) VALUES (?, ?, ?, NOW())");
     if (!$temp_stmt) {
+        // Clean up uploaded file if database fails
+        @unlink($filepath);
         throw new Exception('Database error: ' . $conn->error);
     }
-    $temp_stmt->bind_param("iss", $user_id, $token, $base64);
+    $temp_stmt->bind_param("iss", $user_id, $token, $filename);
     if (!$temp_stmt->execute()) {
+        // Clean up uploaded file if database fails
+        @unlink($filepath);
         throw new Exception('Failed to save image: ' . $temp_stmt->error);
     }
     $temp_stmt->close();
 
+    // Generate preview base64 for display
+    $raw = file_get_contents($filepath);
+    $mime_out = ($mime === 'image/jpg' || $mime === 'image/jpeg') ? 'image/jpeg' : 'image/png';
+    $base64 = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
+
     echo json_encode([
         'success'   => true,
         'message'   => 'ID uploaded successfully.',
-        'file_path' => $token,  // Return the token instead of full base64
+        'file_path' => $token,  // Return the token
         'file_name' => $file['name'],
         'file_size' => round($file['size'] / 1024, 1) . ' KB',
         'preview'   => $base64,  // Keep preview for display

@@ -235,7 +235,7 @@ $without_count = $total_count - $with_id_count;
                                     <tbody>
                                     <?php foreach ($bookings as $b):
                                         $has_id = !empty($b['id_image']);
-                                        $img_url = '../api/serve_id_image.php?booking_id=' . (int)$b['id'];
+                                        $img_url = '../view-id.php?booking_id=' . (int)$b['id'];
 
                                         // Status badge
                                         $st = strtolower($b['status']);
@@ -426,6 +426,33 @@ $without_count = $total_count - $with_id_count;
         tmp.onerror = function() {
             spinner.style.display = 'none';
             errDiv.style.display  = 'flex';
+            
+            // Try to determine the error cause by checking the response
+            fetch(src, { method: 'HEAD' })
+                .then(response => {
+                    const errorTitle = document.querySelector('#idViewError h5');
+                    const errorText = document.querySelector('#idViewError p');
+                    
+                    if (response.status === 403) {
+                        errorTitle.textContent = 'Access Denied';
+                        errorText.innerHTML = 'You do not have permission to view this ID image.<br>Please contact your administrator for access.';
+                    } else if (response.status === 404) {
+                        errorTitle.textContent = 'Image File Missing';
+                        errorText.innerHTML = 'The ID image file could not be found on the server.<br>The customer may need to re-upload their ID.';
+                    } else if (response.status === 400) {
+                        errorTitle.textContent = 'Invalid Image Format';
+                        errorText.innerHTML = 'The ID image is in an invalid format or corrupted.<br>Please ask the customer to upload a valid ID image.';
+                    } else {
+                        errorTitle.textContent = 'Image Loading Failed';
+                        errorText.innerHTML = 'Failed to load the ID image (Error ' + response.status + ').<br>Please try again or contact support if the issue persists.';
+                    }
+                })
+                .catch(() => {
+                    const errorTitle = document.querySelector('#idViewError h5');
+                    const errorText = document.querySelector('#idViewError p');
+                    errorTitle.textContent = 'Network Error';
+                    errorText.innerHTML = 'Unable to connect to the image server.<br>Please check your internet connection and try again.';
+                });
         };
         tmp.src = src;
     }

@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($id_token)) {
         $error = 'Please upload your ID before confirming booking.';
     } else {
-        // Resolve: token → base64, or accept legacy base64/filepath directly
+        // Resolve: token → filename, or accept legacy base64/filepath directly
         $is_token    = preg_match('/^[a-f0-9]{32}$/', $id_token);
         $is_base64   = (strpos($id_token, 'data:image/') === 0);
         $is_filepath = preg_match('/^uploads\/ids\/id_\d+_\d+_[a-zA-Z0-9._]+\.(jpg|jpeg|png)$/i', $id_token);
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $tok_row = $tok_stmt->get_result()->fetch_assoc();
                     $tok_stmt->close();
                     if ($tok_row && !empty($tok_row['image_data'])) {
-                        $id_image = $tok_row['image_data']; // actual base64
+                        $id_image = $tok_row['image_data']; // actual filename
                     } else {
                         $error = 'ID upload session expired. Please re-upload your ID.';
                     }

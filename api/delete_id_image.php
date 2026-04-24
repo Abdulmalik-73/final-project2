@@ -42,14 +42,55 @@ if ($booking_id <= 0) {
     exit;
 }
 
-$stmt = $conn->prepare("UPDATE bookings SET id_image = NULL WHERE id = ?");
-$stmt->bind_param("i", $booking_id);
+// First get the current filename to delete the file
+$get_stmt = $conn->prepare("SELECT id_image FROM bookings WHERE id = ? LIMIT 1");
+$get_stmt->bind_param("i", $booking_id);
+$get_stmt->execute();
+$booking = $get_stmt->get_result()->fetch_assoc();
+$get_stmt->close();
 
-if ($stmt->execute()) {
+$filename = $booking['id_image'] ?? '';
+
+// Start transaction
+$conn->begin_transaction();
+
+try {
+    // Update database to remove image reference
+    $stmt = $conn->prepare("UPDATE bookings SET id_image = NULL WHERE id = ?");
+    $stmt->bind_param("i", $booking_id);
+    $stmt->execute();
+    $stmt->close();
+
+    // Delete the actual file if it's a file-based image (not base64)
+    if (!empty($filename) && strpos($filename, 'data:') !== 0) {
+        // This is a file-based image, delete it
+        $filepath = __DIR__ . '/../uploads/ids/' . $filename;
+        
+        // Validate filename format for security
+        if (preg_match('/^id_\d+_\d+_[a-f0-9]+\.(jpg|jpeg|png)$/i', $filename)) {
+            if (file_exists($filepath)) {
+                if (!unlink($filepath)) {
+                    error_log("Failed to delete ID file: $filepath for booking_id=$booking_id");
+                    // Continue anyway - database is updated, file cleanup can be manual
+                } else {
+                    error_log("Successfully deleted ID file: $filepath for booking_id=$booking_id");
+                }
+            } else {
+                error_log("ID file not found for deletion: $filepath for booking_id=$booking_id");
+            }
+        } else {
+            error_log("Invalid filename format for deletion: $filename for booking_id=$booking_id");
+        }
+    }
+
+    $conn->commit();
     error_log("ID image deleted for booking_id=$booking_id by user=" . ($_SESSION['user_id'] ?? '?'));
     echo json_encode(['success' => true, 'message' => 'ID image deleted successfully.']);
-} else {
-    echo json_encode(['success' => false, 'error' => 'Failed to delete: ' . $stmt->error]);
+
+} catch (Exception $e) {
+    $conn->rollback();
+    error_log("Error deleting ID image for booking_id=$booking_id: " . $e->getMessage());
+    echo json_encode(['success' => false, 'error' => 'Failed to delete: ' . $e->getMessage()]);
 }
 
 
