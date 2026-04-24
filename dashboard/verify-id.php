@@ -235,7 +235,7 @@ $without_count = $total_count - $with_id_count;
                                     <tbody>
                                     <?php foreach ($bookings as $b):
                                         $has_id = !empty($b['id_image']);
-                                        $img_url = '../view-id.php?booking_id=' . (int)$b['id'];
+                                        $img_url = '../api/serve_id_image.php?booking_id=' . (int)$b['id'];
 
                                         // Status badge
                                         $st = strtolower($b['status']);

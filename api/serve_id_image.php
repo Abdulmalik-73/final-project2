@@ -7,6 +7,18 @@
 ob_start();
 
 if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.gc_maxlifetime', 86400);
+    ini_set('session.cookie_lifetime', 86400);
+    ini_set('session.cookie_samesite', 'Lax');
+    $sp = sys_get_temp_dir() . '/php_sessions';
+    if (!is_dir($sp)) @mkdir($sp, 0777, true);
+    ini_set('session.save_path', $sp);
+    $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+             || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+    ini_set('session.cookie_secure', $is_https ? 1 : 0);
+    session_name('HARAR_RAS_SESSION');
     session_start();
 }
 
