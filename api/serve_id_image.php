@@ -13,8 +13,31 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once '../includes/config.php';
 ob_clean();
 
-$role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? '';
-if (!in_array($role, ['receptionist', 'manager', 'admin', 'super_admin'])) {
+// Check user role - try multiple session keys
+$role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? $_SESSION['staff_role'] ?? '';
+$user_id = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
+
+// Allow if user is logged in and has a role (receptionist dashboard access)
+$allowed_roles = ['receptionist', 'manager', 'admin', 'super_admin', 'staff'];
+$is_authorized = !empty($role) && in_array(strtolower($role), $allowed_roles);
+
+// Also allow if user is logged in and accessing their own booking
+if (!$is_authorized && $user_id > 0) {
+    // Check if this is the user's own booking
+    $booking_id = (int)($_GET['booking_id'] ?? 0);
+    if ($booking_id > 0) {
+        $check = $conn->prepare("SELECT user_id FROM bookings WHERE id = ? LIMIT 1");
+        $check->bind_param("i", $booking_id);
+        $check->execute();
+        $check_row = $check->get_result()->fetch_assoc();
+        $check->close();
+        if ($check_row && $check_row['user_id'] == $user_id) {
+            $is_authorized = true;
+        }
+    }
+}
+
+if (!$is_authorized) {
     http_response_code(403);
     header('Content-Type: text/plain');
     echo 'Access denied';
@@ -77,5 +100,6 @@ http_response_code(404);
 header('Content-Type: text/plain');
 echo 'Image data not in expected format';
 exit;
+
 
 
