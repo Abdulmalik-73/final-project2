@@ -62,11 +62,14 @@ $stmt->close();
 $data = trim($row['id_image'] ?? '');
 
 if (empty($data)) {
+    error_log("serve_id_image: No image data for booking_id=$booking_id");
     http_response_code(404);
     header('Content-Type: text/plain');
     echo 'No ID image on file for this booking';
     exit;
 }
+
+error_log("serve_id_image: Found image data for booking_id=$booking_id, length=" . strlen($data));
 
 // If data is base64 data URL, extract and serve it
 if (strpos($data, 'data:') === 0) {
@@ -75,12 +78,14 @@ if (strpos($data, 'data:') === 0) {
         $imgdata = base64_decode($m[3], true);
 
         if ($imgdata === false || strlen($imgdata) === 0) {
+            error_log("serve_id_image: Failed to decode base64 for booking_id=$booking_id");
             http_response_code(500);
             header('Content-Type: text/plain');
             echo 'Failed to decode image data';
             exit;
         }
 
+        error_log("serve_id_image: Successfully serving image for booking_id=$booking_id, mime=$mime, size=" . strlen($imgdata));
         header('Content-Type: ' . $mime);
         header('Content-Length: ' . strlen($imgdata));
         header('Cache-Control: private, max-age=3600');
@@ -89,6 +94,7 @@ if (strpos($data, 'data:') === 0) {
         echo $imgdata;
         exit;
     } else {
+        error_log("serve_id_image: Base64 regex mismatch for booking_id=$booking_id, data starts with: " . substr($data, 0, 100));
         http_response_code(400);
         header('Content-Type: text/plain');
         echo 'Invalid base64 format';
@@ -96,6 +102,7 @@ if (strpos($data, 'data:') === 0) {
     }
 }
 
+error_log("serve_id_image: Data not in base64 format for booking_id=$booking_id, starts with: " . substr($data, 0, 50));
 http_response_code(404);
 header('Content-Type: text/plain');
 echo 'Image data not in expected format';

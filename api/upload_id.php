@@ -109,15 +109,39 @@ try {
     $mime_out = ($mime === 'image/jpg' || $mime === 'image/jpeg') ? 'image/jpeg' : 'image/png';
     $base64   = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
 
-    // Save base64 directly to bookings table (most recent booking for this user)
-    $stmt = $conn->prepare("UPDATE bookings SET id_image = ? WHERE user_id = ? AND booking_type IN ('room', 'food_order', 'spa_service', 'laundry_service') ORDER BY created_at DESC LIMIT 1");
-    if (!$stmt) {
+    // Find the most recent pending booking for this user
+    $find_booking = $conn->prepare("
+        SELECT id FROM bookings 
+        WHERE user_id = ? 
+        AND status IN ('pending', 'confirmed', 'checked_in')
+        ORDER BY created_at DESC 
+        LIMIT 1
+    ");
+    if (!$find_booking) {
         throw new Exception('Database error: ' . $conn->error);
     }
-    $stmt->bind_param("si", $base64, $user_id);
-    if (!$stmt->execute()) {
-        throw new Exception('Failed to save image: ' . $stmt->error);
+    $find_booking->bind_param("i", $user_id);
+    $find_booking->execute();
+    $booking_result = $find_booking->get_result();
+    $booking_row = $booking_result->fetch_assoc();
+    $find_booking->close();
+
+    if (!$booking_row) {
+        throw new Exception('No active booking found for this user. Please create a booking first.');
     }
+
+    $booking_id = $booking_row['id'];
+
+    // Update the booking with the base64 image
+    $update_stmt = $conn->prepare("UPDATE bookings SET id_image = ? WHERE id = ?");
+    if (!$update_stmt) {
+        throw new Exception('Database error: ' . $conn->error);
+    }
+    $update_stmt->bind_param("si", $base64, $booking_id);
+    if (!$update_stmt->execute()) {
+        throw new Exception('Failed to save image: ' . $update_stmt->error);
+    }
+    $update_stmt->close();
 
     echo json_encode([
         'success'   => true,
