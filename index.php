@@ -415,84 +415,41 @@ $food_images = [
         <div class="container-fluid px-4">
             <div class="rooms-image-grid">
                 <?php
-                // Display 40 images total: 39 rooms + 1 food image
-                $all_rooms_result = null;
-                if ($conn) {
-                    $all_rooms_result = $conn->query("SELECT id, room_number, image FROM rooms ORDER BY CAST(room_number AS UNSIGNED) LIMIT 39");
-                }
-                
-                // Images array with 39 room images + 1 food image = 40 total
-                $default_images = [
-                    // Room images (31 images)
-                    'assets/images/rooms/deluxe/room.jpg',
-                    'assets/images/rooms/deluxe/room2.jpg',
-                    'assets/images/rooms/deluxe/room3.jpg',
-                    'assets/images/rooms/deluxe/room4.jpg',
-                    'assets/images/rooms/deluxe/room5.jpg',
-                    'assets/images/rooms/deluxe/room6.jpg',
-                    'assets/images/rooms/deluxe/room7.jpg',
-                    'assets/images/rooms/deluxe/room8.jpg',
-                    'assets/images/rooms/deluxe/room9.jpg',
-                    'assets/images/rooms/deluxe/room10.jpg',
-                    'assets/images/rooms/standard/room12.jpg',
-                    'assets/images/rooms/standard/room13.jpg',
-                    'assets/images/rooms/standard/room14.jpg',
-                    'assets/images/rooms/standard/room15.jpg',
-                    'assets/images/rooms/standard/room16.jpg',
-                    'assets/images/rooms/suite/room21.jpg',
-                    'assets/images/rooms/suite/room22.jpg',
-                    'assets/images/rooms/suite/room23.jpg',
-                    'assets/images/rooms/family/room27.jpg',
-                    'assets/images/rooms/family/room28.jpg',
-                    'assets/images/rooms/family/room29.jpg',
-                    'assets/images/rooms/family/room30.jpg',
-                    'assets/images/rooms/family/room31.jpg',
-                    'assets/images/rooms/family/room32.jpg',
-                    'assets/images/rooms/family/room33.jpg',
-                    'assets/images/rooms/family/room34.jpg',
-                    'assets/images/rooms/presidential/room35.jpg',
-                    'assets/images/rooms/presidential/room36.jpg',
-                    'assets/images/rooms/presidential/room37.jpg',
-                    'assets/images/rooms/presidential/room38.jpg',
-                    'assets/images/rooms/presidential/room39.jpg',
-                    // Food images to fill remaining 9 slots (to make 40 total)
-                    'assets/images/food/ethiopian/food1.jpg',
-                    'assets/images/food/ethiopian/food3.jpg',
-                    'assets/images/food/ethiopian/food4.jpg',
-                    'assets/images/food/ethiopian/food5.jpg',
-                    'assets/images/food/ethiopian/food6.jpg',
-                    'assets/images/food/ethiopian/food7.jpg',
-                    'assets/images/food/ethiopian/food8.jpg',
-                    'assets/images/food/ethiopian/food10.jpg',
-                    'assets/images/food/ethiopian/food12.jpg',
+                // Exactly 20 images: 10 unique room images + 10 unique food images
+                $gallery_images = [
+                    // 10 room images (one from each category, no duplicates)
+                    ['src' => 'assets/images/rooms/deluxe/room.jpg',              'label' => 'Deluxe Room'],
+                    ['src' => 'assets/images/rooms/deluxe/room3.jpg',             'label' => 'Deluxe Room'],
+                    ['src' => 'assets/images/rooms/standard/room12.jpg',          'label' => 'Standard Room'],
+                    ['src' => 'assets/images/rooms/standard/room14.jpg',          'label' => 'Standard Room'],
+                    ['src' => 'assets/images/rooms/suite/room21.jpg',             'label' => 'Suite'],
+                    ['src' => 'assets/images/rooms/suite/room23.jpg',             'label' => 'Suite'],
+                    ['src' => 'assets/images/rooms/family/room27.jpg',            'label' => 'Family Room'],
+                    ['src' => 'assets/images/rooms/family/room30.jpg',            'label' => 'Family Room'],
+                    ['src' => 'assets/images/rooms/presidential/room35.jpg',      'label' => 'Presidential Suite'],
+                    ['src' => 'assets/images/rooms/presidential/room38.jpg',      'label' => 'Presidential Suite'],
+                    // 10 food images (mix of ethiopian, international, beverages)
+                    ['src' => 'assets/images/food/ethiopian/food1.jpg',           'label' => 'Ethiopian Cuisine'],
+                    ['src' => 'assets/images/food/ethiopian/food5.jpg',           'label' => 'Ethiopian Cuisine'],
+                    ['src' => 'assets/images/food/ethiopian/food10.jpg',          'label' => 'Ethiopian Cuisine'],
+                    ['src' => 'assets/images/food/ethiopian/food16.jpg',          'label' => 'Ethiopian Cuisine'],
+                    ['src' => 'assets/images/food/international/i1.jpg',          'label' => 'International Cuisine'],
+                    ['src' => 'assets/images/food/international/i4.jpg',          'label' => 'International Cuisine'],
+                    ['src' => 'assets/images/food/international/i7.jpg',          'label' => 'International Cuisine'],
+                    ['src' => 'assets/images/food/beverages/b1.jpg',              'label' => 'Beverages'],
+                    ['src' => 'assets/images/food/beverages/b4.jpg',              'label' => 'Beverages'],
+                    ['src' => 'assets/images/food/beverages/b7.jpg',              'label' => 'Beverages'],
                 ];
-                
-                $index = 0;
-                $displayed = 0;
-                
-                // Display 39 rooms
-                while ($all_rooms_result && $room = $all_rooms_result->fetch_assoc()):
-                    if ($displayed >= 39) break;
-                    
-                    $room_image = !empty($room['image']) ? $room['image'] : ($default_images[$index] ?? 'assets/images/rooms/deluxe/room.jpg');
+                foreach ($gallery_images as $img):
                 ?>
                 
                 <div class="room-image-item">
-                    <img src="<?php echo htmlspecialchars($room_image); ?>" alt="Room <?php echo htmlspecialchars($room['room_number']); ?>">
+                    <img src="<?php echo htmlspecialchars($img['src']); ?>" 
+                         alt="<?php echo htmlspecialchars($img['label']); ?>"
+                         onerror="this.parentElement.style.display='none'">
                 </div>
                 
-                <?php 
-                    $index++;
-                    $displayed++;
-                endwhile;
-                
-                // Add 1 food image to make it 40 total
-                ?>
-                <div class="room-image-item">
-                    <img src="assets/images/food/ethiopian/food1.jpg" alt="Ethiopian Cuisine">
-                </div>
-                <?php
-                ?>
+                <?php endforeach; ?>
             </div>
         </div>
     </section>
