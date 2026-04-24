@@ -415,7 +415,7 @@ $food_images = [
         <div class="container-fluid px-4">
             <div class="rooms-image-grid">
                 <?php
-                // Exactly 20 images: 10 unique room images + 10 unique food images
+                // Exactly 18 images: 10 unique room images + 8 unique food images (no beverages)
                 $gallery_images = [
                     // 10 room images (one from each category, no duplicates)
                     ['src' => 'assets/images/rooms/deluxe/room.jpg',              'label' => 'Deluxe Room'],
@@ -428,7 +428,7 @@ $food_images = [
                     ['src' => 'assets/images/rooms/family/room30.jpg',            'label' => 'Family Room'],
                     ['src' => 'assets/images/rooms/presidential/room35.jpg',      'label' => 'Presidential Suite'],
                     ['src' => 'assets/images/rooms/presidential/room38.jpg',      'label' => 'Presidential Suite'],
-                    // 10 food images (mix of ethiopian, international, beverages)
+                    // 8 food images (ethiopian + international only, no beverages)
                     ['src' => 'assets/images/food/ethiopian/food1.jpg',           'label' => 'Ethiopian Cuisine'],
                     ['src' => 'assets/images/food/ethiopian/food5.jpg',           'label' => 'Ethiopian Cuisine'],
                     ['src' => 'assets/images/food/ethiopian/food10.jpg',          'label' => 'Ethiopian Cuisine'],
@@ -436,9 +436,7 @@ $food_images = [
                     ['src' => 'assets/images/food/international/i1.jpg',          'label' => 'International Cuisine'],
                     ['src' => 'assets/images/food/international/i4.jpg',          'label' => 'International Cuisine'],
                     ['src' => 'assets/images/food/international/i7.jpg',          'label' => 'International Cuisine'],
-                    ['src' => 'assets/images/food/beverages/b1.jpg',              'label' => 'Beverages'],
-                    ['src' => 'assets/images/food/beverages/b4.jpg',              'label' => 'Beverages'],
-                    ['src' => 'assets/images/food/beverages/b7.jpg',              'label' => 'Beverages'],
+                    ['src' => 'assets/images/food/international/i9.jpg',          'label' => 'International Cuisine'],
                 ];
                 foreach ($gallery_images as $img):
                 ?>
