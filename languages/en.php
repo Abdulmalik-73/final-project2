@@ -473,6 +473,7 @@ return [
         'back'                => 'Back',
     ],
     'booking_auth' => [
+        'auth_required'       => 'Authentication Required',
         'auth_steps'          => 'Follow these simple steps to complete your booking',
         'how_to_book'         => 'How to Complete Your Booking:',
         'step1_title'         => 'Create Account or Sign In',
