@@ -2,17 +2,34 @@
 /**
  * Receptionist-only: Delete a booking that has no ID uploaded
  */
-if (session_status() === PHP_SESSION_NONE) session_start();
+
+// Start session with same settings as config.php — BEFORE including config
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.gc_maxlifetime', 86400);
+    ini_set('session.cookie_lifetime', 86400);
+    ini_set('session.cookie_samesite', 'Lax');
+    $sp = sys_get_temp_dir() . '/php_sessions';
+    if (!is_dir($sp)) @mkdir($sp, 0777, true);
+    ini_set('session.save_path', $sp);
+    $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+             || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+    ini_set('session.cookie_secure', $is_https ? 1 : 0);
+    session_name('HARAR_RAS_SESSION');
+    session_start();
+}
+
+require_once '../includes/config.php';
 
 header('Content-Type: application/json');
 
-require_once '../includes/config.php';
-require_once '../includes/functions.php';
+// Check role — same keys as delete_id_image.php
+$role = $_SESSION['user_role'] ?? $_SESSION['role'] ?? '';
+$user_id = (int)($_SESSION['user_id'] ?? 0);
 
-// Must be receptionist, manager, or admin
-$role = $_SESSION['role'] ?? $_SESSION['user_role'] ?? '';
-if (empty($_SESSION['user_id']) || !in_array($role, ['receptionist', 'manager', 'admin'])) {
-    echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+if ($user_id <= 0 || !in_array($role, ['receptionist', 'manager', 'admin', 'super_admin'])) {
+    echo json_encode(['success' => false, 'error' => 'Access denied.']);
     exit;
 }
 
@@ -42,12 +59,12 @@ if (!$booking) {
 }
 
 if (!empty($booking['id_image'])) {
-    echo json_encode(['success' => false, 'error' => 'Cannot delete: this booking has an ID image uploaded. Use the Delete ID button first.']);
+    echo json_encode(['success' => false, 'error' => 'Cannot delete: this booking has an ID image. Use the Delete ID button first.']);
     exit;
 }
 
 // Delete the booking
-$del = $conn->prepare("DELETE FROM bookings WHERE id = ? AND (id_image IS NULL OR id_image = '')");
+$del = $conn->prepare("DELETE FROM bookings WHERE id = ?");
 $del->bind_param("i", $booking_id);
 $del->execute();
 
@@ -56,6 +73,6 @@ if ($del->affected_rows > 0) {
     echo json_encode(['success' => true, 'message' => 'Booking ' . $booking['booking_reference'] . ' deleted successfully']);
 } else {
     $del->close();
-    echo json_encode(['success' => false, 'error' => 'Could not delete booking. It may have an ID image attached.']);
+    echo json_encode(['success' => false, 'error' => 'Could not delete booking']);
 }
 ?>
