@@ -76,8 +76,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $tok_stmt->bind_param("si", $id_token, $uid_tmp);
             $tok_stmt->execute();
             $tok_row = $tok_stmt->get_result()->fetch_assoc();
+            $tok_stmt->close();
             if ($tok_row && !empty($tok_row['image_data'])) {
                 $id_image = $tok_row['image_data']; // actual base64
+            } else {
+                $error = 'ID upload session expired. Please re-upload your ID.';
+                goto skip_booking;
+            }
+        } else {
+            $error = 'Database error. Please try again.';
+            goto skip_booking;
+        }
+    }
             } else {
                 $error = 'ID upload session expired. Please re-upload your ID.';
                 goto skip_booking;
@@ -119,7 +129,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     if ($id_upd) {
                         $id_upd->bind_param("si", $id_image, $result['booking_id']);
                         $id_upd->execute();
+                        $id_upd->close();
                     }
+                    
+                    // Clean up temporary upload if it was a token
+                    if ($is_token) {
+                        $cleanup_stmt = $conn->prepare("DELETE FROM temp_id_uploads WHERE token = ? AND user_id = ?");
+                        if ($cleanup_stmt) {
+                            $cleanup_stmt->bind_param("si", $id_token, $_SESSION['user_id']);
+                            $cleanup_stmt->execute();
+                            $cleanup_stmt->close();
+                        }
+                    }
+                    
                     // Clear session pending ID
                     unset($_SESSION['pending_id_image']);
                 }
@@ -990,7 +1012,7 @@ error_log("Booking page loaded at $page_load_time with " . count($rooms) . " roo
                     previewImg.src = data.preview || '';
                     enlargeImg.src = data.preview || '';
                     fileNameEl.textContent = (data.file_name || 'ID') + ' (' + data.file_size + ')';
-                    pathInput.value = data.file_path;  // tiny 32-char token
+                    pathInput.value = data.file_path;  // 32-char token for temporary storage
                     previewArea.classList.remove('d-none');
                     setConfirmEnabled(true);
                 } else {

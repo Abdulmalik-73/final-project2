@@ -159,6 +159,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             // Log user activity for food order
                             log_user_activity($user_id, 'booking', 'Food order placed: ' . $order_reference . ' - Total: ETB ' . number_format($total_price, 2), $_SERVER['REMOTE_ADDR'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
                             
+                            // Clean up temporary upload if it was a token
+                            if ($is_token_food) {
+                                $cleanup_stmt = $conn->prepare("DELETE FROM temp_id_uploads WHERE token = ? AND user_id = ?");
+                                if ($cleanup_stmt) {
+                                    $cleanup_stmt->bind_param("si", $id_image_raw, $user_id);
+                                    $cleanup_stmt->execute();
+                                    $cleanup_stmt->close();
+                                }
+                            }
+                            
                             $success = "Food order placed successfully! Please complete payment within 30 minutes to confirm your order.";
                             
                             // Store order reference in session for payment
@@ -712,7 +722,7 @@ $food_items = array_filter($food_items, function($category) {
                     previewImg.src = data.preview || '';
                     enlargeImg.src = data.preview || '';
                     fileNameEl.textContent = (data.file_name || 'ID') + ' (' + data.file_size + ')';
-                    pathInput.value = data.file_path; // tiny token
+                    pathInput.value = data.file_path; // 32-char token for temporary storage
                     previewArea.classList.remove('d-none');
                     setConfirmEnabled(true);
                 } else {

@@ -109,47 +109,36 @@ try {
     $mime_out = ($mime === 'image/jpg' || $mime === 'image/jpeg') ? 'image/jpeg' : 'image/png';
     $base64   = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
 
-    // Find the most recent pending booking for this user
-    $find_booking = $conn->prepare("
-        SELECT id FROM bookings 
-        WHERE user_id = ? 
-        AND status IN ('pending', 'confirmed', 'checked_in')
-        ORDER BY created_at DESC 
-        LIMIT 1
-    ");
-    if (!$find_booking) {
+    // Store image temporarily for this user (will be moved to booking when created)
+    // First, clean up any old temporary uploads for this user and system-wide old entries
+    $cleanup_stmt = $conn->prepare("DELETE FROM temp_id_uploads WHERE user_id = ? OR created_at < DATE_SUB(NOW(), INTERVAL 1 HOUR)");
+    if ($cleanup_stmt) {
+        $cleanup_stmt->bind_param("i", $user_id);
+        $cleanup_stmt->execute();
+        $cleanup_stmt->close();
+    }
+
+    // Generate a unique token for this upload
+    $token = bin2hex(random_bytes(16)); // 32-character hex string
+
+    // Store the image temporarily
+    $temp_stmt = $conn->prepare("INSERT INTO temp_id_uploads (user_id, token, image_data, created_at) VALUES (?, ?, ?, NOW())");
+    if (!$temp_stmt) {
         throw new Exception('Database error: ' . $conn->error);
     }
-    $find_booking->bind_param("i", $user_id);
-    $find_booking->execute();
-    $booking_result = $find_booking->get_result();
-    $booking_row = $booking_result->fetch_assoc();
-    $find_booking->close();
-
-    if (!$booking_row) {
-        throw new Exception('No active booking found for this user. Please create a booking first.');
+    $temp_stmt->bind_param("iss", $user_id, $token, $base64);
+    if (!$temp_stmt->execute()) {
+        throw new Exception('Failed to save image: ' . $temp_stmt->error);
     }
-
-    $booking_id = $booking_row['id'];
-
-    // Update the booking with the base64 image
-    $update_stmt = $conn->prepare("UPDATE bookings SET id_image = ? WHERE id = ?");
-    if (!$update_stmt) {
-        throw new Exception('Database error: ' . $conn->error);
-    }
-    $update_stmt->bind_param("si", $base64, $booking_id);
-    if (!$update_stmt->execute()) {
-        throw new Exception('Failed to save image: ' . $update_stmt->error);
-    }
-    $update_stmt->close();
+    $temp_stmt->close();
 
     echo json_encode([
         'success'   => true,
         'message'   => 'ID uploaded successfully.',
-        'file_path' => $base64,  // Return the actual base64 data
+        'file_path' => $token,  // Return the token instead of full base64
         'file_name' => $file['name'],
         'file_size' => round($file['size'] / 1024, 1) . ' KB',
-        'preview'   => $base64,
+        'preview'   => $base64,  // Keep preview for display
     ]);
 
 } catch (Exception $e) {
