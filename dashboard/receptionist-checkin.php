@@ -3,6 +3,10 @@ require_once '../includes/config.php';
 require_once '../includes/functions.php';
 require_once '../includes/ensure_checkins_table.php';
 
+// Enable error display for debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 require_auth_role('receptionist', '../login.php');
 
 // Ensure checkins table exists before processing any check-ins
@@ -106,6 +110,8 @@ $id_bookings_count = $id_bookings ? $id_bookings->num_rows : 0;
 
 // Handle check-in form submission
 if ($_POST && isset($_POST['action'])) {
+    error_log("POST action received: " . $_POST['action']);
+    
     if ($_POST['action'] == 'search_booking') {
         $search_type = sanitize_input($_POST['search_type']);
         $search_value = sanitize_input($_POST['search_value']);
@@ -137,6 +143,9 @@ if ($_POST && isset($_POST['action'])) {
             $error = 'Room booking not found, not pending, or not confirmed';
         }
     } elseif ($_POST['action'] == 'process_checkin') {
+        error_log("=== CHECK-IN FORM SUBMITTED ===");
+        error_log("POST data: " . json_encode($_POST));
+        
         $booking_id = (int)$_POST['booking_id'];
         $room_id = (int)$_POST['room_id'];
         $customer_name = sanitize_input($_POST['customer_name']);
@@ -150,6 +159,8 @@ if ($_POST && isset($_POST['action'])) {
         $payment_collected = (float)$_POST['payment_collected'];
         $payment_method = sanitize_input($_POST['payment_method']);
         $notes = sanitize_input($_POST['notes']);
+        
+        error_log("Booking ID: $booking_id, Room ID: $room_id, Customer: $customer_name");
         
         $conn->begin_transaction();
         
