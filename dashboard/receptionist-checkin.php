@@ -1,16 +1,8 @@
 <?php
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
-require_once '../includes/ensure_checkins_table.php';
-
-// Enable error display for debugging
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 
 require_auth_role('receptionist', '../login.php');
-
-// Ensure checkins table exists before processing any check-ins
-ensure_checkins_table_exists($conn);
 
 $message = '';
 $error = '';
