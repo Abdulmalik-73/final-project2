@@ -284,6 +284,27 @@ if ($_POST && isset($_POST['action'])) {
                         $room_name = $booking_details['room_name'] ?? 'Standard Room';
                         $room_number = $booking_details['room_number'] ?? 'N/A';
                         
+                        // Ensure id_type is valid ENUM value
+                        $valid_id_types = ['passport', 'drivers_license', 'national_id'];
+                        if (!in_array($id_type, $valid_id_types)) {
+                            $id_type = 'national_id'; // Default to national_id if invalid
+                        }
+                        
+                        // Ensure payment_type is valid ENUM value
+                        $valid_payment_types = ['cash', 'credit_card', 'debit_card', 'bank_transfer', 'mobile_payment'];
+                        if (!in_array($payment_type, $valid_payment_types)) {
+                            $payment_type = 'cash'; // Default to cash if invalid
+                        }
+                        
+                        // Ensure all required fields have values
+                        $customer_name = $customer_name ?? 'Guest';
+                        $customer_email = $customer_email ?? 'noemail@example.com';
+                        $customer_phone = $customer_phone ?? 'N/A';
+                        $id_number = $id_number ?? 'N/A';
+                        $address = $address ?? 'N/A';
+                        $notes = $notes ?? '';
+                        $nights = max(1, $nights); // Ensure at least 1 night
+                        
                         error_log("=== CHECKINS INSERT DEBUG ===");
                         error_log("user_id: $user_id");
                         error_log("booking_id: $booking_id");
