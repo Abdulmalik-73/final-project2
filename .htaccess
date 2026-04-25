@@ -9,6 +9,11 @@
     # RewriteCond %{HTTPS} off
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     
+    # Exclude sitemap and robots from rewriting
+    RewriteRule ^sitemap\.xml$ - [L]
+    RewriteRule ^robots\.txt$ - [L]
+    RewriteRule ^google[a-f0-9]+\.html$ - [L]
+    
     # Remove .php extension
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME}\.php -f
@@ -79,9 +84,6 @@ AddDefaultCharset UTF-8
     ExpiresByType font/ttf "access plus 1 year"
 </IfModule>
 
-# Error Pages (Optional - create these pages if needed)
-# ErrorDocument 404 /final%20project2/404.php
-# ErrorDocument 500 /final%20project2/500.php
 
 # PHP Settings
 <IfModule mod_php7.c>
