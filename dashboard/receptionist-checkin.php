@@ -12,6 +12,11 @@ $message = '';
 $error = '';
 $booking_data = null;
 
+// Check if this is a success redirect
+if (isset($_GET['success']) && $_GET['success'] == '1' && isset($_GET['message'])) {
+    $message = urldecode($_GET['message']);
+}
+
 // Check if booking reference is provided in URL (from receptionist dashboard)
 if (isset($_GET['booking_ref']) && !empty($_GET['booking_ref'])) {
     $booking_ref = sanitize_input($_GET['booking_ref']);
@@ -290,11 +295,9 @@ if ($_POST && isset($_POST['action'])) {
             $conn->commit();
             $message = '✅ Check-in Successful! Customer ' . htmlspecialchars($customer_name) . ' has been checked in to room ' . htmlspecialchars($booking_data['room_number']) . '. Room status updated to OCCUPIED. Confirmation number: ' . ($confirmation_number ?? 'N/A');
             
-            // Store success message in session for display on dashboard
-            $_SESSION['success_message'] = $message;
-            
-            // Clear booking data to show search form again
-            $booking_data = null;
+            // Redirect to same page to prevent form resubmission and show success message
+            header("Location: receptionist-checkin.php?success=1&message=" . urlencode($message));
+            exit();
             
         } catch (Exception $e) {
             $conn->rollback();
