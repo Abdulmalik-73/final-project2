@@ -257,7 +257,7 @@ if ($_POST && isset($_POST['action'])) {
                         $room_number = $booking_details['room_number'] ?? 'N/A';
                         
                         $checkin_insert->bind_param(
-                            "iisssssssssssssssidsddssi",
+                            "iissssssssssssssiidsddssi",
                             $user_id, $booking_id, $hotel_name, $hotel_location,
                             $booking_details['check_in_date'], $booking_details['check_out_date'],
                             $customer_name, $guest_dob, $id_type, $id_number,
