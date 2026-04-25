@@ -172,8 +172,16 @@ if ($_POST && isset($_POST['action'])) {
             if (!empty($room_id)) {
                 $room_occupied_query = "UPDATE rooms SET status = 'occupied' WHERE id = ?";
                 $room_occupied_stmt = $conn->prepare($room_occupied_query);
-                $room_occupied_stmt->bind_param("i", $room_id);
-                $room_occupied_stmt->execute();
+                if ($room_occupied_stmt) {
+                    $room_occupied_stmt->bind_param("i", $room_id);
+                    if (!$room_occupied_stmt->execute()) {
+                        error_log("Failed to update room status: " . $room_occupied_stmt->error);
+                    }
+                } else {
+                    error_log("Failed to prepare room status update: " . $conn->error);
+                }
+            } else {
+                error_log("Room ID is empty - cannot update room status. Room ID: " . var_export($room_id, true));
             }
             
             // Issue room key
@@ -276,7 +284,7 @@ if ($_POST && isset($_POST['action'])) {
             }
             
             $conn->commit();
-            $message = '✅ Check-in Successful! Customer ' . htmlspecialchars($customer_name) . ' has been checked in to room ' . htmlspecialchars($booking_data['room_number']) . '. Confirmation number: ' . ($confirmation_number ?? 'N/A');
+            $message = '✅ Check-in Successful! Customer ' . htmlspecialchars($customer_name) . ' has been checked in to room ' . htmlspecialchars($booking_data['room_number']) . '. Room status updated to OCCUPIED. Confirmation number: ' . ($confirmation_number ?? 'N/A');
             
             // Store success message in session for display on dashboard
             $_SESSION['success_message'] = $message;
