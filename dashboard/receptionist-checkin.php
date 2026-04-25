@@ -268,6 +268,10 @@ if ($_POST && isset($_POST['action'])) {
                             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ");
                         
+                        if (!$checkin_insert) {
+                            throw new Exception("Prepare failed: " . $conn->error);
+                        }
+                        
                         $hotel_name = 'Harar Ras Hotel';
                         $hotel_location = 'Jugol Street, Harar, Ethiopia';
                         $guest_dob = '1990-01-01';
@@ -348,7 +352,8 @@ if ($_POST && isset($_POST['action'])) {
             }
             
             $conn->commit();
-            $message = '✅ Check-in Successful! Customer ' . htmlspecialchars($customer_name) . ' has been checked in to room ' . htmlspecialchars($booking_data['room_number']) . '. Room status updated to OCCUPIED. Confirmation number: ' . ($confirmation_number ?? 'N/A');
+            error_log("✅ CHECK-IN SUCCESSFUL - Booking ID: $booking_id, Customer: $customer_name");
+            $message = '✅ Check-in Successful! Customer ' . htmlspecialchars($customer_name) . ' has been checked in to room ' . htmlspecialchars($booking_data['room_number']) . '. Room status updated to OCCUPIED.';
             
             // Redirect to same page to prevent form resubmission and show success message
             header("Location: receptionist-checkin.php?success=1&message=" . urlencode($message));
@@ -356,9 +361,9 @@ if ($_POST && isset($_POST['action'])) {
             
         } catch (Exception $e) {
             $conn->rollback();
-            error_log("❌ Check-in process failed: " . $e->getMessage());
+            error_log("❌ CHECK-IN FAILED: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
-            $error = 'Failed to process check-in: ' . $e->getMessage() . '. Please try again or contact IT support.';
+            $error = 'Check-in failed: ' . $e->getMessage();
             
             // Clear any booking data to show search form again
             $booking_data = null;
