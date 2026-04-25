@@ -935,7 +935,7 @@ if ($_POST && isset($_POST['action'])) {
                                                 </div>
                                                 <div class="col-md-4 mb-3">
                                                     <label class="form-label fw-bold">ID Type <span class="text-danger">*</span></label>
-                                                    <select name="id_type" class="form-select" required>
+                                                    <select name="id_type" class="form-select">
                                                         <option value="">Select ID Type</option>
                                                         <option value="passport">Passport</option>
                                                         <option value="national_id">National ID</option>
@@ -946,7 +946,7 @@ if ($_POST && isset($_POST['action'])) {
                                                 <div class="col-md-4 mb-3">
                                                     <label class="form-label fw-bold">ID Number <span class="text-danger">*</span></label>
                                                     <input type="text" name="id_number" class="form-control" 
-                                                           placeholder="Enter ID number" required>
+                                                           placeholder="Enter ID number">
                                                 </div>
                                             </div>
                                             
