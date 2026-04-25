@@ -262,8 +262,7 @@ $rooms_result = $conn->query($rooms_query);
                                         <option value="">Select ID Type</option>
                                         <option value="passport">Passport</option>
                                         <option value="national_id">National ID</option>
-                                        <option value="driving_license">Driving License</option>
-                                        <option value="other">Other Government ID</option>
+                                        <option value="drivers_license">Driving License</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4 mt-3">
@@ -345,6 +344,7 @@ $rooms_result = $conn->query($rooms_query);
                                         <option value="credit_card">Credit Card</option>
                                         <option value="debit_card">Debit Card</option>
                                         <option value="bank_transfer">Bank Transfer</option>
+                                        <option value="mobile_payment">Mobile Payment</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
