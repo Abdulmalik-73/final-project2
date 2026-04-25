@@ -217,10 +217,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <h3 class="text-center mb-4"><?php echo __('contact.find_us'); ?></h3>
             <div class="ratio ratio-21x9">
                 <iframe 
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.0!2d42.1!3d9.3!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOcKwMTgnMDAuMCJOIDQywrAwNicwMC4wIkU!5e0!3m2!1sen!2set!4v1234567890" 
+                    src="https://maps.google.com/maps?q=9.31130,42.11565&z=17&output=embed&hl=en" 
                     style="border:0;" 
                     allowfullscreen="" 
-                    loading="lazy">
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
                 </iframe>
             </div>
         </div>
