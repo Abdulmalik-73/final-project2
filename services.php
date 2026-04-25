@@ -78,6 +78,9 @@ while ($row = $services_result->fetch_assoc()) {
                 // Categorize based on name keywords
                 if (stripos($name, 'Ethiopian') !== false) {
                     $ethiopian_foods[] = $item;
+                } elseif (in_array($name, ['Tiramisu', 'Vegetable Pizza'])) {
+                    // Exclude these items from International Buffet section
+                    // (incomplete row — only 2 items, leaves empty spaces)
                 } else {
                     $international_foods[] = $item;
                 }
