@@ -257,7 +257,7 @@ if ($_POST && isset($_POST['action'])) {
                         $room_number = $booking_details['room_number'] ?? 'N/A';
                         
                         $checkin_insert->bind_param(
-                            "iissssssssssssssiidsddssi",
+                            "iisssssssssssssssidsddssi",
                             $user_id, $booking_id, $hotel_name, $hotel_location,
                             $booking_details['check_in_date'], $booking_details['check_out_date'],
                             $customer_name, $guest_dob, $id_type, $id_number,
@@ -276,14 +276,13 @@ if ($_POST && isset($_POST['action'])) {
             }
             
             $conn->commit();
-            $success_message = 'Room booking approved and customer checked in successfully! Room is now occupied. Confirmation number: ' . ($confirmation_number ?? 'N/A');
+            $message = '✅ Check-in Successful! Customer ' . htmlspecialchars($customer_name) . ' has been checked in to room ' . htmlspecialchars($booking_data['room_number']) . '. Confirmation number: ' . ($confirmation_number ?? 'N/A');
             
             // Store success message in session for display on dashboard
-            $_SESSION['success_message'] = $success_message;
+            $_SESSION['success_message'] = $message;
             
-            // Use PHP header redirect instead of JavaScript
-            header("Location: receptionist.php?checkin_success=1");
-            exit();
+            // Clear booking data to show search form again
+            $booking_data = null;
             
         } catch (Exception $e) {
             $conn->rollback();
