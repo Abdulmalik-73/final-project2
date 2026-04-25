@@ -394,6 +394,18 @@ $checkins = $conn->query("
     ORDER BY b.created_at DESC
 ");
 
+// Today's Walk-in Check-ins from the checkins table (manual receptionist check-ins)
+$walkin_checkins = $conn->query("
+    SELECT c.*,
+           CONCAT(staff.first_name, ' ', staff.last_name) as checked_in_by_name
+    FROM checkins c
+    LEFT JOIN users staff ON c.checked_in_by = staff.id
+    WHERE DATE(c.check_in_date) = '$today'
+      AND c.status = 'active'
+    ORDER BY c.created_at DESC
+");
+$walkin_checkins_count = ($walkin_checkins && $walkin_checkins->num_rows > 0) ? $walkin_checkins->num_rows : 0;
+
 // Debug: Get all bookings for today regardless of status
 $debug_query = $conn->query("
     SELECT b.id, b.booking_reference, b.check_in_date, b.status, b.verification_status, b.payment_status, b.booking_type,
@@ -573,11 +585,11 @@ $checkouts = $conn->query("
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0">
                             <i class="fas fa-sign-in-alt"></i> Today's Check-ins (<?php echo date('F j, Y'); ?>)
-                            <span class="badge bg-light text-success float-end"><?php echo $checkins->num_rows; ?> Customer(s)</span>
+                            <span class="badge bg-light text-success float-end"><?php echo $checkins->num_rows + $walkin_checkins_count; ?> Customer(s)</span>
                         </h5>
                     </div>
                     <div class="card-body">
-                        <?php if ($checkins->num_rows > 0): ?>
+                        <?php if ($checkins->num_rows > 0 || $walkin_checkins_count > 0): ?>
                         <div class="table-responsive">
                             <?php
                             // Separate by type
@@ -764,6 +776,57 @@ $checkouts = $conn->query("
                             <?php endif; ?>
 
                         </div>
+
+                        <?php /* ── WALK-IN CHECK-INS (from checkins table) ── */ if ($walkin_checkins_count > 0): ?>
+                        <h6 class="text-danger fw-bold mt-3 mb-2"><i class="fas fa-walking me-1"></i> Walk-in Check-ins</h6>
+                        <div class="table-responsive mb-2">
+                        <table class="table table-sm table-hover table-bordered mb-0">
+                            <thead class="table-danger">
+                                <tr>
+                                    <th>Confirmation #</th>
+                                    <th>Guest Name</th>
+                                    <th>Room</th>
+                                    <th>Check-in</th>
+                                    <th>Check-out</th>
+                                    <th>Nights</th>
+                                    <th>Amount Paid</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php
+                            $walkin_checkins->data_seek(0);
+                            while ($wc = $walkin_checkins->fetch_assoc()):
+                            ?>
+                            <tr>
+                                <td><strong class="text-danger"><?php echo htmlspecialchars($wc['confirmation_number']); ?></strong></td>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($wc['guest_full_name']); ?></strong><br>
+                                    <small class="text-muted"><?php echo htmlspecialchars($wc['guest_email_address']); ?></small><br>
+                                    <small class="text-muted"><?php echo htmlspecialchars($wc['guest_phone_number']); ?></small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        <?php echo htmlspecialchars($wc['room_type']); ?>
+                                        <?php if (!empty($wc['room_number'])): ?> #<?php echo htmlspecialchars($wc['room_number']); ?><?php endif; ?>
+                                    </span>
+                                </td>
+                                <td><?php echo date('M j, Y', strtotime($wc['check_in_date'])); ?></td>
+                                <td><?php echo date('M j, Y', strtotime($wc['check_out_date'])); ?></td>
+                                <td><?php echo (int)$wc['nights_stay']; ?> night(s)</td>
+                                <td><strong>ETB <?php echo number_format($wc['amount_paid'], 2); ?></strong></td>
+                                <td>
+                                    <span class="badge bg-success">✅ <?php echo ucfirst(str_replace('_', ' ', $wc['payment_type'])); ?></span>
+                                </td>
+                                <td><span class="badge bg-success"><i class="fas fa-check-circle"></i> Checked In</span></td>
+                            </tr>
+                            <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                        </div>
+                        <?php endif; ?>
+
                         <?php else: ?>
                         <div class="alert alert-info mb-0">
                             <i class="fas fa-info-circle"></i> No check-ins scheduled for today.
