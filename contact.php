@@ -77,9 +77,57 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         </div>
     </section>
-    
 
-    
+    <!-- How to Use Guide -->
+    <section class="py-5" style="background: linear-gradient(135deg, #f8f6f0 0%, #fff9ee 100%);">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="text-center mb-4">
+                        <span class="badge px-3 py-2 mb-3" style="background:#c9a84c; font-size:0.85rem; letter-spacing:1px;">HOW IT WORKS</span>
+                        <h2 class="fw-bold" style="color:#1a1a2e;">How to Use the Harar Ras Hotel System</h2>
+                    </div>
+                    <div class="row g-4">
+                        <!-- Paragraph 1 -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm p-1" style="border-left: 4px solid #c9a84c !important; border-radius: 12px;">
+                                <div class="card-body p-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0"
+                                             style="width:48px; height:48px; background:#c9a84c;">
+                                            <i class="fas fa-user-plus text-white fs-5"></i>
+                                        </div>
+                                        <h5 class="fw-bold mb-0" style="color:#1a1a2e;">Creating Your Account &amp; Booking a Room</h5>
+                                    </div>
+                                    <p class="text-muted mb-0" style="line-height:1.8; font-size:0.97rem;">
+                                        To get started, visit the hotel website and click the <strong>"Register"</strong> button at the top of the page. You will be asked to enter your full name, email address, phone number, and a password of your choice. Once you fill in all the details and click <strong>"Create Account"</strong>, your account is ready. After that, click <strong>"Login"</strong> and enter your email and password to sign in. To book a room, go to the <strong>"Rooms"</strong> section, browse the available rooms, choose the one you like, select your check-in and check-out dates, then click <strong>"Book Now"</strong>. You will then be asked to make a payment using TeleBirr, CBE, Abyssinia Bank, or Cooperative Bank. After sending the payment, upload a screenshot of your receipt on the website so hotel staff can confirm it. Once confirmed, your booking is complete and you will receive a confirmation message.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Paragraph 2 -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm p-1" style="border-left: 4px solid #c9a84c !important; border-radius: 12px;">
+                                <div class="card-body p-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0"
+                                             style="width:48px; height:48px; background:#c9a84c;">
+                                            <i class="fas fa-concierge-bell text-white fs-5"></i>
+                                        </div>
+                                        <h5 class="fw-bold mb-0" style="color:#1a1a2e;">Using Other Services &amp; Managing Your Account</h5>
+                                    </div>
+                                    <p class="text-muted mb-0" style="line-height:1.8; font-size:0.97rem;">
+                                        Besides booking rooms, you can also order food, book a spa session, or request laundry service — all from the same website after you log in. Simply go to the <strong>"Services"</strong> section, choose what you need, and follow the same steps as booking a room. To see all your bookings and orders, go to <strong>"My Bookings"</strong> in your account menu. If you want to update your name, phone number, or password, click on your profile at the top right corner and go to <strong>"Settings"</strong>. Your account keeps a full record of everything you have booked, paid, and ordered. If you ever forget your password, click <strong>"Forgot Password"</strong> on the login page and a reset link will be sent to your email. For any help, the hotel team is always ready to assist you.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Contact Section -->
     <section class="py-5">
         <div class="container">
