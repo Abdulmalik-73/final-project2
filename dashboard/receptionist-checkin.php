@@ -284,6 +284,26 @@ if ($_POST && isset($_POST['action'])) {
                         $room_name = $booking_details['room_name'] ?? 'Standard Room';
                         $room_number = $booking_details['room_number'] ?? 'N/A';
                         
+                        error_log("=== CHECKINS INSERT DEBUG ===");
+                        error_log("user_id: $user_id");
+                        error_log("booking_id: $booking_id");
+                        error_log("customer_name: $customer_name");
+                        error_log("customer_email: $customer_email");
+                        error_log("customer_phone: $customer_phone");
+                        error_log("id_type: $id_type");
+                        error_log("id_number: $id_number");
+                        error_log("room_name: $room_name");
+                        error_log("room_number: $room_number");
+                        error_log("nights: $nights");
+                        error_log("number_of_guests: $number_of_guests");
+                        error_log("rate_per_night: $rate_per_night");
+                        error_log("payment_type: $payment_type");
+                        error_log("amount_paid: $amount_paid");
+                        error_log("balance_due: $balance_due");
+                        error_log("confirmation_number: $confirmation_number");
+                        error_log("checked_in_by: $checked_in_by");
+                        error_log("=== END DEBUG ===");
+                        
                         $checkin_insert->bind_param(
                             "iissssssssssssssiidsddsis",
                             $user_id, $booking_id, $hotel_name, $hotel_location,
@@ -295,10 +315,13 @@ if ($_POST && isset($_POST['action'])) {
                             $confirmation_number, $notes, $checked_in_by
                         );
                         
-                        $checkin_insert->execute();
+                        if (!$checkin_insert->execute()) {
+                            throw new Exception("Checkins INSERT failed: " . $checkin_insert->error);
+                        }
+                        error_log("✅ Checkins record created successfully");
                     } catch (Exception $checkin_error) {
                         // Log the error but don't fail the entire transaction
-                        error_log("Checkin record creation failed: " . $checkin_error->getMessage());
+                        error_log("❌ Checkin record creation failed: " . $checkin_error->getMessage());
                     }
                 }
             }
@@ -312,7 +335,8 @@ if ($_POST && isset($_POST['action'])) {
             
         } catch (Exception $e) {
             $conn->rollback();
-            error_log("Check-in process failed: " . $e->getMessage());
+            error_log("❌ Check-in process failed: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             $error = 'Failed to process check-in: ' . $e->getMessage() . '. Please try again or contact IT support.';
             
             // Clear any booking data to show search form again
