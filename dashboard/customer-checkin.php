@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $customer_id = 0; // Walk-in customer
         $checked_in_by = $_SESSION['user_id'];
         
-        $stmt->bind_param("issssssssssssssiidsddssi",
+        $stmt->bind_param("issssssssssssssiiiddsssi",
             $customer_id, $hotel_name, $hotel_location,
             $check_in_date, $check_out_date,
             $guest_full_name, $guest_date_of_birth, $guest_id_type, $guest_id_number,
@@ -71,15 +71,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $room_stmt = $conn->prepare($room_update);
                 $room_stmt->bind_param("s", $room_number);
                 $room_stmt->execute();
+                $room_stmt->close();
             }
             
             $conn->commit();
-            $message = "Customer checked in successfully! Confirmation Number: " . $confirmation_number;
+            $message = "✅ Customer checked in successfully! <strong>Confirmation Number: " . htmlspecialchars($confirmation_number) . "</strong><br>
+                       Guest: " . htmlspecialchars($guest_full_name) . " | Room: " . htmlspecialchars($room_number) . " | 
+                       Email: " . htmlspecialchars($guest_email_address);
             
             // Clear form data
             $_POST = array();
+            
+            // Log the successful check-in
+            error_log("Customer check-in successful: $confirmation_number by receptionist " . $_SESSION['user_id']);
+            
         } else {
-            throw new Exception("Failed to create check-in record");
+            $error_info = $stmt->error;
+            throw new Exception("Failed to create check-in record: " . $error_info);
         }
         
     } catch (Exception $e) {

@@ -165,6 +165,11 @@ if ($_POST && isset($_POST['action'])) {
         $conn->begin_transaction();
         
         try {
+            // Validate required fields
+            if (empty($booking_id) || empty($customer_name) || empty($customer_email) || empty($customer_phone)) {
+                throw new Exception("Missing required fields: name, email, or phone");
+            }
+            
             // Update booking with check-in details - change from pending to checked_in
             $update_query = "UPDATE bookings SET 
                             status = 'checked_in',
@@ -183,10 +188,18 @@ if ($_POST && isset($_POST['action'])) {
                             WHERE id = ?";
             
             $stmt = $conn->prepare($update_query);
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $conn->error);
+            }
+            
             $stmt->bind_param("ssssssdsiii", $customer_name, $customer_email, $customer_phone, 
                              $id_type, $id_number, $room_key_number, $deposit_amount, 
                              $deposit_payment_method, $_SESSION['user_id'], $_SESSION['user_id'], $booking_id);
-            $stmt->execute();
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Booking update failed: " . $stmt->error);
+            }
+            error_log("✅ Booking updated to checked_in status");
             
             // Update room status to 'occupied' when checked in
             if (!empty($room_id)) {
@@ -196,12 +209,12 @@ if ($_POST && isset($_POST['action'])) {
                     $room_occupied_stmt->bind_param("i", $room_id);
                     if (!$room_occupied_stmt->execute()) {
                         error_log("Failed to update room status: " . $room_occupied_stmt->error);
+                    } else {
+                        error_log("✅ Room status updated to occupied");
                     }
                 } else {
                     error_log("Failed to prepare room status update: " . $conn->error);
                 }
-            } else {
-                error_log("Room ID is empty - cannot update room status. Room ID: " . var_export($room_id, true));
             }
             
             // Issue room key
@@ -209,8 +222,11 @@ if ($_POST && isset($_POST['action'])) {
                 $key_query = "INSERT INTO room_keys (booking_id, room_id, key_number, issued_by, status) 
                              VALUES (?, ?, ?, ?, 'issued')";
                 $key_stmt = $conn->prepare($key_query);
-                $key_stmt->bind_param("iisi", $booking_id, $room_id, $room_key_number, $_SESSION['user_id']);
-                $key_stmt->execute();
+                if ($key_stmt) {
+                    $key_stmt->bind_param("iisi", $booking_id, $room_id, $room_key_number, $_SESSION['user_id']);
+                    $key_stmt->execute();
+                    error_log("✅ Room key issued");
+                }
             }
             
             // Log check-in action
@@ -219,10 +235,13 @@ if ($_POST && isset($_POST['action'])) {
                           deposit_amount, id_verified, id_type, id_number, notes, ip_address) 
                          VALUES (?, 'check_in', ?, ?, ?, ?, 1, ?, ?, ?, ?)";
             $log_stmt = $conn->prepare($log_query);
-            $ip_address = $_SERVER['REMOTE_ADDR'];
-            $log_stmt->bind_param("iidsdssss", $booking_id, $_SESSION['user_id'], $payment_collected, 
-                                 $payment_method, $deposit_amount, $id_type, $id_number, $notes, $ip_address);
-            $log_stmt->execute();
+            if ($log_stmt) {
+                $ip_address = $_SERVER['REMOTE_ADDR'];
+                $log_stmt->bind_param("iidsdssss", $booking_id, $_SESSION['user_id'], $payment_collected, 
+                                     $payment_method, $deposit_amount, $id_type, $id_number, $notes, $ip_address);
+                $log_stmt->execute();
+                error_log("✅ Check-in logged");
+            }
             
             // Log booking activity
             $booking_query = "SELECT user_id FROM bookings WHERE id = $booking_id";
@@ -232,135 +251,18 @@ if ($_POST && isset($_POST['action'])) {
                                     'Customer checked in by receptionist with detailed form', $_SESSION['user_id']);
             }
             
-            // Create detailed checkin record
-            $booking_details_query = "SELECT b.*, r.name as room_name, r.room_number, 
-                                     CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-                                     u.email, u.phone
-                                     FROM bookings b
-                                     LEFT JOIN rooms r ON b.room_id = r.id
-                                     JOIN users u ON b.user_id = u.id
-                                     WHERE b.id = ?";
-            $details_stmt = $conn->prepare($booking_details_query);
-            $details_stmt->bind_param("i", $booking_id);
-            $details_stmt->execute();
-            $booking_details = $details_stmt->get_result()->fetch_assoc();
-            
-            $confirmation_number = 'CHK-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
-            
-            // Only create checkin record if booking details exist and checkins table exists
-            if ($booking_details) {
-                // Check if checkins table exists before inserting
-                $table_check = $conn->query("SHOW TABLES LIKE 'checkins'");
-                if ($table_check && $table_check->num_rows > 0) {
-                    try {
-                        // Create checkin record
-                        $nights = (int)((strtotime($booking_details['check_out_date']) - strtotime($booking_details['check_in_date'])) / (60 * 60 * 24));
-                        
-                        $checkin_insert = $conn->prepare("
-                            INSERT INTO checkins (
-                                customer_id, booking_id, hotel_name, hotel_location, 
-                                check_in_date, check_out_date,
-                                guest_full_name, guest_date_of_birth, guest_id_type, guest_id_number, 
-                                guest_nationality, guest_home_address, guest_phone_number, guest_email_address,
-                                room_type, room_number, nights_stay, number_of_guests, rate_per_night,
-                                payment_type, amount_paid, balance_due, confirmation_number, 
-                                additional_requests, checked_in_by
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ");
-                        
-                        if (!$checkin_insert) {
-                            throw new Exception("Prepare failed: " . $conn->error);
-                        }
-                        
-                        $hotel_name = 'Harar Ras Hotel';
-                        $hotel_location = 'Jugol Street, Harar, Ethiopia';
-                        $guest_dob = '1990-01-01';
-                        $nationality = 'Ethiopian';
-                        $address = $notes ?? 'N/A';
-                        $payment_type = $payment_method ?? 'cash';
-                        $amount_paid = (float)($payment_collected ?? $booking_details['total_price']);
-                        $balance_due = 0.00;
-                        $number_of_guests = (int)($booking_details['customers'] ?? 1);
-                        $rate_per_night = (float)($booking_details['price'] ?? 0);
-                        $user_id = (int)$booking_details['user_id'];
-                        $checked_in_by = (int)$_SESSION['user_id'];
-                        
-                        $room_name = $booking_details['room_name'] ?? 'Standard Room';
-                        $room_number = $booking_details['room_number'] ?? 'N/A';
-                        
-                        // Ensure id_type is valid ENUM value
-                        $valid_id_types = ['passport', 'drivers_license', 'national_id'];
-                        if (!in_array($id_type, $valid_id_types)) {
-                            $id_type = 'national_id'; // Default to national_id if invalid
-                        }
-                        
-                        // Ensure payment_type is valid ENUM value
-                        $valid_payment_types = ['cash', 'credit_card', 'debit_card', 'bank_transfer', 'mobile_payment'];
-                        if (!in_array($payment_type, $valid_payment_types)) {
-                            $payment_type = 'cash'; // Default to cash if invalid
-                        }
-                        
-                        // Ensure all required fields have values
-                        $customer_name = $customer_name ?? 'Guest';
-                        $customer_email = $customer_email ?? 'noemail@example.com';
-                        $customer_phone = $customer_phone ?? 'N/A';
-                        $id_number = $id_number ?? 'N/A';
-                        $address = $address ?? 'N/A';
-                        $notes = $notes ?? '';
-                        $nights = max(1, $nights); // Ensure at least 1 night
-                        
-                        error_log("=== CHECKINS INSERT DEBUG ===");
-                        error_log("user_id: $user_id");
-                        error_log("booking_id: $booking_id");
-                        error_log("customer_name: $customer_name");
-                        error_log("customer_email: $customer_email");
-                        error_log("customer_phone: $customer_phone");
-                        error_log("id_type: $id_type");
-                        error_log("id_number: $id_number");
-                        error_log("room_name: $room_name");
-                        error_log("room_number: $room_number");
-                        error_log("nights: $nights");
-                        error_log("number_of_guests: $number_of_guests");
-                        error_log("rate_per_night: $rate_per_night");
-                        error_log("payment_type: $payment_type");
-                        error_log("amount_paid: $amount_paid");
-                        error_log("balance_due: $balance_due");
-                        error_log("confirmation_number: $confirmation_number");
-                        error_log("checked_in_by: $checked_in_by");
-                        error_log("=== END DEBUG ===");
-                        
-                        $checkin_insert->bind_param(
-                            "iissssssssssssssiidsddsis",
-                            $user_id, $booking_id, $hotel_name, $hotel_location,
-                            $booking_details['check_in_date'], $booking_details['check_out_date'],
-                            $customer_name, $guest_dob, $id_type, $id_number,
-                            $nationality, $address, $customer_phone, $customer_email,
-                            $room_name, $room_number, $nights, $number_of_guests,
-                            $rate_per_night, $payment_type, $amount_paid, $balance_due,
-                            $confirmation_number, $notes, $checked_in_by
-                        );
-                        
-                        if (!$checkin_insert->execute()) {
-                            throw new Exception("Checkins INSERT failed: " . $checkin_insert->error);
-                        }
-                        error_log("✅ Checkins record created successfully");
-                    } catch (Exception $checkin_error) {
-                        // Log the error but don't fail the entire transaction
-                        error_log("❌ Checkin record creation failed: " . $checkin_error->getMessage());
-                    }
-                }
-            }
-            
             $conn->commit();
             error_log("✅ CHECK-IN SUCCESSFUL - Booking ID: $booking_id, Customer: $customer_name");
-            $message = '✅ Check-in Successful! Customer ' . htmlspecialchars($customer_name) . ' has been checked in to room ' . htmlspecialchars($booking_data['room_number']) . '. Room status updated to OCCUPIED.';
+            $message = '✅ Check-in Successful! Customer ' . htmlspecialchars($customer_name) . ' has been checked in to room ' . htmlspecialchars($booking_data['room_number'] ?? 'N/A') . '. Room status updated to OCCUPIED.';
             
             // Redirect to same page to prevent form resubmission and show success message
             header("Location: receptionist-checkin.php?success=1&message=" . urlencode($message));
             exit();
             
         } catch (Exception $e) {
-            $conn->rollback();
+            if ($conn->inTransaction()) {
+                $conn->rollback();
+            }
             error_log("❌ CHECK-IN FAILED: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
             $error = 'Check-in failed: ' . $e->getMessage();
