@@ -122,6 +122,19 @@ try {
         throw new Exception('Failed to save uploaded file.');
     }
 
+    // Read file and convert to base64 for database storage
+    // (Render doesn't persist files between deployments, so we store base64 in DB)
+    $raw = file_get_contents($filepath);
+    if ($raw === false) {
+        @unlink($filepath);
+        throw new Exception('Failed to read uploaded file.');
+    }
+    $mime_out = ($mime === 'image/jpg' || $mime === 'image/jpeg') ? 'image/jpeg' : 'image/png';
+    $base64_data = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
+
+    // Delete the file after converting to base64 (not needed on disk)
+    @unlink($filepath);
+
     // Store file path temporarily for this user (will be moved to booking when created)
     // First, ensure temp_id_uploads table exists
     $create_table_sql = "
@@ -149,25 +162,19 @@ try {
     // Generate a unique token for this upload
     $token = bin2hex(random_bytes(16)); // 32-character hex string
 
-    // Store the file path temporarily (not base64)
+    // Store base64 data in database (not filename)
     $temp_stmt = $conn->prepare("INSERT INTO temp_id_uploads (user_id, token, image_data, created_at) VALUES (?, ?, ?, NOW())");
     if (!$temp_stmt) {
-        // Clean up uploaded file if database fails
-        @unlink($filepath);
         throw new Exception('Database error: ' . $conn->error);
     }
-    $temp_stmt->bind_param("iss", $user_id, $token, $filename);
+    $temp_stmt->bind_param("iss", $user_id, $token, $base64_data);
     if (!$temp_stmt->execute()) {
-        // Clean up uploaded file if database fails
-        @unlink($filepath);
         throw new Exception('Failed to save image: ' . $temp_stmt->error);
     }
     $temp_stmt->close();
 
-    // Generate preview base64 for display
-    $raw = file_get_contents($filepath);
-    $mime_out = ($mime === 'image/jpg' || $mime === 'image/jpeg') ? 'image/jpeg' : 'image/png';
-    $base64 = 'data:' . $mime_out . ';base64,' . base64_encode($raw);
+    // Use the base64 data as preview
+    $base64 = $base64_data;
 
     echo json_encode([
         'success'   => true,

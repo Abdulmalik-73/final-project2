@@ -81,23 +81,18 @@ if (empty($data)) {
     exit;
 }
 
-error_log("serve_id_image: Found image data for booking_id=$booking_id, length=" . strlen($data));
-
-// If data is base64 data URL, extract and serve it
+// Case 1: base64 data URL (new format)
 if (strpos($data, 'data:') === 0) {
     if (preg_match('/^data:(image\/(jpeg|png|jpg));base64,(.+)$/s', $data, $m)) {
         $mime    = ($m[2] === 'jpg') ? 'image/jpeg' : 'image/' . $m[2];
         $imgdata = base64_decode($m[3], true);
 
         if ($imgdata === false || strlen($imgdata) === 0) {
-            error_log("serve_id_image: Failed to decode base64 for booking_id=$booking_id");
             http_response_code(500);
-            header('Content-Type: text/plain');
-            echo 'Failed to decode image data';
+            echo 'Failed to decode image';
             exit;
         }
 
-        error_log("serve_id_image: Successfully serving image for booking_id=$booking_id, mime=$mime, size=" . strlen($imgdata));
         header('Content-Type: ' . $mime);
         header('Content-Length: ' . strlen($imgdata));
         header('Cache-Control: private, max-age=3600');
@@ -105,19 +100,42 @@ if (strpos($data, 'data:') === 0) {
         ob_end_clean();
         echo $imgdata;
         exit;
-    } else {
-        error_log("serve_id_image: Base64 regex mismatch for booking_id=$booking_id, data starts with: " . substr($data, 0, 100));
-        http_response_code(400);
-        header('Content-Type: text/plain');
-        echo 'Invalid base64 format';
-        exit;
     }
 }
 
-error_log("serve_id_image: Data not in base64 format for booking_id=$booking_id, starts with: " . substr($data, 0, 50));
-http_response_code(404);
+// Case 2: filename stored (old format) — try to read from disk
+if (preg_match('/^[a-zA-Z0-9_\-\.]+\.(jpg|jpeg|png)$/i', $data)) {
+    $filepath = __DIR__ . '/../uploads/ids/' . $data;
+    if (file_exists($filepath)) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime  = finfo_file($finfo, $filepath);
+        finfo_close($finfo);
+
+        if (!in_array($mime, ['image/jpeg', 'image/jpg', 'image/png'])) {
+            http_response_code(400);
+            echo 'Invalid image format';
+            exit;
+        }
+
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($filepath));
+        header('Cache-Control: private, max-age=3600');
+        ob_end_clean();
+        readfile($filepath);
+        exit;
+    }
+
+    // File not on disk (Render deployment reset) — return 404
+    http_response_code(404);
+    header('Content-Type: text/plain');
+    echo 'Image file not found on server';
+    exit;
+}
+
+// Unknown format
+http_response_code(400);
 header('Content-Type: text/plain');
-echo 'Image data not in expected format';
+echo 'Invalid image data format';
 exit;
 
 
