@@ -9,90 +9,138 @@ $error = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $hotel_name = sanitize_input($_POST['hotel_name']);
-    $hotel_location = sanitize_input($_POST['hotel_location']);
-    $check_in_date = sanitize_input($_POST['check_in_date']);
-    $check_out_date = sanitize_input($_POST['check_out_date']);
-    $guest_full_name = sanitize_input($_POST['guest_full_name']);
-    $guest_date_of_birth = sanitize_input($_POST['guest_date_of_birth']);
-    $guest_id_type = sanitize_input($_POST['guest_id_type']);
-    $guest_id_number = sanitize_input($_POST['guest_id_number']);
-    $guest_nationality = sanitize_input($_POST['guest_nationality']);
-    $guest_home_address = sanitize_input($_POST['guest_home_address']);
-    $guest_phone_number = sanitize_input($_POST['guest_phone_number']);
-    $guest_email_address = sanitize_input($_POST['guest_email_address']);
-    $room_type = sanitize_input($_POST['room_type']);
-    $room_number = sanitize_input($_POST['room_number']);
-    $nights_stay = (int)$_POST['nights_stay'];
-    $number_of_guests = (int)$_POST['number_of_guests'];
-    $rate_per_night = (float)$_POST['rate_per_night'];
-    $payment_type = sanitize_input($_POST['payment_type']);
-    $amount_paid = (float)$_POST['amount_paid'];
-    $balance_due = (float)$_POST['balance_due'];
-    $additional_requests = sanitize_input($_POST['additional_requests']);
-    
+    $hotel_name        = sanitize_input($_POST['hotel_name']        ?? 'Harar Ras Hotel');
+    $hotel_location    = sanitize_input($_POST['hotel_location']    ?? 'Jugol Street, Harar, Ethiopia');
+    $check_in_date     = sanitize_input($_POST['check_in_date']     ?? date('Y-m-d'));
+    $check_out_date    = sanitize_input($_POST['check_out_date']    ?? date('Y-m-d', strtotime('+1 day')));
+    $guest_full_name   = sanitize_input($_POST['guest_full_name']   ?? '');
+    $guest_date_of_birth = !empty($_POST['guest_date_of_birth'])
+                            ? sanitize_input($_POST['guest_date_of_birth'])
+                            : date('Y-m-d');          // default to today if blank
+    $guest_id_type     = sanitize_input($_POST['guest_id_type']     ?? 'national_id');
+    $guest_id_number   = sanitize_input($_POST['guest_id_number']   ?? 'N/A');
+    $guest_nationality = !empty($_POST['guest_nationality'])
+                            ? sanitize_input($_POST['guest_nationality'])
+                            : 'Ethiopian';
+    $guest_home_address  = !empty($_POST['guest_home_address'])
+                            ? sanitize_input($_POST['guest_home_address'])
+                            : 'N/A';
+    $guest_phone_number  = sanitize_input($_POST['guest_phone_number']  ?? '');
+    $guest_email_address = sanitize_input($_POST['guest_email_address'] ?? '');
+    $room_type           = sanitize_input($_POST['room_type']           ?? '');
+    $room_number         = sanitize_input($_POST['room_number']         ?? '');
+    $nights_stay         = max(1, (int)($_POST['nights_stay']           ?? 1));
+    $number_of_guests    = max(1, (int)($_POST['number_of_guests']      ?? 1));
+    $rate_per_night      = (float)($_POST['rate_per_night']             ?? 0);
+    $payment_type        = sanitize_input($_POST['payment_type']        ?? 'cash');
+    $amount_paid         = (float)($_POST['amount_paid']                ?? 0);
+    $balance_due         = (float)($_POST['balance_due']                ?? 0);
+    $additional_requests = sanitize_input($_POST['additional_requests'] ?? '');
+
     // Generate confirmation number
     $confirmation_number = 'CHK-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
-    
+
     try {
         $conn->begin_transaction();
-        
+
+        // Look up or create a user account for this guest so customer_id is valid
+        $customer_id = null;
+        if (!empty($guest_email_address)) {
+            $find_user = $conn->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
+            $find_user->bind_param("s", $guest_email_address);
+            $find_user->execute();
+            $find_user->bind_result($found_id);
+            if ($find_user->fetch()) {
+                $customer_id = $found_id;
+            }
+            $find_user->close();
+
+            // Create a new customer account if not found
+            if ($customer_id === null) {
+                $names      = explode(' ', trim($guest_full_name), 2);
+                $first_name = $names[0] ?? $guest_full_name;
+                $last_name  = $names[1] ?? '';
+                $username   = strtolower(str_replace(' ', '.', $guest_full_name)) . '.' . substr(uniqid(), -4);
+                $temp_pass  = password_hash(substr(uniqid(), -8), PASSWORD_DEFAULT);
+
+                $new_user = $conn->prepare(
+                    "INSERT INTO users (first_name, last_name, username, email, phone, password, role, status)
+                     VALUES (?, ?, ?, ?, ?, ?, 'customer', 'active')"
+                );
+                $new_user->bind_param("ssssss",
+                    $first_name, $last_name, $username,
+                    $guest_email_address, $guest_phone_number, $temp_pass
+                );
+                $new_user->execute();
+                $customer_id = $conn->insert_id;
+                $new_user->close();
+            }
+        }
+
         // Insert into checkins table
         $checkin_query = "INSERT INTO checkins (
-            customer_id, hotel_name, hotel_location, 
+            customer_id, hotel_name, hotel_location,
             check_in_date, check_out_date,
-            guest_full_name, guest_date_of_birth, guest_id_type, guest_id_number, 
+            guest_full_name, guest_date_of_birth, guest_id_type, guest_id_number,
             guest_nationality, guest_home_address, guest_phone_number, guest_email_address,
             room_type, room_number, nights_stay, number_of_guests, rate_per_night,
-            payment_type, amount_paid, balance_due, confirmation_number, 
-            additional_requests, checked_in_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-        
+            payment_type, amount_paid, balance_due, confirmation_number,
+            additional_requests, checked_in_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
         $stmt = $conn->prepare($checkin_query);
-        $customer_id = 0; // Walk-in customer
-        $checked_in_by = $_SESSION['user_id'];
-        
-        $stmt->bind_param("issssssssssssssiiiddsssi",
-            $customer_id, $hotel_name, $hotel_location,
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $conn->error);
+        }
+
+        $checked_in_by = (int)$_SESSION['user_id'];
+
+        // i=customer_id  s=hotel_name  s=hotel_location
+        // s=check_in_date  s=check_out_date
+        // s=guest_full_name  s=guest_date_of_birth  s=guest_id_type  s=guest_id_number
+        // s=guest_nationality  s=guest_home_address  s=guest_phone_number  s=guest_email_address
+        // s=room_type  s=room_number  i=nights_stay  i=number_of_guests  d=rate_per_night
+        // s=payment_type  d=amount_paid  d=balance_due  s=confirmation_number
+        // s=additional_requests  i=checked_in_by
+        $stmt->bind_param("issssssssssssssiidsddssi",
+            $customer_id,
+            $hotel_name, $hotel_location,
             $check_in_date, $check_out_date,
             $guest_full_name, $guest_date_of_birth, $guest_id_type, $guest_id_number,
             $guest_nationality, $guest_home_address, $guest_phone_number, $guest_email_address,
-            $room_type, $room_number, $nights_stay, $number_of_guests, $rate_per_night,
-            $payment_type, $amount_paid, $balance_due, $confirmation_number,
-            $additional_requests, $checked_in_by
+            $room_type, $room_number,
+            $nights_stay, $number_of_guests, $rate_per_night,
+            $payment_type, $amount_paid, $balance_due,
+            $confirmation_number, $additional_requests,
+            $checked_in_by
         );
-        
-        if ($stmt->execute()) {
-            $checkin_id = $conn->insert_id;
-            
-            // Update room status to occupied if room number provided
-            if (!empty($room_number)) {
-                $room_update = "UPDATE rooms SET status = 'occupied' WHERE room_number = ?";
-                $room_stmt = $conn->prepare($room_update);
-                $room_stmt->bind_param("s", $room_number);
-                $room_stmt->execute();
-                $room_stmt->close();
-            }
-            
-            $conn->commit();
-            $message = "✅ Customer checked in successfully! <strong>Confirmation Number: " . htmlspecialchars($confirmation_number) . "</strong><br>
-                       Guest: " . htmlspecialchars($guest_full_name) . " | Room: " . htmlspecialchars($room_number) . " | 
-                       Email: " . htmlspecialchars($guest_email_address);
-            
-            // Clear form data
-            $_POST = array();
-            
-            // Log the successful check-in
-            error_log("Customer check-in successful: $confirmation_number by receptionist " . $_SESSION['user_id']);
-            
-        } else {
-            $error_info = $stmt->error;
-            throw new Exception("Failed to create check-in record: " . $error_info);
+
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to create check-in record: " . $stmt->error);
         }
-        
+
+        $stmt->close();
+
+        // Update room status to occupied
+        if (!empty($room_number)) {
+            $room_stmt = $conn->prepare("UPDATE rooms SET status = 'occupied' WHERE room_number = ?");
+            $room_stmt->bind_param("s", $room_number);
+            $room_stmt->execute();
+            $room_stmt->close();
+        }
+
+        $conn->commit();
+
+        $message = "✅ Check-in successful! Confirmation: <strong>" . htmlspecialchars($confirmation_number) . "</strong> — "
+                 . htmlspecialchars($guest_full_name) . " | Room " . htmlspecialchars($room_number);
+
+        $_POST = [];
+        error_log("Customer check-in OK: $confirmation_number by receptionist " . $_SESSION['user_id']);
+
     } catch (Exception $e) {
         $conn->rollback();
         $error = "Check-in failed: " . $e->getMessage();
+        error_log("Customer check-in FAILED: " . $e->getMessage());
     }
 }
 
@@ -174,7 +222,7 @@ $rooms_result = $conn->query($rooms_query);
 
                 <?php if ($message): ?>
                     <div class="alert alert-success alert-dismissible fade show">
-                        <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($message); ?>
+                        <i class="fas fa-check-circle"></i> <?php echo $message; ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
