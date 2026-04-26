@@ -13,7 +13,25 @@ if (!isset($conn)) {
  * Check if user is logged in
  */
 function is_logged_in() {
-    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+    if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+        return false;
+    }
+    
+    // Check session timeout (1 hour)
+    if (isset($_SESSION['last_activity'])) {
+        $session_timeout = 3600; // 1 hour
+        if (time() - $_SESSION['last_activity'] > $session_timeout) {
+            // Session expired - destroy it
+            session_destroy();
+            $_SESSION = [];
+            return false;
+        }
+    }
+    
+    // Update last activity time
+    $_SESSION['last_activity'] = time();
+    
+    return true;
 }
 
 /**
@@ -254,16 +272,26 @@ function secure_logout($redirect_to = 'login.php') {
     // Prevent caching
     prevent_cache();
     
-    // Unset all session variables
-    $_SESSION = array();
+    // Properly destroy session in correct order
+    session_unset();
+    session_destroy();
     
-    // Delete session cookie
-    if (isset($_COOKIE[session_name()])) {
-        setcookie(session_name(), '', time() - 3600, '/');
+    // Delete session cookie with proper parameters
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 86400,
+            $params["path"] ?: '/', 
+            $params["domain"] ?: '',
+            $params["secure"], 
+            $params["httponly"]
+        );
     }
     
-    // Destroy session
-    session_destroy();
+    // Also clear with root path to be safe
+    setcookie(session_name(), '', time() - 86400, '/');
+    
+    // Clear all session variables
+    $_SESSION = array();
     
     // Redirect to login
     header("Location: $redirect_to");

@@ -10,9 +10,9 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Wipe every session variable
-$_SESSION = [];
+// Properly destroy session in correct order
 session_unset();
+session_destroy();
 
 // Overwrite the session cookie with an expired one
 // Use the exact same parameters as config.php set them
@@ -30,8 +30,8 @@ setcookie(
 // Also clear with root path to be safe
 setcookie(session_name(), '', time() - 86400, '/');
 
-// Destroy the session on the server
-session_destroy();
+// Clear all session variables
+$_SESSION = [];
 
 // Prevent any cached page from being served
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");

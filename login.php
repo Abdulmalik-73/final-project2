@@ -9,7 +9,23 @@ $tx_ref = isset($_GET['tx_ref']) ? $_GET['tx_ref'] : '';
 // Redirect if already logged in — but NOT if we just logged out
 $coming_from_logout = isset($_GET['logout']);
 
+// Check if session exists and is valid
 if (!$coming_from_logout && is_logged_in()) {
+    // Validate session is still active (not expired)
+    if (isset($_SESSION['last_activity'])) {
+        $session_timeout = 3600; // 1 hour timeout
+        if (time() - $_SESSION['last_activity'] > $session_timeout) {
+            // Session expired - force logout
+            session_destroy();
+            $_SESSION = [];
+            header("Location: login.php?logout=forced&reason=session_expired");
+            exit();
+        }
+    }
+    
+    // Update last activity time
+    $_SESSION['last_activity'] = time();
+    
     if ($redirect == 'booking') {
         $redirect_url = 'booking.php' . ($room_id ? '?room=' . $room_id : '');
         header("Location: $redirect_url");
@@ -106,6 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $_SESSION['user_email'] = $user['email'];
                     $_SESSION['user_role'] = $user['role'];
                     $_SESSION['last_regeneration'] = time(); // Track regeneration time
+                    $_SESSION['last_activity'] = time(); // Track session activity for timeout
                     
                     // Update last login timestamp
                     $update_query = "UPDATE users SET last_login = NOW() WHERE id = ?";

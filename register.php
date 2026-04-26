@@ -112,30 +112,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Log user registration activity
                 log_user_activity($new_user_id, 'registration', 'New customer account created', $_SERVER['REMOTE_ADDR'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
                 
-                // Automatically log in the user after successful registration
-                $_SESSION['user_id'] = $new_user_id;
-                $_SESSION['user_name'] = trim($first_name . ' ' . $last_name);
-                $_SESSION['user_email'] = $email;
-                $_SESSION['user_role'] = $role;
+                // DO NOT auto-login user after registration - security best practice
+                // User must manually login with their credentials
+                // This prevents session fixation attacks and ensures proper authentication
                 
-                // Update last login timestamp
-                $update_query = "UPDATE users SET last_login = NOW() WHERE id = ?";
-                $update_stmt = $conn->prepare($update_query);
-                $update_stmt->bind_param("i", $new_user_id);
-                $update_stmt->execute();
-                
-                // Log auto-login after registration
-                log_user_activity($new_user_id, 'login', 'Auto-login after registration', $_SERVER['REMOTE_ADDR'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
-                
-                // Redirect based on redirect parameter or to home page
+                // Redirect to login page with success message
+                $login_redirect = 'login.php?registered=1';
                 if ($redirect == 'booking') {
-                    $redirect_url = 'booking.php' . ($room_id ? '?room=' . $room_id : '');
-                    header("Location: $redirect_url");
+                    $login_redirect .= '&redirect=booking' . ($room_id ? '&room=' . $room_id : '');
                 } elseif ($redirect == 'food-booking') {
-                    header("Location: food-booking.php");
-                } else {
-                    header("Location: index.php?welcome=1");
+                    $login_redirect .= '&redirect=food-booking';
                 }
+                header("Location: $login_redirect");
                 exit();
             } else {
                 $error = 'Registration failed. Please try again. Error: ' . $stmt->error;
