@@ -527,7 +527,7 @@ $recent_refunds = $recent_refunds_result ? $recent_refunds_result : null;
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Guest Name</label>
                                         <input type="text" name="guest_name" class="form-control" 
-                                               placeholder="John Doe"
+                                               placeholder="Full Name"
                                                value="<?php echo isset($_POST['guest_name']) ? htmlspecialchars($_POST['guest_name']) : ''; ?>">
                                         <small class="text-muted">First name, last name, or full name</small>
                                     </div>
