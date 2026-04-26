@@ -28,7 +28,7 @@ $tx_ref = $data['tx_ref'];
 $chapa_base = defined('CHAPA_BASE_URL') ? CHAPA_BASE_URL : (getenv('CHAPA_BASE_URL') ?: 'https://api.chapa.co/v1');
 $chapa_key  = defined('CHAPA_SECRET_KEY') ? CHAPA_SECRET_KEY : (getenv('CHAPA_SECRET_KEY') ?: '');
 
-// ── Always verify with Chapa API (never trust callback data alone) ────────────
+//  Always verify with Chapa API (never trust callback data alone)
 $ch = curl_init($chapa_base . '/transaction/verify/' . urlencode($tx_ref));
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
@@ -81,6 +81,55 @@ if ($pay_status === 'success') {
         );
         $upd->bind_param("i", $booking_id);
         $upd->execute();
+
+        // Insert staff notification so receptionist bell shows this booking
+        try {
+            $nd = $conn->prepare(
+                "SELECT b.booking_reference, b.booking_type, b.total_price,
+                        CONCAT(u.first_name,' ',u.last_name) as customer_name,
+                        u.email,
+                        COALESCE(r.name,'') as room_name,
+                        COALESCE(r.room_number,'') as room_number,
+                        b.check_in_date, b.check_out_date
+                 FROM bookings b
+                 JOIN users u ON b.user_id = u.id
+                 LEFT JOIN rooms r ON b.room_id = r.id
+                 WHERE b.id = ? LIMIT 1"
+            );
+            $nd->bind_param("i", $booking_id);
+            $nd->execute();
+            $nd_row = $nd->get_result()->fetch_assoc();
+
+            if ($nd_row) {
+                $ref    = $nd_row['booking_reference'];
+                $btype  = $nd_row['booking_type'];
+                $cname  = $nd_row['customer_name'];
+                $email  = $nd_row['email'];
+                $amount = (float)$nd_row['total_price'];
+                $detail = $nd_row['room_name']
+                        ? $nd_row['room_name'] . ' #' . $nd_row['room_number']
+                          . ' | ' . date('M j', strtotime($nd_row['check_in_date']))
+                          . ' – ' . date('M j, Y', strtotime($nd_row['check_out_date']))
+                        : $ref;
+
+                // Only insert if not already notified for this booking
+                $check = $conn->prepare("SELECT id FROM staff_notifications WHERE booking_id = ? LIMIT 1");
+                $check->bind_param("i", $booking_id);
+                $check->execute();
+                if ($check->get_result()->num_rows === 0) {
+                    $ins = $conn->prepare(
+                        "INSERT INTO staff_notifications
+                         (booking_id, booking_reference, booking_type, customer_name,
+                          customer_email, amount, service_detail)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)"
+                    );
+                    $ins->bind_param("issssds", $booking_id, $ref, $btype, $cname, $email, $amount, $detail);
+                    $ins->execute();
+                }
+            }
+        } catch (Throwable $e) {
+            error_log("Callback staff notification error: " . $e->getMessage());
+        }
 
         // Send booking confirmation email
         try {
