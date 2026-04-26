@@ -6,12 +6,16 @@ require_once 'includes/functions.php';
 function getServiceImage($dbImage = null) {
     // Use database image if available
     if (!empty($dbImage)) {
-        // Check if it's a full URL or relative path
-        if (filter_var($dbImage, FILTER_VALIDATE_URL) || file_exists($dbImage)) {
+        // Full URL — use directly
+        if (filter_var($dbImage, FILTER_VALIDATE_URL)) {
             return $dbImage;
         }
+        // Local path — encode spaces for browser but keep slashes
+        if (file_exists($dbImage)) {
+            return str_replace(' ', '%20', $dbImage);
+        }
     }
-    
+
     // Return placeholder if no image available
     return 'assets/images/food/international/i1.jpg';
 }

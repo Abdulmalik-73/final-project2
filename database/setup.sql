@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_language (preferred_language)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Rooms Table - UPDATED WITHOUT REMOVED ROOM TYPES
+-- Rooms Table
 CREATE TABLE IF NOT EXISTS rooms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS rooms (
 -- =====================================================
 
 -- Bookings Table (unified for rooms and food orders)
--- UPDATED: Screenshot-only payment system
+
 CREATE TABLE IF NOT EXISTS bookings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS food_order_items (
 -- STEP 4: CREATE PAYMENT SYSTEM TABLES
 -- =====================================================
 
--- Payment Method Instructions Table (FIXED - NO reference_format column)
+-- Payment Method Instructions Table
 CREATE TABLE IF NOT EXISTS payment_method_instructions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     method_code VARCHAR(50) UNIQUE NOT NULL,
@@ -638,10 +638,7 @@ INSERT INTO rooms (name, room_number, room_type, description, capacity, price, s
 ('Presidential Suite', '39', 'presidential', '1 king bed, 1 queen bed, free wifi, air conditioning, 2 private bathrooms, mini bar, separate living room, dining area, kitchenette, balcony, premium amenities', 4, 8000.00, 'active')
 ON DUPLICATE KEY UPDATE room_number=room_number;
 
--- =====================================================
--- SERVICES DATA WILL BE INSERTED AT THE END WITH CLEANUP
--- =====================================================
--- (Services insertion moved to end of file to ensure no duplicates)
+
 
 -- Insert Sample Food Menu Items (Prices in Ethiopian Birr)
 INSERT INTO food_menu (name, category, description, price, image, ingredients, is_vegetarian, is_vegan, is_available) VALUES
@@ -663,9 +660,6 @@ INSERT INTO room_images (room_id, image_path, alt_text, is_primary, display_orde
 (6, 'assets/images/rooms/executive-suite.jpg', 'Executive Suite - Main View', TRUE, 1),
 (7, 'assets/images/rooms/presidential-suite.jpg', 'Presidential Suite - Living Room', TRUE, 1);
 
--- Insert Default Superadmin User (REMOVED - Using correct credentials below)
-
--- Insert Test Users for Role Testing (REMOVED - Using correct credentials below)
 
 -- =====================================================
 -- ADMIN AUDIT LOGS TABLE
@@ -1131,17 +1125,7 @@ CREATE TABLE IF NOT EXISTS bills (
 ALTER TABLE bills 
 ADD COLUMN IF NOT EXISTS notes TEXT NULL AFTER rejection_reason;
 
--- =====================================================
--- DATABASE UPDATES COMPLETED
--- =====================================================
 
--- =====================================================
--- DATABASE UPDATES COMPLETED
--- =====================================================
-
--- =====================================================
--- FINAL CLEANUP: REMOVE ANY DUPLICATE SERVICES
--- =====================================================
 
 -- Step 1: Remove any duplicate restaurant services that might exist
 DELETE FROM services WHERE category = 'restaurant';
@@ -1188,15 +1172,23 @@ INSERT INTO services (name, category, description, price, image, status) VALUES
 ('Smoothie Bowl', 'restaurant', 'Healthy smoothie bowl topped with fresh fruits, granola, and honey', 250.00, 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=400&h=300&fit=crop&q=80', 'active'),
 
 -- Spa & Wellness Services - UNIQUE ONLY
-('Spa Massage', 'spa', 'Relaxing full body massage (60 minutes)', 1300.00, 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=300&fit=crop&q=80', 'active'),
-('Facial Treatment', 'spa', 'Rejuvenating facial with natural products for glowing skin (45 minutes)', 800.00, 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&h=300&fit=crop&q=80', 'active'),
-('Sauna & Steam Room', 'spa', 'Detoxify and relax in our premium sauna facilities (30 minutes)', 500.00, 'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=400&h=300&fit=crop&q=80', 'active'),
+('Spa Massage', 'spa', 'Relaxing full body massage (60 minutes)', 1300.00, 'assets/images/services/spa/Spa massage.jpg', 'active'),
+('Facial Treatment', 'spa', 'Rejuvenating facial with natural products for glowing skin (45 minutes)', 800.00, 'assets/images/services/spa/facial treatment1.jpg', 'active'),
+('Sauna & Steam Room', 'spa', 'Detoxify and relax in our premium sauna facilities (30 minutes)', 500.00, 'assets/images/services/spa/suna and steam room.jpg', 'active'),
 
 -- Laundry Services - UNIQUE ONLY
-('Wash & Iron', 'laundry', 'Professional washing and ironing service', 250.00, 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=400&h=300&fit=crop&q=80', 'active'),
-('Dry Cleaning', 'laundry', 'Premium dry cleaning for delicate garments', 400.00, 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop&q=80', 'active'),
-('Express Service', 'laundry', 'Same-day laundry service available', 500.00, 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=400&h=300&fit=crop&q=80', 'active')
+('Wash & Iron', 'laundry', 'Professional washing and ironing service', 250.00, 'assets/images/services/laundry/wash and iron.jpg', 'active'),
+('Dry Cleaning', 'laundry', 'Premium dry cleaning for delicate garments', 400.00, 'assets/images/services/laundry/dry cleaning.jpg', 'active'),
+('Express Service', 'laundry', 'Same-day laundry service available', 500.00, 'assets/images/services/laundry/Express service.png', 'active')
 ON DUPLICATE KEY UPDATE name=name;
+
+-- Update existing spa and laundry service images to local paths
+UPDATE services SET image = 'assets/images/services/spa/Spa massage.jpg'          WHERE name = 'Spa Massage'       AND category = 'spa';
+UPDATE services SET image = 'assets/images/services/spa/facial treatment1.jpg'    WHERE name = 'Facial Treatment'  AND category = 'spa';
+UPDATE services SET image = 'assets/images/services/spa/suna and steam room.jpg'  WHERE name = 'Sauna & Steam Room' AND category = 'spa';
+UPDATE services SET image = 'assets/images/services/laundry/wash and iron.jpg'    WHERE name = 'Wash & Iron'       AND category = 'laundry';
+UPDATE services SET image = 'assets/images/services/laundry/dry cleaning.jpg'     WHERE name = 'Dry Cleaning'      AND category = 'laundry';
+UPDATE services SET image = 'assets/images/services/laundry/Express service.png'  WHERE name = 'Express Service'   AND category = 'laundry';
 
 -- Step 3: Verify no duplicates exist
 SELECT 'Checking for duplicates...' as status;
@@ -2008,28 +2000,7 @@ ORDER BY r.price ASC;
 -- =====================================================
 SET FOREIGN_KEY_CHECKS = 1;
 
--- =====================================================
--- DATABASE SETUP COMPLETED SUCCESSFULLY
--- =====================================================
--- Total Tables Created: 35 (including room_services)
--- Default Users Created: 5 (Super Admin, Admin, Manager, Receptionist, Customer)
--- Room Services: Added for all 40 rooms
--- 
--- LOGIN CREDENTIALS:
--- ==================
--- Super Admin: superadmin@hararrashotel.com / 123456
--- Admin:       admin@hararrashotel.com / 123456  
--- Manager:     manager@hararrashotel.com / password
--- Receptionist: receptionist@hararrashotel.com / password
--- Customer:    customer@test.com / password
--- =====================================================
 
--- =====================================================
--- ROOM BOOKING QUEUE SYSTEM - PREVENT DOUBLE BOOKING
--- =====================================================
--- This system automatically manages room availability and booking queues
--- Staff can manually change room status (active, maintenance, inactive)
--- System automatically shows: available, in_process, occupied based on bookings
 
 -- =====================================================
 -- CREATE ROOM LOCKS TABLE (BOOKING QUEUE)
@@ -2323,24 +2294,7 @@ END$$
 
 DELIMITER ;
 
--- =====================================================
--- CREATE EVENT - AUTO CLEANUP EXPIRED LOCKS
--- =====================================================
 
--- Enable event scheduler (requires SUPER privilege - run manually if needed)
--- SET GLOBAL event_scheduler = ON;
-
--- Drop existing event if exists
--- DROP EVENT IF EXISTS auto_cleanup_expired_locks;
-
--- Create event to run every minute (DISABLED - requires event_scheduler to be ON)
--- Uncomment below lines after enabling event_scheduler manually
-/*
-CREATE EVENT IF NOT EXISTS auto_cleanup_expired_locks
-ON SCHEDULE EVERY 1 MINUTE
-DO
-    CALL cleanup_expired_locks();
-*/
 
 -- =====================================================
 -- CREATE INDEXES FOR PERFORMANCE
@@ -2365,21 +2319,7 @@ SELECT 'Room Booking Queue System installed successfully!' as message;
 UPDATE users SET preferred_language = 'en' WHERE preferred_language IS NULL OR preferred_language = '';
 UPDATE users SET preferred_language = 'en' WHERE preferred_language NOT IN ('en', 'am', 'om');
 
--- =====================================================
--- SETUP COMPLETE
--- =====================================================
 
--- =====================================================
--- HARAR RAS HOTEL - REFUND CALCULATION SYSTEM
--- =====================================================
--- Refund Policy:
--- - 7+ days before check-in: 95% Refund
--- - 3-6 days before check-in: 75% Refund
--- - 1-2 days before check-in: 50% Refund
--- - Same day cancellation: 25% Refund
--- - Past check-in date: No Refund
--- - Processing fee: 5% on all refunds
--- =====================================================
 
 -- =====================================================
 -- STEP 1: ALTER BOOKINGS TABLE (Add refund columns)
@@ -2744,19 +2684,6 @@ DELIMITER ;
 -- STEP 9: CREATE EVENT FOR AUTOMATIC NO-SHOW DETECTION
 -- =====================================================
 
--- Drop existing event if exists
--- DROP EVENT IF EXISTS auto_detect_no_shows;
-
--- Create event to run every hour (DISABLED - requires event_scheduler to be ON)
--- Uncomment below lines after enabling event_scheduler manually
-/*
-CREATE EVENT IF NOT EXISTS auto_detect_no_shows
-ON SCHEDULE EVERY 1 HOUR
-STARTS CURRENT_TIMESTAMP
-DO
-    CALL detect_no_shows();
-*/
-
 -- =====================================================
 -- REFUND SYSTEM SETUP COMPLETE
 -- =====================================================
@@ -2768,36 +2695,6 @@ SELECT 'Event Scheduler Status:' as info, @@event_scheduler as status;
 -- USEFUL QUERIES FOR TESTING
 -- =====================================================
 
--- Test refund calculation:
--- CALL calculate_refund(1, NOW(), @pct, @amt, @fee, @final, @days);
--- SELECT @pct as percentage, @amt as refund_amount, @fee as processing_fee, @final as final_refund, @days as days_before;
-
--- Get refund percentage:
--- SELECT get_refund_percentage('2026-04-15 14:00:00', NOW()) as refund_percentage;
-
--- Manual no-show detection:
--- CALL detect_no_shows();
-
--- View pending refunds:
--- SELECT * FROM refunds WHERE refund_status = 'Pending' ORDER BY created_at DESC;
-
--- View no-show bookings:
--- SELECT * FROM bookings WHERE status = 'no_show' ORDER BY check_in_date DESC;
-
--- View no-show detection log:
--- SELECT * FROM no_show_detection_log ORDER BY detection_time DESC LIMIT 10;
-
--- =====================================================
--- END OF REFUND SYSTEM SETUP
--- =====================================================
-
-
--- =====================================================
--- SAFARICOM ETHIOPIA M-PESA INTEGRATION
--- =====================================================
--- M-Pesa Payment Integration for Hotel Management System
--- Supports: STK Push (C2B), Payment Verification, Callbacks
--- =====================================================
 
 -- =====================================================
 -- STEP 1: CREATE M-PESA TRANSACTIONS TABLE
@@ -3033,34 +2930,7 @@ DELIMITER ;
 -- STEP 8: CREATE EVENT - CLEANUP OLD LOGS (Optional)
 -- =====================================================
 
--- Enable event scheduler if not already enabled (requires SUPER privilege - run manually if needed)
--- SET GLOBAL event_scheduler = ON;
 
--- Drop existing event if exists
--- DROP EVENT IF EXISTS cleanup_old_mpesa_logs;
-
--- Create event to cleanup logs older than 90 days (DISABLED - requires event_scheduler to be ON)
--- Uncomment below lines after enabling event_scheduler manually
-/*
-CREATE EVENT IF NOT EXISTS cleanup_old_mpesa_logs
-ON SCHEDULE EVERY 1 DAY
-STARTS CURRENT_TIMESTAMP
-DO
-BEGIN
-    -- Delete old API logs (keep 90 days)
-    DELETE FROM mpesa_api_logs 
-    WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY);
-    
-    -- Delete old callback logs (keep 90 days)
-    DELETE FROM mpesa_callback_logs 
-    WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY) AND processed = 1;
-    
-    -- Deactivate expired tokens
-    UPDATE mpesa_access_tokens 
-    SET is_active = 0 
-    WHERE expires_at < NOW() AND is_active = 1;
-END;
-*/
 
 -- =====================================================
 -- M-PESA INTEGRATION SETUP COMPLETED
@@ -3068,50 +2938,3 @@ END;
 
 SELECT 'M-Pesa Integration tables and procedures created successfully!' as message;
 
--- =====================================================
--- SCREENSHOT PAYMENT SYSTEM DOCUMENTATION
--- =====================================================
-
--- PAYMENT SYSTEM OVERVIEW:
--- This database now supports a screenshot-only payment system
--- No online payment gateways (Chapa removed)
--- Manual bank/mobile payments with screenshot verification
-
--- SUPPORTED PAYMENT METHODS (4 ONLY):
--- 1. TeleBirr: 0973409026
--- 2. CBE Mobile Banking: 1000274236552
--- 3. Abyssinia Bank: 244422382
--- 4. Cooperative Bank of Oromia: 1000056621528
--- Account Holder: Harar Ras Hotel (same for all)
-
--- PAYMENT FLOW:
--- 1. Customer creates booking
--- 2. Selects payment method
--- 3. Makes payment via mobile/bank
--- 4. Uploads screenshot (screenshot_path column)
--- 5. Staff verifies payment (verification_status)
--- 6. Booking confirmed when approved
-
--- KEY COLUMNS IN BOOKINGS TABLE:
--- screenshot_path: Path to uploaded payment screenshot
--- screenshot_uploaded_at: When screenshot was uploaded
--- payment_method: telebirr, cbe, abyssinia, cooperative
--- verification_status: pending_payment, pending_verification, verified, rejected, expired
-
--- FILE STORAGE:
--- Screenshots stored in: uploads/payments/
--- Max file size: 2MB
--- Allowed formats: JPG, PNG, JPEG
-
--- STAFF VERIFICATION:
--- Access: dashboard/verify-payments.php
--- Actions: Approve/Reject payments
--- View: Screenshot preview with booking details
-
--- =====================================================
--- DATABASE SETUP COMPLETED SUCCESSFULLY
--- =====================================================
--- Total Tables: 35+ (all hotel management features)
--- Payment System: Screenshot Upload Only
--- Ready for Production: YES
--- =====================================================
