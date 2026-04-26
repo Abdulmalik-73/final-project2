@@ -320,7 +320,7 @@ while ($row = $daily_revenue_result->fetch_assoc()) {
                             <div class="card stat-card">
                                 <div class="card-body">
                                     <i class="fas fa-money-bill-wave stat-icon"></i>
-                                    <div class="stat-number"><?php echo 'ETB ' . number_format($summary['total_revenue'] ?? 0, 2); ?></div>
+                                    <div class="stat-number"><?php echo formatCurrency($summary['total_revenue'] ?? 0); ?></div>
                                     <p class="mb-0">Total Revenue</p>
                                 </div>
                             </div>
@@ -440,8 +440,8 @@ while ($row = $daily_revenue_result->fetch_assoc()) {
                                                         <tr>
                                                             <td><?php echo date('M j', strtotime($revenue['date'])); ?></td>
                                                             <td><?php echo $revenue['bookings_count']; ?></td>
-                                                            <td><?php echo 'ETB ' . number_format($revenue['daily_revenue'], 2); ?></td>
-                                                            <td><?php echo 'ETB ' . number_format($revenue['avg_booking_value'], 2); ?></td>
+                                                            <td><?php echo formatCurrency($revenue['daily_revenue']); ?></td>
+                                                            <td><?php echo formatCurrency($revenue['avg_booking_value']); ?></td>
                                                         </tr>
                                                     <?php endwhile; ?>
                                                 <?php else: ?>
@@ -491,8 +491,8 @@ while ($row = $daily_revenue_result->fetch_assoc()) {
                                                 <tr>
                                                     <td><strong><?php echo ucfirst($room_type['room_type']); ?></strong></td>
                                                     <td><?php echo $room_type['bookings_count']; ?></td>
-                                                    <td><?php echo 'ETB ' . number_format($room_type['total_revenue'], 2); ?></td>
-                                                    <td><?php echo 'ETB ' . number_format($room_type['avg_price'], 2); ?></td>
+                                                    <td><?php echo formatCurrency($room_type['total_revenue']); ?></td>
+                                                    <td><?php echo formatCurrency($room_type['avg_price']); ?></td>
                                                     <td><?php echo $room_type['avg_stay_duration']; ?></td>
                                                     <td>
                                                         <?php $performance = $max_revenue > 0 ? ($room_type['total_revenue'] / $max_revenue) * 100 : 0; ?>
