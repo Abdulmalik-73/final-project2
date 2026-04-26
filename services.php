@@ -3,20 +3,28 @@ require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
 // Function to get food and service images - use actual database images
-function getServiceImage($dbImage = null) {
-    // Use database image if available
-    if (!empty($dbImage)) {
-        // Full URL — use directly
-        if (filter_var($dbImage, FILTER_VALIDATE_URL)) {
-            return $dbImage;
-        }
-        // Local path — encode spaces for browser but keep slashes
-        if (file_exists($dbImage)) {
-            return str_replace(' ', '%20', $dbImage);
-        }
+function getServiceImage($dbImage = null, $serviceName = null) {
+    // Map service names directly to local images (bypasses DB and file_exists)
+    $localMap = [
+        'Spa Massage'      => 'assets/images/services/spa/Spa%20massage.jpg',
+        'Facial Treatment' => 'assets/images/services/spa/facial%20treatment1.jpg',
+        'Sauna & Steam Room' => 'assets/images/services/spa/suna%20and%20steam%20room.jpg',
+        'Wash & Iron'      => 'assets/images/services/laundry/wash%20and%20iron.jpg',
+        'Dry Cleaning'     => 'assets/images/services/laundry/dry%20cleaning.jpg',
+        'Express Service'  => 'assets/images/services/laundry/Express%20service.png',
+    ];
+    if ($serviceName && isset($localMap[$serviceName])) {
+        return $localMap[$serviceName];
     }
-
-    // Return placeholder if no image available
+    // Full URL — use directly
+    if (!empty($dbImage) && filter_var($dbImage, FILTER_VALIDATE_URL)) {
+        return $dbImage;
+    }
+    // Local path — encode spaces
+    if (!empty($dbImage) && strpos($dbImage, 'unsplash') === false) {
+        return str_replace(' ', '%20', $dbImage);
+    }
+    // Return placeholder
     return 'assets/images/food/international/i1.jpg';
 }
 
@@ -103,7 +111,7 @@ while ($row = $services_result->fetch_assoc()) {
                     <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                         <div class="card h-100 shadow-sm">
                             <div class="position-relative">
-                                <img src="<?php echo getServiceImage($service['image']); ?>" 
+                                <img src="<?php echo getServiceImage($service['image'], $service['name']); ?>" 
                                      class="card-img-top" alt="<?php echo htmlspecialchars($service['name']); ?>" 
                                      style="height: 180px; object-fit: cover;"
                                      loading="lazy">
@@ -150,7 +158,7 @@ while ($row = $services_result->fetch_assoc()) {
                     <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                         <div class="card h-100 shadow-sm">
                             <div class="position-relative">
-                                <img src="<?php echo getServiceImage($service['image']); ?>" 
+                                <img src="<?php echo getServiceImage($service['image'], $service['name']); ?>" 
                                      class="card-img-top" alt="<?php echo htmlspecialchars($service['name']); ?>" 
                                      style="height: 180px; object-fit: cover;"
                                      loading="lazy">
