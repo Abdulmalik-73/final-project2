@@ -10,22 +10,62 @@ if (!isset($conn)) {
 }
 
 /**
- * Check if user is logged in
+ * Check if user is logged in - AGGRESSIVE validation
  */
 function is_logged_in() {
+    // Check if session ID exists
     if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
         return false;
     }
     
-    // Check session timeout (1 hour)
-    if (isset($_SESSION['last_activity'])) {
-        $session_timeout = 3600; // 1 hour
-        if (time() - $_SESSION['last_activity'] > $session_timeout) {
-            // Session expired - destroy it
-            session_destroy();
-            $_SESSION = [];
-            return false;
-        }
+    // AGGRESSIVE: Check session timeout (1 hour MAXIMUM)
+    if (!isset($_SESSION['last_activity'])) {
+        // No activity timestamp - session is invalid
+        session_destroy();
+        $_SESSION = [];
+        return false;
+    }
+    
+    $session_timeout = 3600; // 1 hour ONLY
+    $time_since_activity = time() - $_SESSION['last_activity'];
+    
+    if ($time_since_activity > $session_timeout) {
+        // Session expired - destroy it IMMEDIATELY
+        session_destroy();
+        $_SESSION = [];
+        setcookie(session_name(), '', time() - 86400, '/');
+        return false;
+    }
+    
+    // AGGRESSIVE: Validate user still exists in database
+    global $conn;
+    if (!isset($conn)) {
+        return false;
+    }
+    
+    $user_id = (int)$_SESSION['user_id'];
+    $stmt = $conn->prepare("SELECT id, status FROM users WHERE id = ? LIMIT 1");
+    if (!$stmt) {
+        return false;
+    }
+    
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        // User doesn't exist - destroy session
+        session_destroy();
+        $_SESSION = [];
+        return false;
+    }
+    
+    $user = $result->fetch_assoc();
+    if ($user['status'] !== 'active') {
+        // User is not active - destroy session
+        session_destroy();
+        $_SESSION = [];
+        return false;
     }
     
     // Update last activity time

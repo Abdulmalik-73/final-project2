@@ -1,4 +1,11 @@
 <?php
+// AGGRESSIVE cache prevention - MUST be first
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private");
+header("Pragma: no-cache");
+header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+
 require_once 'includes/config.php';
 
 // Get redirect parameters

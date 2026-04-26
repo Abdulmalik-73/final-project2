@@ -70,14 +70,14 @@ if (!defined('TIMEZONE'))        define('TIMEZONE', 'Africa/Addis_Ababa');
 
 // Session Configuration and Start
 if (session_status() == PHP_SESSION_NONE) {
-    // Enhanced session configuration for better stability
+    // AGGRESSIVE session security configuration
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
-    ini_set('session.gc_maxlifetime', 86400); // 24 hours
-    ini_set('session.cookie_lifetime', 86400); // 24 hours
-    ini_set('session.cookie_samesite', 'Lax');
+    ini_set('session.gc_maxlifetime', 3600); // 1 hour ONLY
+    ini_set('session.cookie_lifetime', 0); // Session cookie expires when browser closes
+    ini_set('session.cookie_samesite', 'Strict'); // Strict CSRF protection
     ini_set('session.gc_probability', 1);
-    ini_set('session.gc_divisor', 1000); // Less aggressive garbage collection
+    ini_set('session.gc_divisor', 100); // AGGRESSIVE garbage collection
     
     // Ensure session save path is writable
     $session_path = sys_get_temp_dir() . '/php_sessions';
@@ -96,8 +96,8 @@ if (session_status() == PHP_SESSION_NONE) {
     
     session_start();
     
-    // Less aggressive session regeneration - only on login, not on every request
-    // This prevents session loss during normal browsing
+    // AGGRESSIVE session regeneration - on every request for security
+    // This prevents session fixation attacks
 }
 // Timezone Configuration
 date_default_timezone_set(defined('TIMEZONE') ? TIMEZONE : 'Africa/Addis_Ababa');
