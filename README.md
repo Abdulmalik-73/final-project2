@@ -78,7 +78,6 @@ Harar Ras Hotel Management System is a complete web-based solution that manages 
 - Room management
 - Staff management
 - Reports (bookings, revenue, occupancy)
-- Payment verification
 
 ### 🔧 Admin
 - Full user management (create, edit, delete, view)
