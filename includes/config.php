@@ -573,6 +573,16 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 } catch (Exception $e) { /* silently ignore */ }
 
+// AUTO-FIX: Update spa and laundry service images to local paths
+try {
+    $conn->query("UPDATE services SET image = 'assets/images/services/spa/Spa massage.jpg'         WHERE name = 'Spa Massage'        AND category = 'spa'     AND (image LIKE '%unsplash%' OR image IS NULL OR image = '')");
+    $conn->query("UPDATE services SET image = 'assets/images/services/spa/facial treatment1.jpg'   WHERE name = 'Facial Treatment'   AND category = 'spa'     AND (image LIKE '%unsplash%' OR image IS NULL OR image = '')");
+    $conn->query("UPDATE services SET image = 'assets/images/services/spa/suna and steam room.jpg' WHERE name = 'Sauna & Steam Room' AND category = 'spa'     AND (image LIKE '%unsplash%' OR image IS NULL OR image = '')");
+    $conn->query("UPDATE services SET image = 'assets/images/services/laundry/wash and iron.jpg'   WHERE name = 'Wash & Iron'        AND category = 'laundry' AND (image LIKE '%unsplash%' OR image IS NULL OR image = '')");
+    $conn->query("UPDATE services SET image = 'assets/images/services/laundry/dry cleaning.jpg'    WHERE name = 'Dry Cleaning'       AND category = 'laundry' AND (image LIKE '%unsplash%' OR image IS NULL OR image = '')");
+    $conn->query("UPDATE services SET image = 'assets/images/services/laundry/Express service.png' WHERE name = 'Express Service'    AND category = 'laundry' AND (image LIKE '%unsplash%' OR image IS NULL OR image = '')");
+} catch (Exception $e) { /* silently ignore */ }
+
 // SAFE: Only create superadmin if it doesn't exist
 // This prevents duplicate insertion errors
 ensure_superadmin_exists();
