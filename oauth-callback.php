@@ -1,4 +1,9 @@
 <?php
+// AGGRESSIVE cache prevention - MUST be first
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private");
+header("Pragma: no-cache");
+header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
+
 session_start();
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
@@ -49,16 +54,26 @@ if (isset($_GET['code'])) {
                     $user = $oauth_service->createOrUpdateUser($google_user);
                     
                     if ($user) {
-                        // Set session variables
+                        // REGENERATE SESSION ID for security
+                        session_regenerate_id(true);
+                        
+                        // Set session variables - CRITICAL
                         $_SESSION['user_id'] = $user['id'];
                         $_SESSION['user_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
                         $_SESSION['user_email'] = $user['email'];
                         $_SESSION['user_role'] = $user['role'];
+                        $_SESSION['last_activity'] = time(); // Activity tracking
+                        
+                        // Update last login timestamp
+                        $update_query = "UPDATE users SET last_login = NOW() WHERE id = ?";
+                        $update_stmt = $conn->prepare($update_query);
+                        $update_stmt->bind_param("i", $user['id']);
+                        $update_stmt->execute();
                         
                         // Log successful OAuth login
                         log_user_activity($user['id'], 'login', 'User logged in via Google OAuth', $_SERVER['REMOTE_ADDR'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
                         
-                        // Redirect to appropriate page
+                        // Redirect based on role
                         if ($user['role'] === 'admin') {
                             header("Location: dashboard/admin.php");
                         } elseif ($user['role'] === 'manager') {
@@ -66,7 +81,8 @@ if (isset($_GET['code'])) {
                         } elseif ($user['role'] === 'receptionist') {
                             header("Location: dashboard/receptionist.php");
                         } else {
-                            header("Location: $redirect_url");
+                            // Customer - redirect to dashboard or home
+                            header("Location: index.php");
                         }
                         exit();
                     } else {
