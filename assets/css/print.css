@@ -1,0 +1,353 @@
+/* =====================================================
+   Harar Ras Hotel - Print Styles
+   Used by: receipt.php, booking-details.php,
+            dashboard/checkin-details.php,
+            dashboard/receptionist-checkin.php,
+            dashboard/view-booking.php,
+            dashboard/reports.php,
+            dashboard/manager-reports.php
+   ===================================================== */
+
+@media print {
+
+    /* ── Hide non-printable elements ── */
+    .no-print,
+    nav,
+    .navbar,
+    footer,
+    .footer,
+    .btn,
+    button,
+    .modal,
+    .alert,
+    .breadcrumb,
+    .pagination,
+    .social-links,
+    .sidebar,
+    .dropdown,
+    .dropdown-menu,
+    .offcanvas,
+    .toast,
+    .tooltip,
+    .popover,
+    .carousel-control-prev,
+    .carousel-control-next,
+    .carousel-indicators,
+    script {
+        display: none !important;
+    }
+
+    /* ── Show print-only elements ── */
+    .print-only {
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    /* ── Page setup ── */
+    @page {
+        margin: 0.75in;
+        size: A4;
+    }
+
+    /* ── Base styles ── */
+    *,
+    *::before,
+    *::after {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+        font-size: 11pt;
+        line-height: 1.5;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+
+    /* ── Layout ── */
+    .container,
+    .container-fluid {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    .row {
+        margin: 0 !important;
+    }
+
+    [class*="col-"] {
+        padding: 0 6px !important;
+    }
+
+    /* ── Cards ── */
+    .card {
+        border: 1px solid #333 !important;
+        box-shadow: none !important;
+        margin-bottom: 12px !important;
+        page-break-inside: avoid;
+        background: white !important;
+    }
+
+    .card-header {
+        background: #f0f0f0 !important;
+        color: black !important;
+        border-bottom: 1px solid #333 !important;
+        padding: 8px 12px !important;
+        font-size: 12pt;
+        font-weight: bold;
+    }
+
+    .card-body {
+        padding: 12px !important;
+    }
+
+    /* ── Tables ── */
+    .table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+        margin-bottom: 12px !important;
+        font-size: 10pt;
+    }
+
+    .table th,
+    .table td {
+        border: 1px solid #555 !important;
+        padding: 6px 8px !important;
+        text-align: left !important;
+        vertical-align: top !important;
+    }
+
+    .table th {
+        background: #e8e8e8 !important;
+        font-weight: bold !important;
+    }
+
+    /* ── Badges ── */
+    .badge {
+        border: 1px solid #333 !important;
+        background: #f0f0f0 !important;
+        color: black !important;
+        padding: 2px 6px !important;
+        font-size: 9pt;
+    }
+
+    /* ── Typography ── */
+    h1, h2, h3, h4, h5, h6 {
+        color: black !important;
+        page-break-after: avoid;
+        line-height: 1.3;
+        margin: 6px 0 4px 0;
+    }
+
+    h1 { font-size: 18pt; }
+    h2 { font-size: 16pt; }
+    h3 { font-size: 14pt; }
+    h4 { font-size: 12pt; }
+    h5 { font-size: 11pt; }
+    h6 { font-size: 10pt; }
+
+    p {
+        color: black !important;
+        margin: 3px 0;
+        line-height: 1.5;
+    }
+
+    a {
+        color: black !important;
+        text-decoration: none !important;
+    }
+
+    a[href]::after {
+        content: none !important;
+    }
+
+    /* ── Images ── */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* ── Page break utilities ── */
+    .page-break {
+        page-break-before: always;
+    }
+
+    .page-break-after {
+        page-break-after: always;
+    }
+
+    .no-page-break {
+        page-break-inside: avoid;
+    }
+
+    table {
+        page-break-inside: avoid;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    h1, h2, h3, h4, h5, h6,
+    .card-header {
+        page-break-after: avoid;
+    }
+
+    /* ── Print header (booking-details.php, checkin-details.php) ── */
+    .print-header {
+        display: block !important;
+        text-align: center;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #333;
+        padding-bottom: 12px;
+        page-break-after: avoid;
+    }
+
+    .print-header h1 {
+        font-size: 18pt;
+        font-weight: bold;
+        margin: 0 0 4px 0;
+    }
+
+    .print-header p {
+        font-size: 10pt;
+        margin: 2px 0;
+    }
+
+    /* ── Print footer (booking-details.php) ── */
+    .print-footer {
+        display: block !important;
+        text-align: center;
+        margin-top: 16px;
+        border-top: 1px solid #aaa;
+        padding-top: 6px;
+        font-size: 9pt;
+        color: #444;
+    }
+
+    /* ── Receipt container (receipt.php) ── */
+    .receipt-container {
+        box-shadow: none !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* ── Booking details table (booking-details.php) ── */
+    .booking-details-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .booking-details-table td {
+        padding: 4px 6px;
+        font-size: 10pt;
+        border: 1px solid #ccc;
+        vertical-align: top;
+    }
+
+    .booking-details-table td:first-child {
+        font-weight: bold;
+        width: 35%;
+        background: #f5f5f5 !important;
+    }
+
+    /* ── Food items table (booking-details.php) ── */
+    .food-items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 4px 0;
+        font-size: 10pt;
+    }
+
+    .food-items-table th,
+    .food-items-table td {
+        padding: 4px 6px;
+        border: 1px solid #ccc;
+    }
+
+    .food-items-table th {
+        background: #e8e8e8 !important;
+        font-weight: bold;
+    }
+
+    /* ── Single page print (checkin-details.php, view-booking.php,
+          receptionist-checkin.php, reports.php, manager-reports.php) ── */
+    .single-page-print {
+        font-size: 10pt;
+        line-height: 1.4;
+    }
+
+    .single-page-print .table {
+        font-size: 9pt;
+    }
+
+    .single-page-print .card-header {
+        padding: 4px 8px !important;
+        font-size: 10pt;
+    }
+
+    .single-page-print .card-body {
+        padding: 8px !important;
+    }
+
+    /* ── Bootstrap spacing reset for print ── */
+    .mb-1, .mb-2, .mb-3, .mb-4, .mb-5,
+    .mt-1, .mt-2, .mt-3, .mt-4, .mt-5,
+    .py-1, .py-2, .py-3, .py-4, .py-5,
+    .px-1, .px-2, .px-3, .px-4, .px-5 {
+        margin: 0 !important;
+        padding: 2px !important;
+    }
+
+    section {
+        padding: 4px 0 !important;
+        margin: 0 !important;
+    }
+
+    ul, ol {
+        margin: 0 !important;
+        padding-left: 14px !important;
+    }
+
+    li {
+        margin: 0 !important;
+        line-height: 1.4;
+    }
+
+    /* ── Form elements ── */
+    input,
+    select,
+    textarea {
+        border: 1px solid #aaa !important;
+        background: white !important;
+        color: black !important;
+        font-size: 10pt;
+        padding: 2px 4px;
+    }
+
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"] {
+        display: none !important;
+    }
+
+    /* ── Alert (keep visible if needed for print context) ── */
+    .alert {
+        border: 1px solid #aaa !important;
+        background: #f9f9f9 !important;
+        color: black !important;
+        padding: 6px 10px !important;
+        margin: 4px 0 !important;
+        font-size: 10pt;
+    }
+
+}

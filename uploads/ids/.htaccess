@@ -1,0 +1,17 @@
+# Prevent direct execution of uploaded files
+# Only allow image viewing, block PHP/script execution
+
+Options -Indexes
+Options -ExecCGI
+
+# Block PHP execution
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Allow only image files
+<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
