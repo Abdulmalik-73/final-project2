@@ -180,7 +180,7 @@ $without_count = $total_count - $with_id_count;
                                     <label class="form-label small fw-bold">Search (Booking Ref / Name / Email)</label>
                                     <input type="text" name="search" class="form-control"
                                            value="<?php echo htmlspecialchars($search); ?>"
-                                           placeholder="e.g. HRH20240101 or John Doe">
+                                           placeholder="e.g. HRH20240101 or Full Name">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label small fw-bold">Filter</label>
