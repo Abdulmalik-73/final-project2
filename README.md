@@ -467,8 +467,7 @@ This project is developed for **Harar Ras Hotel**, Harar, Ethiopia.
 
 ---
 
-## 👨‍💻 Developer
+## 👨‍💻 Developers
 
-**Abdulmalik Nure**
+**Group 10 — 4th Year Information System Department Students**
 - GitHub: [https://github.com/Abdulmalik-73/final-project2](https://github.com/Abdulmalik-73/final-project2)
-- Email: nureabdulmalik8@gmail.com
