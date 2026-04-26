@@ -212,11 +212,8 @@ while ($row = $services_result->fetch_assoc()) {
                     <div class="row g-3">
                         <div class="col-12">
                             <div class="card shadow-sm">
-                                <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                    <i class="fas fa-spa fa-5x text-white"></i>
-                                </div>
+                                <img src="assets/images/services/spa/Spa%20massage.jpg" class="card-img-top" alt="Spa Massage" style="height: 180px; object-fit: cover;">
                                 <div class="card-body">
-                                    <h6 class="card-title"><?php echo __('services_page.spa_massage'); ?></h6>
                                     <p class="card-text text-muted small"><?php echo __('services_page.spa_massage_desc'); ?></p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="h6 text-gold mb-0">ETB 1,300.00</span>
@@ -234,9 +231,7 @@ while ($row = $services_result->fetch_assoc()) {
                         
                         <div class="col-12">
                             <div class="card shadow-sm">
-                                <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                                    <i class="fas fa-hand-sparkles fa-5x text-white"></i>
-                                </div>
+                                <img src="assets/images/services/spa/facial%20treatment1.jpg" class="card-img-top" alt="Facial Treatment" style="height: 180px; object-fit: cover;">
                                 <div class="card-body">
                                     <h6 class="card-title"><?php echo __('services_page.facial'); ?></h6>
                                     <p class="card-text text-muted small"><?php echo __('services_page.facial_desc'); ?></p>
@@ -256,9 +251,7 @@ while ($row = $services_result->fetch_assoc()) {
                         
                         <div class="col-12">
                             <div class="card shadow-sm">
-                                <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                                    <i class="fas fa-hot-tub fa-5x text-white"></i>
-                                </div>
+                                <img src="assets/images/services/spa/suna%20and%20steam%20room.jpg" class="card-img-top" alt="Sauna & Steam Room" style="height: 180px; object-fit: cover;">
                                 <div class="card-body">
                                     <h6 class="card-title"><?php echo __('services_page.sauna'); ?></h6>
                                     <p class="card-text text-muted small"><?php echo __('services_page.sauna_desc'); ?></p>
@@ -291,9 +284,7 @@ while ($row = $services_result->fetch_assoc()) {
                     <div class="row g-3">
                         <div class="col-12">
                             <div class="card shadow-sm">
-                                <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-                                    <i class="fas fa-tshirt fa-5x text-white"></i>
-                                </div>
+                                <img src="assets/images/services/laundry/wash%20and%20iron.jpg" class="card-img-top" alt="Wash & Iron" style="height: 180px; object-fit: cover;">
                                 <div class="card-body">
                                     <h6 class="card-title"><?php echo __('services_page.wash_iron'); ?></h6>
                                     <p class="card-text text-muted small"><?php echo __('services_page.wash_iron_desc'); ?></p>
@@ -313,9 +304,7 @@ while ($row = $services_result->fetch_assoc()) {
                         
                         <div class="col-12">
                             <div class="card shadow-sm">
-                                <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-                                    <i class="fas fa-spray-can fa-5x text-white"></i>
-                                </div>
+                                <img src="assets/images/services/laundry/dry%20cleaning.jpg" class="card-img-top" alt="Dry Cleaning" style="height: 180px; object-fit: cover;">
                                 <div class="card-body">
                                     <h6 class="card-title"><?php echo __('services_page.dry_clean'); ?></h6>
                                     <p class="card-text text-muted small"><?php echo __('services_page.dry_clean_desc'); ?></p>
@@ -335,9 +324,7 @@ while ($row = $services_result->fetch_assoc()) {
                         
                         <div class="col-12">
                             <div class="card shadow-sm">
-                                <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
-                                    <i class="fas fa-clock fa-5x text-white"></i>
-                                </div>
+                                <img src="assets/images/services/laundry/Express%20service.png" class="card-img-top" alt="Express Service" style="height: 180px; object-fit: cover;">
                                 <div class="card-body">
                                     <h6 class="card-title"><?php echo __('services_page.express'); ?></h6>
                                     <p class="card-text text-muted small"><?php echo __('services_page.express_desc'); ?></p>
