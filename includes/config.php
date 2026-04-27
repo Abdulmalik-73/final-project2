@@ -590,9 +590,10 @@ ensure_superadmin_exists();
 // Clean up expired account locks
 clear_expired_locks();
 
-// Currency formatting function
+// Currency formatting function - hardcoded ETB to avoid constant conflicts
 function formatCurrency($amount) {
-    return number_format($amount, 2) . ' ' . CURRENCY_SYMBOL;
+    $formatted = number_format((float)$amount, 2);
+    return $formatted . ' ETB';
 }
 
 // Function to format price for display
