@@ -253,11 +253,34 @@ $services = $conn->query("SELECT * FROM services WHERE status = 'active' ORDER B
                                         <?php echo ucwords(str_replace('_', ' ', $category)); ?>
                                     </h5>
                                     <div class="row">
-                                        <?php foreach ($category_services as $service): ?>
+                                        <?php foreach ($category_services as $service): 
+                                            // Resolve correct image per category and service name
+                                            $svc_img = null;
+                                            $svc_name_lower = strtolower($service['name']);
+                                            if ($category === 'spa') {
+                                                if (strpos($svc_name_lower, 'facial') !== false) {
+                                                    $svc_img = '../assets/images/services/spa/facial treatment1.jpg';
+                                                } elseif (strpos($svc_name_lower, 'sauna') !== false || strpos($svc_name_lower, 'steam') !== false) {
+                                                    $svc_img = '../assets/images/services/spa/suna and steam room.jpg';
+                                                } else {
+                                                    $svc_img = '../assets/images/services/spa/Spa massage.jpg';
+                                                }
+                                            } elseif ($category === 'laundry') {
+                                                if (strpos($svc_name_lower, 'dry') !== false || strpos($svc_name_lower, 'clean') !== false) {
+                                                    $svc_img = '../assets/images/services/laundry/dry cleaning.jpg';
+                                                } elseif (strpos($svc_name_lower, 'express') !== false) {
+                                                    $svc_img = '../assets/images/services/laundry/Express service.png';
+                                                } else {
+                                                    $svc_img = '../assets/images/services/laundry/wash and iron.jpg';
+                                                }
+                                            } elseif ($service['image']) {
+                                                $svc_img = htmlspecialchars($service['image']);
+                                            }
+                                        ?>
                                         <div class="col-md-6 col-lg-3 mb-3">
                                             <div class="card h-100">
-                                                <?php if ($service['image']): ?>
-                                                <img src="<?php echo htmlspecialchars($service['image']); ?>" 
+                                                <?php if ($svc_img): ?>
+                                                <img src="<?php echo $svc_img; ?>" 
                                                      class="card-img-top" 
                                                      alt="<?php echo htmlspecialchars($service['name']); ?>"
                                                      style="height: 150px; object-fit: cover;">
@@ -335,11 +358,34 @@ $services = $conn->query("SELECT * FROM services WHERE status = 'active' ORDER B
                                                 <?php echo ucwords(str_replace('_', ' ', $category)); ?>
                                             </h5>
                                             <div class="row">
-                                                <?php foreach ($category_services as $service): ?>
+                                                <?php foreach ($category_services as $service):
+                                                    // Resolve correct image per category and service name
+                                                    $svc_img2 = null;
+                                                    $svc_name_lower2 = strtolower($service['name']);
+                                                    if ($category === 'spa') {
+                                                        if (strpos($svc_name_lower2, 'facial') !== false) {
+                                                            $svc_img2 = '../assets/images/services/spa/facial treatment1.jpg';
+                                                        } elseif (strpos($svc_name_lower2, 'sauna') !== false || strpos($svc_name_lower2, 'steam') !== false) {
+                                                            $svc_img2 = '../assets/images/services/spa/suna and steam room.jpg';
+                                                        } else {
+                                                            $svc_img2 = '../assets/images/services/spa/Spa massage.jpg';
+                                                        }
+                                                    } elseif ($category === 'laundry') {
+                                                        if (strpos($svc_name_lower2, 'dry') !== false || strpos($svc_name_lower2, 'clean') !== false) {
+                                                            $svc_img2 = '../assets/images/services/laundry/dry cleaning.jpg';
+                                                        } elseif (strpos($svc_name_lower2, 'express') !== false) {
+                                                            $svc_img2 = '../assets/images/services/laundry/Express service.png';
+                                                        } else {
+                                                            $svc_img2 = '../assets/images/services/laundry/wash and iron.jpg';
+                                                        }
+                                                    } elseif ($service['image']) {
+                                                        $svc_img2 = htmlspecialchars($service['image']);
+                                                    }
+                                                ?>
                                                 <div class="col-md-6 col-lg-4 mb-3">
                                                     <div class="card service-card h-100" onclick="selectService('<?php echo htmlspecialchars($service['name']); ?>', <?php echo $service['price']; ?>)">
-                                                        <?php if ($service['image']): ?>
-                                                        <img src="<?php echo htmlspecialchars($service['image']); ?>" 
+                                                        <?php if ($svc_img2): ?>
+                                                        <img src="<?php echo $svc_img2; ?>" 
                                                              class="card-img-top" 
                                                              alt="<?php echo htmlspecialchars($service['name']); ?>"
                                                              style="height: 150px; object-fit: cover;">

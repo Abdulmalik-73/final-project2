@@ -243,49 +243,58 @@ $services = $conn->query($query) ?: null;
                     <div class="row">
                         <?php if ($services && $services->num_rows > 0): ?>
                             <?php 
-                            $service_index = 0;
                             while ($service = $services->fetch_assoc()): 
-                                // Map service images based on category
                                 $category = $service['category'];
-                                $service_images = [
-                                    'restaurant' => [
+                                $service_name = $service['name'];
+                                
+                                // Build image path based on category and service name
+                                // Spa: match by service name to actual file
+                                // Laundry: match by service name to actual file
+                                $service_image = '../assets/images/hotel/exterior/hotel-main.png'; // default placeholder
+                                
+                                if ($category === 'spa') {
+                                    $name_lower = strtolower($service_name);
+                                    if (strpos($name_lower, 'facial') !== false) {
+                                        $service_image = '../assets/images/services/spa/facial treatment1.jpg';
+                                    } elseif (strpos($name_lower, 'sauna') !== false || strpos($name_lower, 'steam') !== false) {
+                                        $service_image = '../assets/images/services/spa/suna and steam room.jpg';
+                                    } elseif (strpos($name_lower, 'massage') !== false || strpos($name_lower, 'spa') !== false) {
+                                        $service_image = '../assets/images/services/spa/Spa massage.jpg';
+                                    } else {
+                                        $service_image = '../assets/images/services/spa/Spa massage.jpg';
+                                    }
+                                } elseif ($category === 'laundry') {
+                                    $name_lower = strtolower($service_name);
+                                    if (strpos($name_lower, 'dry') !== false || strpos($name_lower, 'clean') !== false) {
+                                        $service_image = '../assets/images/services/laundry/dry cleaning.jpg';
+                                    } elseif (strpos($name_lower, 'express') !== false) {
+                                        $service_image = '../assets/images/services/laundry/Express service.png';
+                                    } elseif (strpos($name_lower, 'wash') !== false || strpos($name_lower, 'iron') !== false) {
+                                        $service_image = '../assets/images/services/laundry/wash and iron.jpg';
+                                    } else {
+                                        $service_image = '../assets/images/services/laundry/wash and iron.jpg';
+                                    }
+                                } elseif ($category === 'restaurant') {
+                                    $food_images = [
                                         'assets/images/food/ethiopian/food1.jpg',
                                         'assets/images/food/ethiopian/food3.jpg',
                                         'assets/images/food/ethiopian/food5.jpg',
                                         'assets/images/food/international/i1.jpg',
                                         'assets/images/food/international/i3.jpg',
-                                        'assets/images/food/beverages/b1.jpg'
-                                    ],
-                                    'spa' => [
-                                        'assets/images/rooms/deluxe/room.jpg',
-                                        'assets/images/rooms/deluxe/room2.jpg',
-                                        'assets/images/rooms/presidential/room35.jpg'
-                                    ],
-                                    'laundry' => [
-                                        'assets/images/rooms/standard/room12.jpg',
-                                        'assets/images/rooms/standard/room13.jpg'
-                                    ],
-                                    'transport' => [
-                                        'assets/images/hotel/exterior/hotel-main.png',
-                                        'assets/images/hotel/exterior/hotel-image.png'
-                                    ],
-                                    'tours' => [
-                                        'assets/images/banners/baner.jpg',
-                                        'assets/images/banners/download.jpg'
-                                    ],
-                                    'other' => [
-                                        'assets/images/rooms/family/room27.jpg',
-                                        'assets/images/rooms/suite/room21.jpg'
-                                    ]
-                                ];
-                                
-                                $category_images = $service_images[$category] ?? $service_images['other'];
-                                $service_image = '../' . $category_images[$service_index % count($category_images)];
-                                $service_index++;
+                                        'assets/images/food/beverages/b1.jpg',
+                                    ];
+                                    static $food_index = 0;
+                                    $service_image = '../' . $food_images[$food_index % count($food_images)];
+                                    $food_index++;
+                                } elseif ($category === 'transport') {
+                                    $service_image = '../assets/images/hotel/exterior/hotel-main.png';
+                                } elseif ($category === 'tours') {
+                                    $service_image = '../assets/images/banners/baner.jpg';
+                                }
                             ?>
                             <div class="col-md-6 col-lg-4 mb-4">
                                 <div class="card h-100">
-                                    <img src="<?php echo $service_image; ?>" class="card-img-top" style="height: 200px; object-fit: cover;" alt="<?php echo htmlspecialchars($service['name']); ?>">
+                                    <img src="<?php echo htmlspecialchars($service_image); ?>" class="card-img-top" style="height: 200px; object-fit: cover;" alt="<?php echo htmlspecialchars($service['name']); ?>">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <h5 class="card-title"><?php echo htmlspecialchars($service['name']); ?></h5>
